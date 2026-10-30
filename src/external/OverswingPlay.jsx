@@ -28,7 +28,7 @@ export default function OverswingPlay({s,act,restart}){
   const legal=overswingActions(s);
   const canFlip=legal.some(a=>a.type==='flip');
   const canBank=legal.some(a=>a.type==='bank');
-  const total=s.dealTotals.reduce((v,n)=>v+n,0)+d.T;
+  const total=s.dealTotals.reduce((v,n)=>v+n,0)+(s.status==='over'?0:d.T);
   const pot=d.pot.reduce((v,c)=>v+rank(c),0);
   const e=s.lastAction;
   const lastFlip=s.lastFlip;
