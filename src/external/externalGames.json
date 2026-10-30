@@ -1,0 +1,86 @@
+[
+  {
+    "id": "019",
+    "slug": "kindling",
+    "name": "Kindling",
+    "status": "pass",
+    "score": null,
+    "sourceExperiment": "CGL-20261030-01",
+    "description": "Build ascending Fires from a moving market. Kindle chains for quadratic points and earn Sparks to choose stronger cards.",
+    "mechanic": "Ascending fires",
+    "components": "40 unique suited cards, three Fires, a three-card market, Sparks.",
+    "loop": "Take the first market card free, or spend a Spark for another slot. Build a rising Fire (+1 to +3) then Kindle for n² points.",
+    "risk": "If the selected card fits no Fire, it Smothers the largest stack and destroys its cards. Holding a long Fire risks losing it.",
+    "caveat": "Imported from another agent's finalized rules. No comparable eight-category numeric rating provided.",
+    "evidence": "40 Takes. Win at 130 points; Masterful at 200.",
+    "tags": [
+      "Market",
+      "Combo",
+      "Push your luck"
+    ],
+    "report": "/reports/019-kindling.md"
+  },
+  {
+    "id": "020",
+    "slug": "overswing",
+    "name": "Overswing",
+    "status": "pass",
+    "score": null,
+    "sourceExperiment": "CGL-20261029-23",
+    "description": "Swing a pendulum across zero with red and black cards to grow a multiplier. Bank before you snap past ±10.",
+    "mechanic": "Pendulum control",
+    "components": "40 unique suited cards, Hand of up to three, Pendulum −10 to +10.",
+    "loop": "Flip blind or Steer with hand cards. Crossing zero raises W; swing flips can be caught into your Hand. Bank for Pot × (1+W).",
+    "risk": "Passing ±10 Snaps and destroys the current pot. One-deal Short and three-deal Match available.",
+    "caveat": "Uses the uploaded v6 rules, not older v5 replay examples.",
+    "evidence": "Short Win 500+, Masterful 800+. Match Win 1500+, Masterful 2100+.",
+    "tags": [
+      "Push your luck",
+      "Multiplier",
+      "Control"
+    ],
+    "report": "/reports/020-overswing.md"
+  },
+  {
+    "id": "021",
+    "slug": "bondstone",
+    "name": "Bondstone",
+    "status": "pass",
+    "score": null,
+    "sourceExperiment": "CGL-20261030-03",
+    "description": "Build a 3×3 Stone wall. Matching suits and rank runs grow your Rise; a faulty line cracks it to ×1.",
+    "mechanic": "Grid pattern",
+    "components": "40 unique suited cards, 3×3 Wall, Rise 1–6, 3 Mortar tokens.",
+    "loop": "Set the current Stone with two card previews. Full rows/columns are judged and cleared: suit, run, or pure Bonds score.",
+    "risk": "Any Fault resets the Rise multiplier, even on a crossing row that also scores. Mortar can discard three dangerous Stones.",
+    "caveat": "Uses the frozen design tier thresholds; alternative report thresholds were not adopted.",
+    "evidence": "40 turns. Original thresholds: Win 700+, Masterful 1000+.",
+    "tags": [
+      "Grid",
+      "Patterns",
+      "Multiplier"
+    ],
+    "report": "/reports/021-bondstone.md"
+  },
+  {
+    "id": "022",
+    "slug": "undertow",
+    "name": "Undertow",
+    "status": "pass",
+    "score": null,
+    "sourceExperiment": "CGL-20261030-06",
+    "description": "Outrow twelve Tides by breaking suits, anchoring for lasting power, and accepting dangerous Strain for bonus points.",
+    "mechanic": "Tide and strain",
+    "components": "40 Crew cards, 12 Tide court cards, a face-down Hull, permanent Line.",
+    "loop": "Each turn choose Break, Anchor, Row up to three cards, then retain up to four cards for the next Tide.",
+    "risk": "High Strain triggers an unseen Check that may Crack, halve Catch, and destroy accumulated Strain/Deep. Surviving a live check rewards Deep.",
+    "caveat": "Most involved imported demo: two-stage crew assignment and keep/discard cleanup.",
+    "evidence": "Final = Catch + 3×Strain + 3×Deep. Win 140+, Masterful 165+.",
+    "tags": [
+      "Tactical",
+      "Hand management",
+      "Risk"
+    ],
+    "report": "/reports/022-undertow.md"
+  }
+]

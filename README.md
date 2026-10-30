@@ -48,3 +48,10 @@ The site uses hash navigation and a relative Vite base so deep links are compati
 ## Limitations
 
 The experiment scores and simulations are exploratory research, **not human playtesting results**. Browser favorites are intentionally local-only. These are exploratory, locally saved browser prototypes—not commercial-release-ready implementations. The generic interface prioritizes functional rule coverage over custom animations, touch drag interactions, and high-fidelity art. Stars and game saves are stored per browser only.
+
+
+## Four guest prototypes
+
+The catalog includes **Kindling, Overswing, Bondstone, and Undertow** (IDs 019–022). Each has a separate browser-side rules engine and mobile play interface following the supplied final specifications. Their scores are shown as **unrated** because the other agent did not provide an eight-category rating directly comparable with our original 18.
+
+Full guest implementation specifications are under `public/reports/019-kindling.md` through `022-undertow.md`. Reference fixture and randomized legal-play checks are in `tests/external.test.mjs`.
