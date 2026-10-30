@@ -1,0 +1,17 @@
+{
+  "name": "Card Game Lab",
+  "short_name": "Game Lab",
+  "start_url": "/card-game-lab/",
+  "display": "standalone",
+  "theme_color": "#11131d",
+  "background_color": "#11131d",
+  "icons": [
+    {
+      "src": "/card-game-lab/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "scope": "/card-game-lab/"
+}

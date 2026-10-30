@@ -1,0 +1,331 @@
+[
+  {
+    "id": "001",
+    "slug": "twinlock",
+    "name": "Twinlock",
+    "status": "pass",
+    "score": 7.9,
+    "description": "Balance two-sided vaults, then decide whether to secure the payout or draw a blind fourth card.",
+    "mechanic": "Two-sided sums",
+    "components": "24 numbered cards; three vaults; three-card hand.",
+    "loop": "Place cards on either side of a vault; the closer the sums, the higher the payout. Cash out early or blind-finish a three-card vault.",
+    "risk": "Blind completion doubles the payout if totals are within one; otherwise the vault burns.",
+    "caveat": "Small decision space but clear risk and board manipulation.",
+    "evidence": "Strategy averaged 962 vs random 152 in 1,000 matched-seed runs.",
+    "tags": [
+      "Tactical",
+      "Balance",
+      "Quick"
+    ],
+    "report": "/reports/001-twinlock.md"
+  },
+  {
+    "id": "002",
+    "slug": "stepwire",
+    "name": "Stepwire",
+    "status": "pass",
+    "score": 7.5,
+    "description": "Extend two numerical chains from either end, shaping the odds of a profitable blind finish.",
+    "mechanic": "Sequence building",
+    "components": "24 numbered cards; two five-card chains; three-card hand.",
+    "loop": "Place a number on either end if it differs from its neighbor by one; bank a chain or blind-complete it.",
+    "risk": "A matching unseen fifth card earns double payout; a non-fitting card burns the chain.",
+    "caveat": "The same multiset of cards creates different future odds depending on order.",
+    "evidence": "Strategic averaged 374 vs random 168 over 1,000 seeds.",
+    "tags": [
+      "Sequence",
+      "Odds",
+      "Quick"
+    ],
+    "report": "/reports/002-stepwire.md"
+  },
+  {
+    "id": "003",
+    "slug": "tenfold",
+    "name": "Tenfold",
+    "status": "revise",
+    "score": 7.25,
+    "description": "Arrange a 3×3 grid to create scoring lines that total ten, then risk your grid on a hidden Seal.",
+    "mechanic": "Spatial sums",
+    "components": "3×3 grid; numbered deck and three-card hand.",
+    "loop": "Arrange numbers so rows, columns, and diagonals produce exact-ten sums; secure points or attempt a Blind Seal.",
+    "risk": "Blind Seal multiplies new line rewards but can destroy accumulated grid value.",
+    "caveat": "Huge jackpots overshadow ordinary placement decisions.",
+    "evidence": "Adaptive averaged 397 vs aggressive 376 in the original version; distinction was uncertain.",
+    "tags": [
+      "Spatial",
+      "High variance"
+    ],
+    "report": "/reports/003-tenfold.md"
+  },
+  {
+    "id": "004",
+    "slug": "stormfreight",
+    "name": "Stormfreight",
+    "status": "pass",
+    "score": 7.9,
+    "description": "Load cargo ships, assign valuable cards as shields, and risk the entire shipment for ×3 rewards.",
+    "mechanic": "Cargo & push-your-luck",
+    "components": "24 resource cards (1–6); 14 storm cards (1–7); two ships.",
+    "loop": "Load up to three cargo cards and one shield per ship. Bank the cargo product or challenge a storm.",
+    "risk": "A storm succeeds if storm value + previous successes ≤ shield; success triples, failure destroys the shipment.",
+    "caveat": "Strong emotional loop; shield allocation creates an opportunity cost.",
+    "evidence": "Strategic averaged 505 vs conservative 373 and random 203.",
+    "tags": [
+      "Featured",
+      "Risk",
+      "Cargo"
+    ],
+    "report": "/reports/004-stormfreight.md"
+  },
+  {
+    "id": "005",
+    "slug": "cinderloop",
+    "name": "Cinderloop",
+    "status": "revise",
+    "score": 6.6,
+    "description": "Feed and cool a furnace to reopen risky opportunities for exponential rewards.",
+    "mechanic": "Heat management",
+    "components": "24 numbered cards; two furnaces with heat cap 12.",
+    "loop": "Feed cards to raise heat, Vent to reduce it, and Bank a furnace at its current multiplier.",
+    "risk": "Stoke draws an unseen number when heat is 9–11: stay ≤12 to multiply; otherwise burn.",
+    "caveat": "Extreme variance makes skilled average returns unreliable per run.",
+    "evidence": "Strategic mean 250 vs conservative 155, but won fewer than half matched games.",
+    "tags": [
+      "Heat",
+      "High variance"
+    ],
+    "report": "/reports/005-cinderloop.md"
+  },
+  {
+    "id": "006",
+    "slug": "switchback",
+    "name": "Switchback",
+    "status": "pass",
+    "score": 7.5,
+    "description": "Build alternating high-low movements along a track and gamble on unseen reversals.",
+    "mechanic": "Alternating sequences",
+    "components": "24 numbered cards; one numerical track; three-card hand.",
+    "loop": "Place numbers to alternate the movement direction and grow a combo up to ×8. Bank the pot or attempt Blind Turn.",
+    "risk": "Reversing unseen card doubles the pot; failing loses it. Two successful blind turns trigger an auto-bank.",
+    "caveat": "Card counting can make some blind turns guaranteed.",
+    "evidence": "Adaptive averaged 1,074 vs no-blind strategic 479.",
+    "tags": [
+      "Sequence",
+      "Combo"
+    ],
+    "report": "/reports/006-switchback.md"
+  },
+  {
+    "id": "007",
+    "slug": "beaconfall",
+    "name": "Beaconfall",
+    "status": "pass",
+    "score": 7.6,
+    "description": "Navigate a circular board to land on scoring Beacons and manage scarce banking opportunities.",
+    "mechanic": "Circular navigation",
+    "components": "24 numbered cards; 7-position ring; four Bank Seals.",
+    "loop": "Play a movement card clockwise, score Beacon landings, and build a combo. Bank or Surge.",
+    "risk": "Unseen Surge movement doubles an eligible Beacon payout; a miss destroys the pot.",
+    "caveat": "Positions change which card values are useful.",
+    "evidence": "Bold averaged 219 vs safe planner 131.",
+    "tags": [
+      "Spatial",
+      "Navigation"
+    ],
+    "report": "/reports/007-beaconfall.md"
+  },
+  {
+    "id": "008",
+    "slug": "rebound",
+    "name": "Rebound",
+    "status": "revise",
+    "score": 6.9,
+    "description": "Use positive and negative cards to manage a meter, then cross a danger line and hope to return safely.",
+    "mechanic": "Signed-number meter",
+    "components": "24 signed cards; one meter from −10 to +10.",
+    "loop": "Place signed values in the safe zone (−6 to +6), create reversal combos, or Bank.",
+    "risk": "Overload moves outside the safe zone then reveals a correction; success triples, failure salvages one quarter.",
+    "caveat": "A few favorable draws dominate outcomes.",
+    "evidence": "Adaptive averaged 516 vs safe 269 but won only 55% of matched runs.",
+    "tags": [
+      "Meter",
+      "High variance"
+    ],
+    "report": "/reports/008-rebound.md"
+  },
+  {
+    "id": "009",
+    "slug": "presspoint",
+    "name": "Presspoint",
+    "status": "pass",
+    "score": 7.25,
+    "description": "Manipulate two threshold guards around a center card to control scoring and gambling odds.",
+    "mechanic": "Threshold machine",
+    "components": "24 numbered cards; left guard, center piston, right guard; four Press Chips.",
+    "loop": "Replace machine cards and score when the center is above or below both guards; alternate patterns for combo points.",
+    "risk": "Blind Press stakes half or all of a pot on the center switching to the opposite pattern.",
+    "caveat": "Guard adjustments change both possible rewards and probability.",
+    "evidence": "Adaptive averaged 352 vs safe 188; banking was rarely used.",
+    "tags": [
+      "Thresholds",
+      "Risk"
+    ],
+    "report": "/reports/009-presspoint.md"
+  },
+  {
+    "id": "010",
+    "slug": "shortfuse",
+    "name": "Shortfuse",
+    "status": "pass",
+    "score": 7.4,
+    "description": "Complete exact-sum contracts, then carry winnings into a strict two-placement deadline for multipliers.",
+    "mechanic": "Deadline contracts",
+    "components": "24 numbered cards; target sums 7, 9, 11; three-card hand.",
+    "loop": "Place a card in a contract without exceeding its target. Completion pays at ×1, ×2, then ×4.",
+    "risk": "Carry instead of Bank and complete another contract within two placements, or lose the accumulated pot.",
+    "caveat": "Deliberate preparation matters more than raw blind-card luck.",
+    "evidence": "Adaptive averaged 118 vs conservative 79 and insured 107.",
+    "tags": [
+      "Featured",
+      "Planning",
+      "Countdown"
+    ],
+    "report": "/reports/010-shortfuse.md"
+  },
+  {
+    "id": "011",
+    "slug": "oddity",
+    "name": "Oddity",
+    "status": "revise",
+    "score": 7.0,
+    "description": "Maintain three collections of unique numbers, selling completed sets or risking duplicates.",
+    "mechanic": "Unique collections",
+    "components": "24 numbered cards; three jars; three-card hand.",
+    "loop": "Put unique values into jars and sell collections for escalating payouts.",
+    "risk": "Blindly add a card; duplicates destroy the jar, new numbers improve its payout.",
+    "caveat": "Resembles existing duplicate-bust push-your-luck games.",
+    "evidence": "Strategic averaged 390 vs safe 251.",
+    "tags": [
+      "Collections",
+      "Odds"
+    ],
+    "report": "/reports/011-oddity.md"
+  },
+  {
+    "id": "012",
+    "slug": "seam",
+    "name": "Seam",
+    "status": "revise",
+    "score": 6.75,
+    "description": "Rewire a 2×2 number puzzle to create adjacent pairs that add up to seven.",
+    "mechanic": "Grid adjacency",
+    "components": "24 numbered cards; 2×2 grid; three Dare tokens.",
+    "loop": "Replace cells to form new horizontal/vertical sum-seven links and build combos.",
+    "risk": "A blind replacement doubles successful new-link rewards or halves the pot.",
+    "caveat": "Dare action was used less than once per adaptive run.",
+    "evidence": "Adaptive averaged 170 vs conservative 151.",
+    "tags": [
+      "Spatial",
+      "Puzzle"
+    ],
+    "report": "/reports/012-seam.md"
+  },
+  {
+    "id": "013",
+    "slug": "glassfire",
+    "name": "Glassfire",
+    "status": "revise",
+    "score": 6.9,
+    "description": "Fill a furnace and decide whether to sell the batch or fire into a narrow temperature window.",
+    "mechanic": "Temperature window",
+    "components": "24 numbered cards; one furnace; four Sparks.",
+    "loop": "Feed cards into a furnace up to heat 10; each card scores by stack depth.",
+    "risk": "Fire with an unseen card: total heat 7–10 triples the pot, otherwise shatters it.",
+    "caveat": "Strong policies may repeatedly optimize the same heat pattern.",
+    "evidence": "Adaptive averaged 161 vs conservative 103.",
+    "tags": [
+      "Heat",
+      "Quick"
+    ],
+    "report": "/reports/013-glassfire.md"
+  },
+  {
+    "id": "014",
+    "slug": "foldline",
+    "name": "Foldline",
+    "status": "reject",
+    "score": 7.0,
+    "description": "Narrow a numbered interval while earning increasingly valuable folds, then gamble on an unseen card landing inside it.",
+    "mechanic": "Interval narrowing",
+    "components": "27 numbered cards (1–9); interval 0–10; four Dive tokens.",
+    "loop": "Play cards strictly between two boundaries and move one boundary inward; cash or dive.",
+    "risk": "Dive draws an unseen card that must land strictly inside the remaining interval.",
+    "caveat": "Core risk mechanic resembles In-Between / Acey-Deucey.",
+    "evidence": "Bold averaged 356 vs safe planner 291; rejected on originality.",
+    "tags": [
+      "Intervals",
+      "Derivative"
+    ],
+    "report": "/reports/014-foldline.md"
+  },
+  {
+    "id": "015",
+    "slug": "counterweight",
+    "name": "Counterweight",
+    "status": "pass",
+    "score": 7.5,
+    "description": "Balance two pans, intentionally create imbalances, and gamble on an unseen card restoring equilibrium.",
+    "mechanic": "Balance puzzle",
+    "components": "24 numbered cards; two three-slot pans; three Press tokens.",
+    "loop": "Place cards into pans, Bank their current balance-weighted payout, or Press.",
+    "risk": "Press draws onto a chosen pan; a difference ≤2 adds ×3, otherwise the entire load burns.",
+    "caveat": "Deliberately lowering your current payout can set up better Press odds.",
+    "evidence": "Adaptive averaged 1,415 vs safe 593; bank-aware had better downside.",
+    "tags": [
+      "Featured",
+      "Balance",
+      "Risk"
+    ],
+    "report": "/reports/015-counterweight.md"
+  },
+  {
+    "id": "016",
+    "slug": "ratchet",
+    "name": "Ratchet",
+    "status": "pass",
+    "score": 7.38,
+    "description": "Rotate three seven-position dials and chain clicks across different dials for growing rewards.",
+    "mechanic": "Rotating dials",
+    "components": "24 numbered cards; three 0–6 dials; three Overdrives.",
+    "loop": "Play cards to rotate dials modulo seven. Landing on zero generates a CLICK; alternate dials to raise the combo.",
+    "risk": "Overdrive reveals a card and attempts a raw total of 7–9; success triples, failure loses the pot.",
+    "caveat": "Modulo arithmetic may feel like homework without clear UI.",
+    "evidence": "Adaptive averaged 320 vs safe 245.",
+    "tags": [
+      "Rotation",
+      "Combo"
+    ],
+    "report": "/reports/016-ratchet.md"
+  },
+  {
+    "id": "017",
+    "slug": "chime",
+    "name": "Chime",
+    "status": "pass",
+    "score": 7.38,
+    "description": "Synchronize three countdown bells to earn multiplied rewards, then wager on a hidden Fate card.",
+    "mechanic": "Countdown scheduling",
+    "components": "24 numbered cards; three bells; three Pledge tokens.",
+    "loop": "Place countdowns, advance time by playing or burning cards, and score simultaneous rings.",
+    "risk": "Pledge swaps in a hidden Fate card; make it join a triple ring within three ticks or lose the pot.",
+    "caveat": "Planning is multi-turn and risky commitment follows a reveal.",
+    "evidence": "Adaptive averaged 519 vs safe 378 on 200 seeds.",
+    "tags": [
+      "Timing",
+      "Planning",
+      "Risk"
+    ],
+    "report": "/reports/017-chime.md"
+  }
+]
