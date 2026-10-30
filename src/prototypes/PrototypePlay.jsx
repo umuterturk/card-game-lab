@@ -2,7 +2,7 @@ import React, {useEffect,useMemo,useState} from 'react';
 import {createPrototype,prototypeActions,prototypeStep,prototypeView} from './engines.js';
 import './prototype.css';
 
-const riskTypes = new Set(['blind','pulse','seal','stoke','surge','overload','press','dare','fire','dive','risk','pledge']);
+const riskTypes = new Set(['blind','pulse','seal','stoke','surge','overload','press','dare','fire','dive','risk','pledge','graft']);
 const STORE_PREFIX='card-game-lab.run.v2.';
 function load(id){try{const saved=JSON.parse(localStorage.getItem(STORE_PREFIX+id));if(saved?.id===id&&typeof saved.finished==='boolean'&&Array.isArray(saved.deck)&&Array.isArray(saved.hand))return saved;}catch{}return createPrototype(id);}
 function ActionButton({action,onClick,warning=false}){return <button className={`pg-action ${warning?'pg-risk':''}`} type="button" onClick={()=>onClick(action)}><span>{action.label}</span><span aria-hidden="true">↗</span></button>;}
