@@ -22,6 +22,9 @@ const twinValue=lane=>{if(!lane.length)return 0;const l=sum(lane.filter(x=>x.sid
 const wireValue=w=>w.length?sum(w)*[0,0,1,2,4,5][w.length]:0;
 const furnaceValue=f=>f.heat*4**f.sparks*(f.heat===12?2:1);
 const oddValue=j=>(2**j.cards.length-1)*(1+j.blinds);
+const gridNeighbours=Array.from({length:9},(_,i)=>Array.from({length:9},(_,j)=>j).filter(j=>Math.abs(Math.floor(i/3)-Math.floor(j/3))+Math.abs(i%3-j%3)===1));
+const connectedGroups=grid=>{const seen=new Set(),groups=[];grid.forEach((v,i)=>{if(v==null||seen.has(i))return;const stack=[i],group=[];seen.add(i);while(stack.length){const at=stack.pop();group.push(at);for(const j of gridNeighbours[at])if(grid[j]!=null&&!seen.has(j)&&Math.abs(grid[at]-grid[j])===1){seen.add(j);stack.push(j);}}groups.push(group.sort((a,b)=>a-b));});return groups;};
+const graftOdds=(grid,i)=>[1,2,3,4,5,6].filter(v=>gridNeighbours[i].filter(j=>grid[j]!=null&&Math.abs(v-grid[j])===1).length>=2).length/6;
 const seams=[[0,1],[0,2],[1,3],[2,3]];
 const seamLinks=b=>seams.filter(([i,j])=>b[i]+b[j]===7).map(e=>e.join('-'));
 const foldVal=(lo,hi,depth)=> (10-(hi-lo))*Math.min(4,depth+1);
@@ -32,7 +35,7 @@ const sign=n=>Math.sign(n);
 const click=(s,w)=>{if(s.lastClick===w)s.streak=0;const g=7*2**Math.min(s.streak,2);s.pot+=g;s.streak=Math.min(3,s.streak+1);s.lastClick=w;return g;};
 const chimeFail=s=>{s.pot=0;s.pledge=0;s.bells=s.bells.map(b=>b?{...b,fate:false}:null);s.hand=s.hand.map(c=>({...c,fate:false}));};
 function initial(id,random=Math.random){
- let values=id==='014'?num(9,3):id==='008'?[-1,1].flatMap(sign=>num(6,2).map(v=>v*sign)):num();
+ let values=id==='018'?num(6,5):id==='014'?num(9,3):id==='008'?[-1,1].flatMap(sign=>num(6,2).map(v=>v*sign)):num();
  let s=newBase(id,values,random);
  switch(id){
  case '001':s.vaults=[[],[],[]];break;
@@ -50,6 +53,7 @@ function initial(id,random=Math.random){
  case '015':s.pans=[[],[]];s.chips=3;s.bonus=0;break;
  case '016':s.wheels=[0,0,0];s.streak=0;s.lastClick=-1;s.tokens=3;break;
  case '017':s.hand=s.hand.map(value=>({value,fate:false}));s.bells=[null,null,null];s.tokens=3;s.pledge=0;break;
+ case '018':s.grid=Array(9).fill(null);s.banks=2;s.grafts=3;break;
  }
  return s;
 }
@@ -109,6 +113,10 @@ function legal(s){
   each((n,i)=>s.wheels.forEach((_,j)=>a.push(act('place',`Rotate dial ${targetName(j)} by ${n}`,{card:i,target:j}))));
   if(s.pot)a.push(act('bank',`Bank ${s.pot} pts`));
   if(s.pot&&s.tokens&&s.deck.length)s.wheels.forEach((v,j)=>{if(v)a.push(act('risk',`OVERDRIVE dial ${targetName(j)}`,{target:j}));});break;
+ case '018':
+  s.grid.forEach((v,j)=>{if(v===null){each((n,i)=>a.push(act('place',`Plant ${n} at cell ${j+1}`,{card:i,target:j})));if(s.grafts&&s.pot>0&&gridNeighbours[j].filter(k=>s.grid[k]!=null).length>=2)a.push(act('graft',`GRAFT cell ${j+1} · ${Math.round(graftOdds(s.grid,j)*100)}% success`,{target:j}));}else each((n,i)=>a.push(act('prune',`Burn ${n} · prune cell ${j+1}`,{card:i,target:j})));});
+  connectedGroups(s.grid).filter(g=>g.length>=2).forEach(g=>a.push(act('harvest',`Harvest ${g.length} cells · +${10*g.length*g.length}`,{cells:g.join(','),target:g[0]})));
+  if(s.banks&&s.pot)a.push(act('bank',`BANK ${s.pot} points · ${s.banks} seals left`));break;
  case '017':
   each((n,i)=>{s.bells.forEach((v,j)=>{if(v===null)a.push(act('place',`Set bell ${targetName(j)} to ${n}`,{card:i,target:j}));});a.push(act('burn',`BURN ${n} & advance bells`,{card:i}));});
   if(s.pot&&!s.pledge)a.push(act('bank',`Bank ${s.pot} pts`));
@@ -117,7 +125,7 @@ function legal(s){
  return a;
 }
 function perform(source,action){
- const options=legal(source);if(!options.some(a=>a.type===action.type&&a.card===action.card&&a.target===action.target&&a.side===action.side&&a.stake===action.stake))return source;
+ const options=legal(source);if(!options.some(a=>a.type===action.type&&a.card===action.card&&a.target===action.target&&a.side===action.side&&a.stake===action.stake&&a.cells===action.cells))return source;
  const s=structuredClone(source);s.turns++;
  const t=action.target,i=action.card,side=action.side,type=action.type;
  let n=0,old=0,extra='';
@@ -198,6 +206,13 @@ function perform(source,action){
   if(type==='bank'){extra=` +${bank(s,s.pot)} points`;s.pot=0;s.streak=0;s.lastClick=-1;}
   if(type==='risk'){n=draw(s);s.tokens--;if(s.wheels[t]+n>=7&&s.wheels[t]+n<=9){s.wheels[t]=(s.wheels[t]+n)%7;if(s.wheels[t]===0)click(s,t);s.pot*=3;extra=` reveal ${n} · Overdrive ×3!`;}else{extra=` reveal ${n} · lost ${s.pot}`;s.pot=0;s.streak=0;s.lastClick=-1;s.wheels[t]=0;}}
   break;}
+ case '018':{
+  if(type==='place'){n=spent(s,i);s.grid[t]=n;refill(s);extra=` · planted ${n}`;}
+  else if(type==='prune'){n=spent(s,i);old=s.grid[t];s.grid[t]=null;s.discard.push(n,old);refill(s);extra=` · spent ${n} to remove ${old}`;}
+  else if(type==='harvest'){const cells=action.cells.split(',').map(Number);const reward=10*cells.length*cells.length;s.pot+=reward;cells.forEach(j=>{s.discard.push(s.grid[j]);s.grid[j]=null;});extra=` · +${reward} points`;}
+  else if(type==='bank'){bank(s,s.pot);extra=` · secured ${s.pot}`;s.pot=0;s.banks--;}
+  else if(type==='graft'){const chance=graftOdds(s.grid,t);n=Math.floor(Math.random()*6)+1;s.grid[t]=n;s.grafts--;const links=gridNeighbours[t].filter(j=>s.grid[j]!=null&&Math.abs(s.grid[j]-n)===1).length;if(links>=2){s.pot*=4;extra=` · Fate ${n}, ${links} connections, ×4! (${Math.round(chance*100)}% odds)`;}else{extra=` · Fate ${n}, ${links} connections, lost ${s.pot}`;s.pot=0;}}
+  break;}
  case '017':{
   if(type==='bank'){extra=` +${bank(s,s.pot)} points`;s.pot=0;}
   else if(type==='pledge'){n=spent(s,i);const fate=draw(s);s.hand.push({value:fate,fate:true});s.tokens--;s.pledge=3;extra=` reveal Fate ${fate} · 3 ticks to synchronize`;}
@@ -227,6 +242,7 @@ function perform(source,action){
    case '015':bank(s,panVal(s));break;
    case '016':bank(s,s.pot);s.pot=0;break;
    case '017':if(s.pledge)chimeFail(s);bank(s,s.pot);s.pot=0;break;
+   case '018':connectedGroups(s.grid).filter(g=>g.length>=2).forEach(g=>bank(s,10*g.length*g.length));bank(s,s.pot);s.pot=0;break;
   }end(s);
  }else log(s,`${action.label}${extra}`);
  return s;
@@ -250,11 +266,12 @@ function view(s){
  case '014':zones=[z('Narrowing window',[s.lo,'→',s.hi],`Depth ${s.depth} · ${s.pendingDive!=null?`Revealed ${s.pendingDive}: choose boundary`:'only interior numbers fit'}`)];add('Dives',s.dives);break;
  case '015':zones=s.pans.map((p,i)=>z(`${i?'Right':'Left'} pan`,p,`Weight ${sum(p)} · ${p.length}/3 slots`));add('Press chips',s.chips);add('Press bonus',`×${3**s.bonus}`);add('Load value',panVal(s));break;
  case '016':zones=s.wheels.map((w,i)=>z(`Dial ${targetName(i)}`,[w],`Wraps modulo 7 · last CLICK ${s.lastClick===i?'here':'elsewhere'}`));add('Overdrives',s.tokens);add('CLICK streak',s.streak);break;
+ case '018':zones=[z('3 × 3 root network',s.grid.map(x=>x??'·'),`${connectedGroups(s.grid).filter(g=>g.length>=2).length} harvestable groups · adjacent numbers differ by one`)];add('BANK seals',s.banks);add('GRAFT tokens',s.grafts);break;
  case '017':zones=s.bells.map((b,i)=>z(`Bell ${targetName(i)}`,b?[`${b.remaining} ticks`,b.fate?'FATE':`${b.original} card`]:['—'],b?'Rings at 0':'Empty'));add('Pledges',s.tokens);if(s.pledge)add('Fate deadline',s.pledge);break;
  }
  return {zones,pot,stats,score:s.score,deck:s.deck.length,hand:s.hand.length};
 }
-export const prototypeIds=['001','002','003','005','006','007','008','009','011','012','013','014','015','016','017'];
+export const prototypeIds=['001','002','003','005','006','007','008','009','011','012','013','014','015','016','017','018'];
 export function createPrototype(id,random){if(!prototypeIds.includes(id))throw new Error('Unknown prototype: '+id);return initial(id,random);}
 export const prototypeActions=legal;
 export const prototypeStep=perform;

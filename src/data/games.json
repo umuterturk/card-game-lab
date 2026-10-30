@@ -198,7 +198,7 @@
     "slug": "oddity",
     "name": "Oddity",
     "status": "revise",
-    "score": 7.0,
+    "score": 7,
     "description": "Maintain three collections of unique numbers, selling completed sets or risking duplicates.",
     "mechanic": "Unique collections",
     "components": "24 numbered cards; three jars; three-card hand.",
@@ -255,7 +255,7 @@
     "slug": "foldline",
     "name": "Foldline",
     "status": "reject",
-    "score": 7.0,
+    "score": 7,
     "description": "Narrow a numbered interval while earning increasingly valuable folds, then gamble on an unseen card landing inside it.",
     "mechanic": "Interval narrowing",
     "components": "27 numbered cards (1–9); interval 0–10; four Dive tokens.",
@@ -327,5 +327,25 @@
       "Risk"
     ],
     "report": "/reports/017-chime.md"
+  },
+  {
+    "id": "018",
+    "slug": "rootweave",
+    "name": "Rootweave",
+    "status": "revise",
+    "score": 7.25,
+    "description": "Grow connected groups on a 3×3 garden and risk your pot to graft a hidden root into the network.",
+    "mechanic": "Spatial adjacency",
+    "components": "30 numbered cards (five each of 1–6); 3×3 grid; 3-card hand; two BANK seals and three GRAFT tokens.",
+    "loop": "Place cards in empty cells. Adjacent cards differing by one form groups; harvest groups of at least two for 10 × size² points. Burn a card to prune a cell; use two seals to secure your pot.",
+    "risk": "GRAFT at an empty cell with two neighboring cards: independently reveal 1–6. If it connects to two or more neighbors, quadruple the pot; otherwise lose it.",
+    "caveat": "Large jackpots can dominate average scores; revision recommended.",
+    "evidence": "300 seeded games per strategy: conservative mean 1,306; adaptive mean 1,462, but higher downside.",
+    "tags": [
+      "Spatial",
+      "Chains",
+      "Risk"
+    ],
+    "report": "/reports/018-rootweave.md"
   }
 ]

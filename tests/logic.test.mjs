@@ -5,7 +5,7 @@ import fs from 'node:fs';
 
 function seqRandom(){return 0.53}
 const data=JSON.parse(fs.readFileSync(new URL('../src/data/games.json',import.meta.url),'utf8'));
-test('17 unique experiments with valid fields',()=>{assert.equal(data.length,17);assert.equal(new Set(data.map(x=>x.id)).size,17);assert.equal(new Set(data.map(x=>x.slug)).size,17);data.forEach(x=>{assert.ok(x.name&&x.description&&x.risk&&x.score>=0&&x.score<=10);assert.ok(['pass','revise','reject'].includes(x.status))})});
+test('18 unique experiments with valid fields',()=>{assert.equal(data.length,18);assert.equal(new Set(data.map(x=>x.id)).size,18);assert.equal(new Set(data.map(x=>x.slug)).size,18);data.forEach(x=>{assert.ok(x.name&&x.description&&x.risk&&x.score>=0&&x.score<=10);assert.ok(['pass','revise','reject'].includes(x.status))})});
 test('deck distributions match published rules',()=>{assert.equal(numbers().length,24);assert.deepEqual(numbers().filter(x=>x===6).length,4);assert.equal(storms().length,14);assert.equal(storms().filter(x=>x===7).length,2)});
 test('storm initial state conserves cards',()=>{const s=initStorm(seqRandom);assert.equal(s.deck.length,21);assert.equal(s.hand.length,3);assert.equal(s.weather.length,14)});
 test('storm bank uses cargo product and multiplier',()=>{let s=initStorm(seqRandom,{hand:[6,5,4],deck:[],ships:[{cargo:[6,5,4],shield:null,storms:2,sealed:true},{cargo:[],shield:null,storms:0,sealed:false}]});assert.equal(shipValue(s.ships[0]),1080);s=stormStep(s,{type:'bank',ship:0});assert.equal(s.score,1080)});
