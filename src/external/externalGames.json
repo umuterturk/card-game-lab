@@ -4,83 +4,127 @@
     "slug": "kindling",
     "name": "Kindling",
     "status": "pass",
-    "score": null,
+    "score": 7.63,
     "sourceExperiment": "CGL-20261030-01",
     "description": "Build ascending Fires from a moving market. Kindle chains for quadratic points and earn Sparks to choose stronger cards.",
     "mechanic": "Ascending fires",
     "components": "40 unique suited cards, three Fires, a three-card market, Sparks.",
     "loop": "Take the first market card free, or spend a Spark for another slot. Build a rising Fire (+1 to +3) then Kindle for n² points.",
     "risk": "If the selected card fits no Fire, it Smothers the largest stack and destroys its cards. Holding a long Fire risks losing it.",
-    "caveat": "Imported from another agent's finalized rules. No comparable eight-category numeric rating provided.",
-    "evidence": "40 Takes. Win at 130 points; Masterful at 200.",
+    "caveat": "Independent provisional eight-category assessment; 40-turn market drafting has strong depth but Smother is less exciting than an all-or-nothing wager. No human playtests.",
+    "evidence": "Supplied agent report: 2,000 deals; depth-3 planner mean 226.56, HumanProxy 166.63, simple 100.66, random 45.84. Stats not independently reproduced in this review.",
     "tags": [
       "Market",
       "Combo",
       "Push your luck"
     ],
-    "report": "/reports/019-kindling.md"
+    "report": "/reports/019-kindling.md",
+    "scoreDimensions": {
+      "simplicity": 8,
+      "engagement": 8,
+      "strategicDepth": 8,
+      "luckBalance": 8,
+      "excitement": 7,
+      "rewardSatisfaction": 8,
+      "senseOfLoss": 6,
+      "replayability": 8
+    },
+    "scoreBasis": "Provisional independent eight-category design review (2026-10-31); psychological dimensions are predictions; supplied simulation results were not independently rerun."
   },
   {
     "id": "020",
     "slug": "overswing",
     "name": "Overswing",
     "status": "pass",
-    "score": null,
+    "score": 8,
     "sourceExperiment": "CGL-20261029-23",
     "description": "Swing a pendulum across zero with red and black cards to grow a multiplier. Bank before you snap past ±10.",
     "mechanic": "Pendulum control",
     "components": "40 unique suited cards, Hand of up to three, Pendulum −10 to +10.",
     "loop": "Flip blind or Steer with hand cards. Crossing zero raises W; swing flips can be caught into your Hand. Bank for Pot × (1+W).",
     "risk": "Passing ±10 Snaps and destroys the current pot. One-deal Short and three-deal Match available.",
-    "caveat": "Uses the uploaded v6 rules, not older v5 replay examples.",
-    "evidence": "Short Win 500+, Masterful 800+. Match Win 1500+, Masterful 2100+.",
+    "caveat": "Independent provisional assessment; high-pot-volatility (reported SD 207 on strategic mean 605), with some overlap in signed-meter mechanics with Rebound. No human playtests.",
+    "evidence": "Supplied v6 agent report: 2,000 Short deals; strategic mean 604.8 (SD 207.4), adaptive 459.1, random 165.9; strategic Win ≥500 69.4%. Stats not independently reproduced.",
     "tags": [
       "Push your luck",
       "Multiplier",
       "Control"
     ],
-    "report": "/reports/020-overswing.md"
+    "report": "/reports/020-overswing.md",
+    "scoreDimensions": {
+      "simplicity": 7,
+      "engagement": 8,
+      "strategicDepth": 8,
+      "luckBalance": 7,
+      "excitement": 9,
+      "rewardSatisfaction": 9,
+      "senseOfLoss": 8,
+      "replayability": 8
+    },
+    "scoreBasis": "Provisional independent eight-category design review (2026-10-31); psychological dimensions are predictions; supplied simulation results were not independently rerun."
   },
   {
     "id": "021",
     "slug": "bondstone",
     "name": "Bondstone",
     "status": "pass",
-    "score": null,
+    "score": 7.75,
     "sourceExperiment": "CGL-20261030-03",
     "description": "Build a 3×3 Stone wall. Matching suits and rank runs grow your Rise; a faulty line cracks it to ×1.",
     "mechanic": "Grid pattern",
     "components": "40 unique suited cards, 3×3 Wall, Rise 1–6, 3 Mortar tokens.",
     "loop": "Set the current Stone with two card previews. Full rows/columns are judged and cleared: suit, run, or pure Bonds score.",
     "risk": "Any Fault resets the Rise multiplier, even on a crossing row that also scores. Mortar can discard three dangerous Stones.",
-    "caveat": "Uses the frozen design tier thresholds; alternative report thresholds were not adopted.",
-    "evidence": "40 turns. Original thresholds: Win 700+, Masterful 1000+.",
+    "caveat": "Independent provisional assessment; exceptionally low random baseline exaggerates the skill ratio, and risk is mostly deterministic placement pressure rather than blind wagering. No human playtests.",
+    "evidence": "Supplied agent report: 2,000 deals; depth-3 mean 835.0, depth-2 655.8, simple 363.2, random 21.9. Stats not independently reproduced.",
     "tags": [
       "Grid",
       "Patterns",
       "Multiplier"
     ],
-    "report": "/reports/021-bondstone.md"
+    "report": "/reports/021-bondstone.md",
+    "scoreDimensions": {
+      "simplicity": 7,
+      "engagement": 8,
+      "strategicDepth": 9,
+      "luckBalance": 8,
+      "excitement": 7,
+      "rewardSatisfaction": 8,
+      "senseOfLoss": 7,
+      "replayability": 8
+    },
+    "scoreBasis": "Provisional independent eight-category design review (2026-10-31); psychological dimensions are predictions; supplied simulation results were not independently rerun."
   },
   {
     "id": "022",
     "slug": "undertow",
     "name": "Undertow",
     "status": "pass",
-    "score": null,
+    "score": 7.13,
     "sourceExperiment": "CGL-20261030-06",
     "description": "Outrow twelve Tides by breaking suits, anchoring for lasting power, and accepting dangerous Strain for bonus points.",
     "mechanic": "Tide and strain",
     "components": "40 Crew cards, 12 Tide court cards, a face-down Hull, permanent Line.",
     "loop": "Each turn choose Break, Anchor, Row up to three cards, then retain up to four cards for the next Tide.",
     "risk": "High Strain triggers an unseen Check that may Crack, halve Catch, and destroy accumulated Strain/Deep. Surviving a live check rewards Deep.",
-    "caveat": "Most involved imported demo: two-stage crew assignment and keep/discard cleanup.",
-    "evidence": "Final = Catch + 3×Strain + 3×Deep. Win 140+, Masterful 165+.",
+    "caveat": "Independent provisional assessment; multi-role hand management and Strain/Deep/Crack rules are relatively hard to teach. A no-risk planner is close to the strongest tested policy. No human playtests.",
+    "evidence": "Supplied v4 agent report: 2,000 deals; MC48 planner mean 158.9 (SD 17.8), no-risk MC48 mean 147.7, random 29.4; planner Crack 8.8%. Stats not independently reproduced.",
     "tags": [
       "Tactical",
       "Hand management",
       "Risk"
     ],
-    "report": "/reports/022-undertow.md"
+    "report": "/reports/022-undertow.md",
+    "scoreDimensions": {
+      "simplicity": 5,
+      "engagement": 7,
+      "strategicDepth": 8,
+      "luckBalance": 7,
+      "excitement": 8,
+      "rewardSatisfaction": 7,
+      "senseOfLoss": 8,
+      "replayability": 7
+    },
+    "scoreBasis": "Provisional independent eight-category design review (2026-10-31); psychological dimensions are predictions; supplied simulation results were not independently rerun."
   }
 ]
