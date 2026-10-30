@@ -9,7 +9,9 @@ A mobile-first React (Vite) catalog for 17 experimental solo card-game designs.
 - Star games to keep a shortlist. Stars persist via browser `localStorage` on that device; they **do not sync between browsers/devices**.
 - Open shareable game detail URLs (`#/games/stormfreight`).
 - Read full archived Markdown reports for experiments 010–017, and clearly labeled abridged summaries for 001–009.
-- Play two small functional prototypes: **Stormfreight (004)** and **Shortfuse (010)**. Other games are browseable research concepts, not playable implementations.
+- Play **all 17 experiments**. Stormfreight (004) and Shortfuse (010) have their original dedicated layouts; the other 15 use a compact mobile game board with distinct game engines, legal moves, hidden draws, scoring, banking, setbacks and restarts.
+- Confirm potentially destructive voluntary gambles and inspect action history.
+- Resume a run on the same browser using local storage.
 - Responsive portrait/mobile layout and Add to Home Screen manifest.
 
 ## Develop
@@ -35,6 +37,9 @@ The site uses hash navigation and a relative Vite base so deep links are compati
 
 - `src/App.jsx` — React catalog, favorites, game details and prototype screens.
 - `src/logic.js` — pure Stormfreight and Shortfuse gameplay state transitions.
+- `src/prototypes/engines.js` — 15 independent game engines, ported from the archived Python simulators.
+- `src/prototypes/PrototypePlay.jsx` — responsive playable interface and persistent local runs.
+- `src/prototypes/prototype.css` — touch-first board and actions styling.
 - `src/data/games.json` — metadata for all 17 games. Add future experiments here.
 - `public/reports/` — archived reports (001–009 abridged, 010–017 complete).
 - `tests/` — Node.js built-in test runner for catalog and game logic.
@@ -42,4 +47,4 @@ The site uses hash navigation and a relative Vite base so deep links are compati
 
 ## Limitations
 
-The experiment scores and simulations are exploratory research, **not human playtesting results**. Browser favorites are intentionally local-only. Games 001–003, 005–009 and 011–017 are not implemented as playable React games yet.
+The experiment scores and simulations are exploratory research, **not human playtesting results**. Browser favorites are intentionally local-only. These are exploratory, locally saved browser prototypes—not commercial-release-ready implementations. The generic interface prioritizes functional rule coverage over custom animations, touch drag interactions, and high-fidelity art. Stars and game saves are stored per browser only.
