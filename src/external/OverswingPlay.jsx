@@ -3,6 +3,7 @@ import {rank,suit,signed,applySwing,overswingActions,overswingPayout,overswingMu
 import './overswing.css';
 import {OVERSWING_TUTORIAL_STEPS,OVERSWING_TUTORIAL_INTRO} from './overswingTutorial.js';
 import {LAST_FLAME,LAST_FLAME_RELICS} from './overswingJourneyContent.js';
+import {journeyRules} from './overswingJourney.js';
 
 const SUITS=['♥','♦','♠','♣'];
 const name=id=>(rank(id)===1?'A':rank(id))+SUITS[suit(id)];
@@ -96,7 +97,7 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null}){
   const payout=overswingPayout(s),multiplier=overswingMultiplier(d);
   const total=s.dealTotals.reduce((a,b)=>a+b,0)+(s.status==='over'?0:d.T);
   const canFlip=legal.some(a=>a.type==='flip'),canBank=legal.some(a=>a.type==='bank');
-  const nextCap=Math.max(2,d.handCap-1),mustDiscard=d.hand.length>nextCap;
+  const nextCap=Math.max(2,d.handCap-(isJourney?journeyRules(journey).bankCapacityLoss:1)),mustDiscard=d.hand.length>nextCap;
   useEffect(()=>setDiscardPick(false),[s.dealIndex,d.bankCount,s.status]);
   const doSteer=index=>{setSteerFocus(false);if(discardPick){if(legal.some(a=>a.type==='bank'&&a.dropIndex===index)){act({type:'bank',dropIndex:index});setDiscardPick(false);}}else if(legal.some(a=>a.type==='steer'&&a.index===index))act({type:'steer',index});};
   const bank=()=>{if(mustDiscard)setDiscardPick(true);else act({type:'bank'});};
