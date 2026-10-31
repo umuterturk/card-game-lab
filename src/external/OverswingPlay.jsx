@@ -19,6 +19,7 @@ function Outcome({e}){
   if(!e)return <>Bir kart seç veya <b>FLIP</b> yap. Kırmızı sağa, siyah sola hareket eder.</>;
   if(e.type==='bank')return <><b>+{e.points.toLocaleString('tr-TR')} BANK</b> · Kapasite {e.oldCap} → {e.newCap}. {e.dropped!=null?name(e.dropped)+' çıkarıldı. ':''}{e.refilled?.length?'Elin yeniden dolduruldu.':''}</>;
   if(e.snap)return <><b>SNAP!</b> <b>{name(e.card)}</b> ile {val(e.from)} → {val(e.to)}. {e.lostPayout.toLocaleString('tr-TR')} olası puan kaybedildi.</>;
+  if(e.zeroBreak)return <><b>ZERO BREAK!</b> {name(e.card)} ile {val(e.from)} → 0. <b>Tüm çarpanlar ×1 oldu.</b> Pot korunuyor{e.refilled?.length?', elin yenilendi':''}.</>;
   return <><b>{e.type==='flip'?'FLIP':'STEER'} {name(e.card)}</b> · {val(e.from)} → {val(e.to)} · <b>{target[e.destination]}</b> · toplam ×{e.multiplier.toLocaleString('tr-TR')}{e.refilled?.length?' · Elin '+e.refilled.length+' kartla yenilendi.':''}</>;
 }
 function Factor({label,value,detail}){
@@ -36,10 +37,10 @@ export default function OverswingPlay({s,act,restart}){
   const bank=()=>{if(mustDiscard)setDiscardPick(true);else act({type:'bank'});};
   return <div className="os8">
     <header className="os8-head">
-      <div><span>V8 · DENEYSEL</span><h2>OVERSWING</h2></div>
+      <div><span>V9 · ZERO BREAK</span><h2>OVERSWING</h2></div>
       <div className="os8-settings"><select value={s.mode} aria-label="Oyun modu" onChange={e=>{setDiscardPick(false);restart(e.target.value);}}><option value="short">1 deste</option><option value="match">3 deste</option></select><button onClick={()=>{setDiscardPick(false);restart(s.mode);}} type="button">↻</button></div>
     </header>
-    <div className="os8-legend"><span className="os8-redtext">♥ ♦ <b>+</b> SAĞA</span><span>♠ ♣ <b>−</b> SOLA</span><span>±10 sınır</span></div>
+    <div className="os8-legend"><span className="os8-redtext">♥ ♦ <b>+</b> SAĞA</span><span>♠ ♣ <b>−</b> SOLA</span><span>0 = ÇARPAN SIFIR</span><span>±10 = sınır</span></div>
     <div className="os8-scoreline">
       <div><small>SKOR</small><b>{total.toLocaleString('tr-TR')}</b></div>
       <div><small>POT</small><b>{pot}</b></div>
@@ -50,15 +51,16 @@ export default function OverswingPlay({s,act,restart}){
       <div className="os8-meter-heading"><strong>SARKAÇ</strong><b>{val(d.S)}</b></div>
       <div className="os8-track"><span className="os8-zero"/><span className="os8-pointer" style={{left:((d.S+10)*5)+'%'}}/></div>
       <div className="os8-ticks"><span>−10</span><span>−5</span><span>0</span><span>+5</span><span>+10</span></div>
+      <div className="os8-zero-warning">Tam 0: tüm çarpanlar ×1 · Sıfırı geçmek: bonus</div>
     </section>
     <div className="os8-factors" aria-label="Çarpan ayrıntıları">
       <Factor label="SWING" value={d.W+1} detail="Sıfırı geçince artan normal çarpan"/>
       <Factor label="FLIP" value={d.flipFactor} detail="Sıfırı geçmeyen FLIP: ilki ×2, ikincisi ×3, ..."/>
       <Factor label="SERİ" value={d.comboFactor} detail="Arka arkaya 2 FLIP ×2; üçüncü FLIP sıfırı geçerse ayrıca ×3"/>
       <Factor label="CROSS" value={d.crossFactor} detail="Her başarılı FLIP ile sıfırı geçiş ×2"/>
-      <Factor label="ZERO" value={d.zeroFactor} detail="STEER ile tam sıfıra varış ×2"/>
+
     </div>
-    <div className={'os8-event '+(s.lastAction?.snap?'os8-snap':'')} role="status" aria-live="polite">
+    <div className={'os8-event '+(s.lastAction?.snap?'os8-snap':s.lastAction?.zeroBreak?'os8-zero-break':'')} role="status" aria-live="polite">
       {s.lastAction?.card!=null&&<Card id={s.lastAction.card} mini/>}
       <p><Outcome e={s.lastAction}/></p>
     </div>
@@ -68,7 +70,7 @@ export default function OverswingPlay({s,act,restart}){
       <div className="os8-handcards">
         {d.hand.map((id,index)=>{
           const o=applySwing(d.S,d.W,signed(id));
-          const caption=discardPick?'ÇIKAR':o.snap?'SNAP':d.plays===0||o.swung?'POT +'+rank(id):'ISKARTA';
+          const caption=discardPick?'ÇIKAR':o.snap?'SNAP':d.S!==0&&o.S===0?'ZERO BREAK':d.plays===0||o.swung?'POT +'+rank(id):'ISKARTA';
           return <Card key={id} id={id} chosen={discardPick} onClick={discardPick||legal.some(a=>a.type==='steer'&&a.index===index)?()=>doSteer(index):null} caption={caption}/>;
         })}
         {!d.hand.length&&<p className="os8-empty">El boş. Destede kart varsa otomatik olarak kapasiteye kadar doldurulur.</p>}
@@ -92,8 +94,9 @@ export default function OverswingPlay({s,act,restart}){
         <p>8 kartla başlarsın. ♥ ♦ artı, ♠ ♣ eksi. Sarkaç ±10 sınırını aşarsa Pot kaybolur.</p>
         <p>FLIP her zaman Pot’a gider. Sıfırı geçmeyen arka arkaya FLIP’lerde FLIP çarpanı ×2, ×3, ×4… büyür.</p>
         <p>Üst üste 2 FLIP ayrıca SERİ ×2 getirir. Üçüncü FLIP sıfırı geçerse SERİ ayrıca ×3 daha kazanır. Sıfırı geçen her FLIP CROSS ×2 verir.</p>
-        <p>STEER ile tam sıfıra gelirsen ZERO ×2 kazanırsın. STEER art arda FLIP sayacını sıfırlar. Tüm çarpanlar BANK veya SNAP’e kadar korunur ve birbiriyle çarpılır.</p>
-        <p>İlk STEER ve sıfırı geçen STEER Pot’a girer, diğer STEER kartları iskartaya gider.</p>
+        <p>ZERO BREAK: FLIP veya STEER tam sıfıra gelirse SWING, FLIP, SERİ ve CROSS dahil bütün çarpanlar ×1 olur; FLIP serisi sıfırlanır. Pot kaybolmaz. Sıfırın karşı tarafına gerçekten geçmek ise bonus verir.</p>
+        <p>STEER art arda FLIP sayacını sıfırlar. Kazanılan çarpanlar BANK, SNAP veya ZERO BREAK’e kadar çarpılarak korunur.</p>
+        <p>İlk STEER, sıfırı geçen STEER ve ZERO BREAK yapan STEER Pot’a girer; diğer STEER kartları iskartaya gider.</p>
         <p>BANK için en az 2 kart hamlesi gerekir. BANK yaptıkça el kapasitesi 8 → 7 → … → 2 azalır. Fazla el kartın varsa hangisini çıkaracağını seçersin.</p>
         <p>Elin sıfıra indiğinde, kapalı destede yeterli kart varsa yeni elin mevcut maksimum kapasiteye kadar otomatik dolar.</p>
         <p>Çarpanlar deneysel; skor hedefleri henüz yeniden kalibre edilmedi.</p>
