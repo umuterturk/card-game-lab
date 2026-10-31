@@ -95,6 +95,23 @@ export default function OverswingJourney({quickState,quickAct,quickRestart}){
       <button className="oj-secondary" onClick={()=>setView('quick')}>QUICK PLAY · TUTORIAL</button></div>
     <p className="oj-record">Runs {progress.totalRuns} · Victories {progress.wins} · Best {fmt(progress.bestRunScore)}</p>
   </main>;
+  if(view==='menu')return <main className="oj-shell oj-home">
+    <header className="oj-title"><span className="oj-flame" aria-hidden="true">♨</span>
+      <p className="oj-eyebrow">THE LAST FLAME</p><h1>OVER<span>SWING</span></h1>
+      <p className="oj-subtitle">YOUR JOURNEY</p></header>
+    <Route run={run}/>
+    <div className="oj-choices">
+      {!['won','lost','abandoned'].includes(run.phase)&&
+        <button className="oj-primary" onClick={()=>setView('journey')}>RESUME JOURNEY</button>}
+      <button className="oj-secondary" onClick={begin}>NEW JOURNEY</button>
+      <button className="oj-secondary" onClick={()=>setView('quick')}>QUICK PLAY · TUTORIAL</button>
+      {(run.phase==='playing'||run.phase==='choosing_relic')&&
+        <button className="oj-secondary oj-abandon" onClick={abandon}>ABANDON CURRENT RUN</button>}
+      {['won','lost','abandoned'].includes(run.phase)&&
+        <button className="oj-secondary" onClick={()=>setView('journey')}>VIEW LAST RESULT</button>}
+    </div>
+    <p className="oj-record">Runs {progress.totalRuns} · Victories {progress.wins} · Best {fmt(progress.bestRunScore)}</p>
+  </main>;
   if(run.phase==='playing')return <div className="oj-shell oj-playing">
     <OverswingPlay s={run.encounter.engineState} act={play} journey={run}
       onBack={()=>setView('menu')}/>
