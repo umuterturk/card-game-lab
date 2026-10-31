@@ -1,15 +1,43 @@
 import React,{useEffect,useState} from 'react';
+import {createPortal} from 'react-dom';
 import OverswingPlay from './OverswingPlay.jsx';
 import {LAST_FLAME,LAST_FLAME_RELICS} from './overswingJourneyContent.js';
 import {
   startJourney,stepJourney,isValidJourney,recordJourneyProgress,
-  EMPTY_JOURNEY_PROGRESS,validJourneyProgress,journeyRunScore
+  EMPTY_JOURNEY_PROGRESS,validJourneyProgress,journeyRunScore,recordJourneyGold
 } from './overswingJourney.js';
+import {ROYAL_RULES,ROYAL_THRESHOLDS,unlockedRoyals,nextRoyal,targetScale} from './overswingRoyals.js';
 import './overswingJourney.css';
 
 const RUN_KEY='card-game-lab.overswing.journey.v1';
 const PROFILE_KEY='card-game-lab.overswing.journey-profile.v1';
 const fmt=n=>Number(n).toLocaleString('en-US');
+const fmtGold=n=>fmt(n)+' GOLD';
+function GoldProgress({progress}){
+  const gold=progress.lifetimeGold||0,next=nextRoyal(gold);
+  const index=next?['J','Q','K'].indexOf(next):-1;
+  const previous=index>0?ROYAL_THRESHOLDS[index-1]:0;
+  const target=index>=0?ROYAL_THRESHOLDS[index]:ROYAL_THRESHOLDS.at(-1);
+  const percent=Math.max(0,Math.min(100,100*(gold-previous)/(target-previous)));
+  return <section className="oj-gold-progress" aria-label="Lifetime Gold and Royal progress">
+    <div><strong>✦ LIFETIME GOLD · {fmt(gold)}</strong><span>{next?'NEXT: '+next+' · '+fmtGold(target):'ALL ROYALS UNLOCKED'}</span></div>
+    <div className="oj-gold-track"><span style={{width:percent+'%'}}/></div>
+    <small>Royals: {unlockedRoyals(gold).join(' · ')||'LOCKED'} · Gate targets ×{targetScale(unlockedRoyals(gold).length).toFixed(2)}</small>
+  </section>;
+}
+function RoyalReveal({id,onContinue}){
+  const royal=ROYAL_RULES[id];
+  return createPortal(<div className="oj-royal-overlay" role="presentation">
+    <section className="oj-royal-modal" role="dialog" aria-modal="true" aria-labelledby="oj-royal-name">
+      <p className="oj-eyebrow">ROYAL CARD DISCOVERED</p>
+      <div className="oj-royal-card" aria-hidden="true"><span>{id}</span><strong>{royal.value}</strong><small>ROYAL</small></div>
+      <h2 id="oj-royal-name">{royal.title}</h2>
+      <p>{royal.description}</p>
+      <p className="oj-royal-note">Hand-only. Never drawn by FLIP. A Royal replaces a normal card in future journeys.</p>
+      <button type="button" className="oj-primary" onClick={onContinue} autoFocus>CONTINUE</button>
+    </section>
+  </div>,document.body);
+}
 
 function readSaved(key){
   try{return JSON.parse(localStorage.getItem(key)||'null');}catch{return null;}
@@ -72,14 +100,23 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
   }catch{}},[run]);
   useEffect(()=>{try{localStorage.setItem(PROFILE_KEY,JSON.stringify(progress));}catch{}},[progress]);
   useEffect(()=>{
+    if(run?.encounter.engineState.lastAction?.type==='bank')
+      setProgress(current=>recordJourneyGold(current,run));
+  },[run]);
+  useEffect(()=>{
     if(run&&['won','lost','abandoned'].includes(run.phase)){
       setProgress(current=>recordJourneyProgress(current,run));
     }
   },[run?.phase,run?.runId]);
-  const begin=()=>{setRun(startJourney(Date.now()));setView('journey');};
+  const begin=()=>{setRun(startJourney(Date.now(),progress.lifetimeGold||0));setView('journey');};
   const play=action=>setRun(current=>current?stepJourney(current,{type:'PLAY',action}):current);
   const choose=relicId=>setRun(current=>current?stepJourney(current,{type:'CHOOSE_RELIC',relicId}):current);
   const abandon=()=>setRun(current=>current?stepJourney(current,{type:'ABANDON'}):current);
+  const newRoyal=unlockedRoyals(progress.lifetimeGold||0).find(id=>!(progress.seenRoyalIds||[]).includes(id));
+  const reveal=newRoyal?<RoyalReveal id={newRoyal} onContinue={()=>setProgress(old=>({
+    ...old,seenRoyalIds:[...(old.seenRoyalIds||[]),newRoyal]
+  }))}/>:null;
+  const screen=(()=>{
   if(view==='quick')return <div className="oj-shell oj-quick">
     <button type="button" className="oj-back" onClick={()=>setView('journey')}>‹ JOURNEY MENU</button>
     <OverswingPlay s={quickState} act={quickAct} restart={quickRestart} fullView={fullView}/>
@@ -90,6 +127,7 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
       <p className="oj-subtitle">THE LAST FLAME</p></header>
     <div className="oj-home-illustration" aria-hidden="true"><span>♨</span><i/><i/><i/></div>
     <Route/>
+    <GoldProgress progress={progress}/>
     <p className="oj-home-copy">Three gates. Two relics. One last flame.<br/>Risk your Pot, master the swing, and survive the Keeper.</p>
     <div className="oj-choices"><button className="oj-primary" onClick={begin}>IGNITE THE JOURNEY</button>
       <button className="oj-secondary" onClick={()=>setView('quick')}>QUICK PLAY · TUTORIAL</button></div>
@@ -100,6 +138,7 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
       <p className="oj-eyebrow">THE LAST FLAME</p><h1>OVER<span>SWING</span></h1>
       <p className="oj-subtitle">YOUR JOURNEY</p></header>
     <Route run={run}/>
+    <GoldProgress progress={progress}/>
     <div className="oj-choices">
       {!['won','lost','abandoned'].includes(run.phase)&&
         <button className="oj-primary" onClick={()=>setView('journey')}>RESUME JOURNEY</button>}
@@ -133,4 +172,6 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
     <Recap run={run} progress={progress} onNew={begin} onMenu={()=>setView('menu')}/>
   </main>;
   return null;
+  })();
+  return <>{screen}{reveal}</>;
 }
