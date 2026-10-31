@@ -24,10 +24,9 @@ function Outcome({e}){
   return <><b>{e.type==='flip'?'FLIP':'STEER'} {name(e.card)}</b> · {val(e.from)} → {val(e.to)} · <b>{target[e.destination]}</b>{e.swung?<b> · SWING +{e.gain}</b>:null}{e.swingPenalty?<b> · SWING −1</b>:null} · toplam ×{e.multiplier.toLocaleString('tr-TR')}{e.refilled?.length?' · Elin '+e.refilled.length+' kartla yenilendi.':''}</>;
 }
 const FACTOR_HELP={
-  swing:{title:'SWING',text:'Sarkaç sıfırın bir tarafından diğerine geçtiğinde artar. Önceki konumun sıfıra uzaklığı 1–5 ise +1, 6–8 ise +2, 9–10 ise +3 kademe kazanırsın. Üst sınır yoktur. Sıfırı geçmeyen STEER, SWING’i 1 kademe azaltır (en az ×1). Tam 0’a gelmek ZERO BREAK’tir: bütün çarpanlar ×1 olur.'},
-  flip:{title:'FLIP',text:'Sıfırı geçmeden yapılan ardışık FLIP hamlelerinde çarpan ×2, ×3, ×4… büyür. STEER veya sıfır geçişi bu ardışık sayacı durdurur; önceden kazanılmış FLIP çarpanı BANK, SNAP veya ZERO BREAK’e kadar korunur.'},
-  combo:{title:'SERİ',text:'Üst üste iki FLIP yapınca ayrı bir ×2 bonus kazanırsın. Üçüncü ardışık FLIP sıfırı geçerse ayrıca ×3 daha kazanırsın. STEER art arda FLIP sayacını sıfırlar.'},
-  cross:{title:'CROSS',text:'FLIP ile tam sıfıra basmadan karşı tarafa geçtiğinde ayrıca ×2 kazanırsın. Tekrar başarılı FLIP CROSS yaparsan bu bonuslar çarpılarak büyür. STEER ile sıfırı geçmek CROSS bonusu değil, SWING bonusu verir.'}
+  swing:{title:'SWING',text:'Sıfırın karşı tarafına geçince artar. Geçmeden STEER yaparsan 1 kademe düşer (en az ×1).'},
+  flip:{title:'FLIP',text:'Her başarılı ardışık FLIP çarpanı büyütür: ×2, ×3, ×4… Sıfırı geçsen de artar. STEER seriyi durdurur ama kazanılan çarpanı silmez.'},
+  jackpot:{title:'JACKPOT',text:'FLIP ile sıfırın karşı tarafına geçince iki katına çıkar. Geçemezsen değişmez. Tam sıfır (ZERO BREAK) bütün çarpanları ×1 yapar.'}
 };
 function Factor({id,label,value,onClick,expanded}){
   return <button type="button" className={'os8-factor '+(value>1?'os8-active':'')+(expanded?' os8-factor-open':'')}
@@ -54,7 +53,7 @@ export default function OverswingPlay({s,act,restart}){
   const actionButtons=<>
     <div className="os8-actions">
       <button type="button" disabled={!canFlip||discardPick} className={'os8-flip '+(tutorial&&canFlip?'os8-guide-action':'')} onClick={()=>act({type:'flip'})}>
-        <b>FLIP</b><small>Kapalı kart aç · {40-d.pos} kaldı</small><small>Seri: {d.flipStreak} FLIP</small>
+        <b>FLIP</b><small>Rastgele kart · {40-d.pos} kaldı</small><small>Üst üste: {d.flipStreak}</small>
       </button>
       <button type="button" disabled={!canBank||discardPick} className={'os8-bank '+(tutorial&&canBank?'os8-guide-action':'')} onClick={bank}>
         <b>BANK +{payout.toLocaleString('tr-TR')}</b><small>Kasaya al · Kapasite {d.handCap} → {nextCap}</small>
@@ -65,8 +64,7 @@ export default function OverswingPlay({s,act,restart}){
     <div className="os8-factors" aria-label="Çarpan ayrıntıları; bilgi almak için çarpana dokun">
       <Factor id="swing" label="SWING" value={d.W+1} onClick={()=>setOpenFactor(openFactor==='swing'?null:'swing')} expanded={openFactor==='swing'}/>
       <Factor id="flip" label="FLIP" value={d.flipFactor} onClick={()=>setOpenFactor(openFactor==='flip'?null:'flip')} expanded={openFactor==='flip'}/>
-      <Factor id="combo" label="SERİ" value={d.comboFactor} onClick={()=>setOpenFactor(openFactor==='combo'?null:'combo')} expanded={openFactor==='combo'}/>
-      <Factor id="cross" label="CROSS" value={d.crossFactor} onClick={()=>setOpenFactor(openFactor==='cross'?null:'cross')} expanded={openFactor==='cross'}/>
+      <Factor id="jackpot" label="JACKPOT" value={d.jackpotFactor} onClick={()=>setOpenFactor(openFactor==='jackpot'?null:'jackpot')} expanded={openFactor==='jackpot'}/>
     </div>
     {openFactor&&<div id="os8-factor-help" className="os8-factor-tooltip" role="region" aria-label={FACTOR_HELP[openFactor].title+' açıklaması'}>
       <div className="os8-tooltip-header"><strong>{FACTOR_HELP[openFactor].title} nasıl çalışır?</strong><button type="button" aria-label="Açıklamayı kapat" onClick={()=>setOpenFactor(null)}>×</button></div>
@@ -80,7 +78,7 @@ export default function OverswingPlay({s,act,restart}){
 
   return <div className="os8">
     <header className="os8-head">
-      <div><span>{tutorial?'REHBERLİ EĞİTİM':'V10 · OVERSWING'}</span><h2>OVERSWING</h2></div>
+      <div><span>{tutorial?'REHBERLİ EĞİTİM':'V12 · OVERSWING'}</span><h2>OVERSWING</h2></div>
       <div className="os8-settings">
         {!tutorial&&<button className="os8-tutorial-launch" type="button" onClick={()=>{setDiscardPick(false);setOpenFactor(null);restart('tutorial');}}>Eğitim</button>}
         <select value={s.mode} aria-label="Oyun modu" onChange={e=>{setDiscardPick(false);setOpenFactor(null);restart(e.target.value);}}>
@@ -116,7 +114,7 @@ export default function OverswingPlay({s,act,restart}){
         <h3>{tutorialStep.title}</h3>
         <p>{discardPick?'Şimdi işaretli kartı seçerek BANK işlemini tamamla.':tutorialStep.instruction}</p>
         <small>{tutorialStep.why}</small>
-      </>:<><h3>Eğitimi tamamladın!</h3><p>Dört çarpanı, STEER cezasını, ZERO BREAK’i ve riskleri gördün. Artık normal oyunu deneyebilirsin.</p>
+      </>:<><h3>Eğitimi tamamladın!</h3><p>Üç çarpanı, STEER cezasını ve riskleri öğrendin. Artık normal oyunu deneyebilirsin.</p>
         <button type="button" onClick={()=>restart('short')}>Normal oyuna başla</button>
         <button type="button" onClick={()=>restart('tutorial')}>Eğitimi tekrarla</button>
       </>}
@@ -148,10 +146,10 @@ export default function OverswingPlay({s,act,restart}){
       <span>{s.mode==='match'?'Deste '+(s.dealIndex+1)+'/3 · ':''}{d.pos}/40 kart çekildi</span>
       <details><summary>Kurallar ve çarpanlar</summary>
         <p>8 kartla başlarsın. ♥ ♦ artı, ♠ ♣ eksi. Sarkaç ±10 sınırını aşarsa Pot kaybolur.</p>
-        <p>FLIP her zaman Pot’a gider. Sıfırı geçmeyen arka arkaya FLIP’lerde FLIP çarpanı ×2, ×3, ×4… büyür.</p>
-        <p>Üst üste 2 FLIP ayrıca SERİ ×2 getirir. Üçüncü FLIP sıfırı geçerse SERİ ayrıca ×3 daha kazanır. Sıfırı geçen her FLIP CROSS ×2 verir.</p>
-        <p>ZERO BREAK: FLIP veya STEER tam sıfıra gelirse SWING, FLIP, SERİ ve CROSS dahil bütün çarpanlar ×1 olur; FLIP serisi sıfırlanır. Pot kaybolmaz. Sıfırın karşı tarafına gerçekten geçmek ise bonus verir.</p>
-        <p>STEER art arda FLIP sayacını sıfırlar. Sıfırı geçmeyen STEER, SWING çarpanından bir kademe düşürür (alt sınır ×1); diğer çarpanlar korunur. Kazanılan çarpanlar BANK, SNAP veya ZERO BREAK’e kadar çarpılarak korunur.</p>
+        <p>FLIP açılan kartı Pot’a ekler. Başarılı ardışık FLIP hamleleri çarpanı ×2, ×3, ×4… artırır; sıfır geçişleri de sayılır.</p>
+        <p>FLIP ile sıfırın karşı tarafına geçince SWING artar ve JACKPOT ikiye katlanır. Karşıya geçmeden FLIP yaparsan JACKPOT değişmez.</p>
+        <p>ZERO BREAK: Tam sıfıra gelince SWING, FLIP ve JACKPOT ×1 olur; Pot korunur. ±10 sınırını aşmak SNAP'tir: Pot kaybolur.</p>
+        <p>STEER ardışık FLIP sayacını durdurur; kazanılan FLIP ve JACKPOT korunur. Sıfırı geçmeyen STEER, SWING’i 1 azaltır (en az ×1).</p>
         <p>İlk STEER, sıfırı geçen STEER ve ZERO BREAK yapan STEER Pot’a girer; diğer STEER kartları iskartaya gider.</p>
         <p>BANK için en az 2 kart hamlesi gerekir. BANK yaptıkça el kapasitesi 8 → 7 → … → 2 azalır. Fazla el kartın varsa hangisini çıkaracağını seçersin.</p>
         <p>Elin sıfıra indiğinde, kapalı destede yeterli kart varsa yeni elin mevcut maksimum kapasiteye kadar otomatik dolar.</p>
