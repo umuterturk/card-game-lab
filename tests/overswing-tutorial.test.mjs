@@ -5,7 +5,7 @@ import {
   applySwing
 } from '../src/external/engines.js';
 import {
-  OVERSWING_TUTORIAL_DECK,OVERSWING_TUTORIAL_STEPS,
+  OVERSWING_TUTORIAL_DECK,OVERSWING_TUTORIAL_STEPS,OVERSWING_TUTORIAL_INTRO,
   overswingTutorialExpectedAction
 } from '../src/external/overswingTutorial.js';
 
@@ -40,6 +40,7 @@ test('tutorial deck is complete, deterministic, and uniquely suited',()=>{
   assert.equal(OVERSWING_TUTORIAL_DECK.length,40);
   assert.equal(new Set(OVERSWING_TUTORIAL_DECK).size,40);
   assert.equal(OVERSWING_TUTORIAL_STEPS.length,17);
+  assert.deepEqual(OVERSWING_TUTORIAL_INTRO.map(item=>item.term),['FLIP','STEER','POT','SKOR']);
   assert.deepEqual(OVERSWING_TUTORIAL_DECK.slice(0,8),[27,5,0,3,23,28,7,2]);
   assert.deepEqual(OVERSWING_TUTORIAL_DECK.slice(8,15),[12,11,24,21,15,17,4]);
   assert.deepEqual(newOverswing({mode:'tutorial',seed:1}).deal.deck,
@@ -47,8 +48,18 @@ test('tutorial deck is complete, deterministic, and uniquely suited',()=>{
 });
 test('tutorial enforces one action per step and replays all concepts',()=>{
   let s=newOverswing({mode:'tutorial',seed:33});
-  assert.equal(s.mode,'tutorial');assert.equal(s.version,10);
+  assert.equal(s.mode,'tutorial');assert.equal(s.version,11);
   assert.equal(s.tutorialStep,0);assert.equal(s.status,'playing');
+  assert.equal(s.tutorialIntroDone,false);
+  const untouched=s.deal;
+  assert.deepEqual(overswingActions(s),[]);
+  assert.strictEqual(stepOverswing(s,{type:'flip'}),s,'FLIP blocked before intro is read');
+  assert.strictEqual(stepOverswing(s,{type:'steer',index:0}),s,'STEER blocked before intro');
+  assert.strictEqual(stepOverswing(s,{type:'bank'}),s,'BANK blocked before intro');
+  s=stepOverswing(s,{type:'tutorial-start'});
+  assert.equal(s.tutorialIntroDone,true);
+  assert.strictEqual(s.deal,untouched,'intro should not consume or reorder rigged cards');
+  assert.equal(s.tutorialStep,0,'first guided move follows glossary');
   let previousTotal=0;
   for(let i=0;i<OVERSWING_TUTORIAL_STEPS.length;i++){
     const d=s.deal;
@@ -89,4 +100,12 @@ test('guided strict SWING and ZERO BREAK use the normal engine math',()=>{
   const s=newOverswing({mode:'tutorial'});
   assert.equal(s.deal.hand.length,8);
   assert.equal(overswingPayout(s),0);
+});
+
+test('normal games do not show tutorial intro or accept tutorial-start',()=>{
+  const normal=newOverswing({mode:'short',seed:11});
+  assert.equal(normal.version,11);
+  assert.equal(normal.tutorialIntroDone,true);
+  assert.ok(overswingActions(normal).some(a=>a.type==='flip'));
+  assert.strictEqual(stepOverswing(normal,{type:'tutorial-start'}),normal);
 });
