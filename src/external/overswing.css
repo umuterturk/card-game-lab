@@ -331,3 +331,105 @@
   .os8-actions button small{font-size:10px}
 }
 @media(prefers-reduced-motion:reduce){.os8-card,.os8-pointer{transition:none}}
+
+/* ?view=full: compact responsive, zero-scroll gameplay layout. If the screen is
+   shorter than the compact layout, FullscreenFit scales the complete board. */
+.overswing-fullscreen .os8-full{
+  width:100%;max-width:560px;margin:0 auto;
+  min-height:0;padding:8px 9px 9px;border:2px solid #6e3427;
+  overflow:visible;
+}
+.os8-full .os8-head{margin:0 0 3px;min-height:32px}
+.os8-full .os8-head .os8-brand>span{font-size:6px;margin-bottom:2px}
+.os8-full .os8-head h2{font-size:clamp(16px,5.4vw,25px);line-height:1.1}
+.os8-full .os8-settings{gap:3px}
+.os8-full .os8-settings select,.os8-full .os8-settings button{
+  font-size:clamp(12px,3.6vw,15px);padding:5px 5px;min-height:29px
+}
+.os8-full .os8-legend,.os8-full .os8-footer,.os8-full .os8-zero-warning{display:none}
+.os8-full .os8-journey-strip{margin:4px 0;padding:5px 7px}
+.os8-full .os8-journey-top{font-size:10px}
+.os8-full .os8-journey-top strong{font-size:16px}
+.os8-full .os8-journey-track{height:5px;margin:2px 0}
+.os8-full .os8-journey-bottom{min-height:14px;font-size:10px}
+.os8-full .os8-relic-charge{min-width:19px;height:17px;padding:0 3px}
+.os8-full .os8-journey-relic-help{margin:2px 0;font-size:10px}
+.os8-full .os8-scoreline{margin:4px 0;gap:3px}
+.os8-full .os8-scoreline>div{padding:4px 2px 3px;min-height:38px}
+.os8-full .os8-scoreline small{font-size:clamp(5px,1.5vw,7px);line-height:1.15}
+.os8-full .os8-scoreline b{margin-top:1px;font-size:clamp(18px,5.4vw,26px);line-height:1}
+.os8-full .os8-meter{margin:3px 0;padding:1px 4px 0}
+.os8-full .os8-flame-meter svg{max-height:clamp(88px,17.5dvh,145px)}
+.os8-full .os8-meter-ends{margin:-7px 4px 1px;font-size:10px}
+.os8-full .os8-meter-ends strong{font-size:11px}
+.os8-full .os8-factors{gap:4px;margin:4px 0}
+.os8-full .os8-factor{min-height:44px;padding:3px 2px;gap:1px}
+.os8-full .os8-factor span{font-size:clamp(6px,1.8vw,8px);line-height:1.05}
+.os8-full .os8-factor b{font-size:clamp(22px,6.1vw,30px)}
+.os8-full .os8-event{margin:3px 0 4px;padding:3px 6px;min-height:22px;
+  max-height:36px;overflow:hidden;font-size:clamp(12px,3.7vw,16px);line-height:1.05}
+.os8-full .os8-event p{line-height:1.05;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.os8-full .os8-event .os8-mini{min-height:20px;padding:1px 5px}
+.os8-full .os8-pot,.os8-full .os8-hand{margin:3px 0;padding:5px 6px}
+.os8-full .os8-section-heading{margin:0 0 3px;gap:3px}
+.os8-full .os8-section-heading h3{font-size:clamp(7px,1.9vw,10px);line-height:1.25}
+.os8-full .os8-section-heading span{font-size:13px}
+.os8-full .os8-potcards{display:flex;overflow:hidden;flex-wrap:nowrap;min-height:24px;max-height:28px;gap:3px}
+.os8-full .os8-card.os8-mini{min-width:26px;max-width:34px;min-height:24px;padding:1px 4px}
+.os8-full .os8-mini .os8-card-top{font-size:16px}
+.os8-full .os8-pot-overflow{display:grid;place-items:center;flex:0 0 34px;height:24px;
+  color:#ffd589;background:#472414;border:1px solid #b36a35;font:15px 'VT323',monospace}
+.os8-full .os8-handcards{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:3px}
+.os8-full .os8-hand .os8-card{width:100%;min-width:0;min-height:clamp(53px,8.8dvh,75px);padding:3px 0;box-shadow:none}
+.os8-full .os8-card .os8-card-top{font-size:clamp(13px,3.7vw,18px)}
+.os8-full .os8-hand .os8-card>strong{font-size:clamp(19px,5.3vw,27px)}
+.os8-full .os8-hand .os8-card>small{font-size:clamp(7px,1.9vw,10px);
+  min-height:0;line-height:1;overflow:hidden}
+.os8-full .os8-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:5px 0 2px}
+.os8-full .os8-actions button{min-height:clamp(55px,8dvh,68px);padding:3px 2px}
+.os8-full .os8-actions button b{font-size:clamp(9px,2.8vw,12px)}
+.os8-full .os8-actions button small{font-size:clamp(11px,3vw,13px)}
+.os8-full .os8-action-icon{font-size:24px;line-height:.85}
+.os8-full .os8-tutorial{margin:4px 0;padding:5px 7px}
+.os8-full .os8-tutorial-head{font-size:10px}
+.os8-full .os8-tutorial-progress{margin:3px 0;height:3px}
+.os8-full .os8-tutorial h3{margin:4px 0 2px;font-size:9px}
+.os8-full .os8-tutorial p{margin:2px 0;font-size:12px;line-height:1.2}
+.os8-full .os8-tutorial small{font-size:11px;line-height:1.2}
+.os8-full .os8-tutorial-glossary{margin:3px 0;gap:2px}
+.os8-full .os8-tutorial-term{grid-template-columns:40px 7px 1fr;font-size:11px;gap:3px;line-height:1.15}
+.os8-full .os8-tutorial-term strong{font-size:11px}
+.os8-full .os8-tutorial button{min-height:29px;margin:3px 0 0;padding:3px 7px;font-size:12px}
+.os8-full .os8-attention{margin:2px 0;padding:4px;font-size:12px}
+.os8-full .os8-attention button{padding:3px}
+.os8-full .os8-factor-tooltip{position:absolute;z-index:15;top:36%;left:4%;right:4%;
+  margin:0;padding:12px;border-color:#ffa746;box-shadow:0 12px 35px #000e}
+.os8-full .os8-complete{position:absolute;z-index:20;top:31%;left:8%;right:8%;
+  margin:0;padding:17px;box-shadow:0 0 0 200vmax #080609b0,0 0 20px #b94c24}
+.os8-full .os8-help-heading{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.os8-full .os8-help-heading h2{font:16px var(--pixel);color:#ffc875;margin:0}
+.os8-full .os8-help-heading button,.os8-full .os8-help-return{
+  border:2px solid #c57b39;background:#56301b;color:#fff0cb;padding:7px 9px;
+  font:12px 'VT323',monospace}
+.os8-full.os8-help-screen{padding:18px 15px}
+.os8-full.os8-help-screen h3{font:11px var(--pixel);line-height:1.5;color:#ffe092;margin:17px 0 7px}
+.os8-full.os8-help-screen p{font:18px/1.25 'VT323',monospace;margin:5px 0;color:#f6ddc5}
+.os8-full.os8-help-screen b{color:#ffb76d}
+.os8-full .os8-help-return{width:100%;margin-top:15px;min-height:40px}
+@media(max-height:730px){
+ .os8-full .os8-flame-meter svg{max-height:clamp(75px,15dvh,115px)}
+ .os8-full .os8-meter-ends{margin-top:-8px}
+ .os8-full .os8-factor{min-height:40px}
+ .os8-full .os8-event{max-height:29px}
+ .os8-full .os8-hand .os8-card{min-height:52px}
+ .os8-full .os8-actions button{min-height:52px}
+ .os8-full .os8-section-heading{margin-bottom:2px}
+}
+@media(max-height:590px){
+ .os8-full .os8-flame-meter svg{max-height:75px}
+ .os8-full .os8-meter-ends{display:none}
+ .os8-full .os8-event{max-height:24px}
+ .os8-full .os8-card.os8-mini{min-height:19px}
+ .os8-full .os8-hand .os8-card{min-height:48px}
+ .os8-full .os8-actions button{min-height:46px}
+}
