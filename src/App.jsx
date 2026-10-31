@@ -2,6 +2,7 @@ import React, {useEffect,useMemo,useState} from 'react';
 import originalGames from './data/games.json';
 import externalGames from './external/externalGames.json';
 import ExternalPlay from './external/ExternalPlay.jsx';
+import {isOverswingFullView} from './external/overswingViewMode.js';
 const games = [...originalGames, ...externalGames];
 import PrototypePlay from './prototypes/PrototypePlay.jsx';
 import {initStorm,stormStep,stormChance,shipValue,initShort,shortStep,shortAfterChoice,shortEnd,targets,laneSum} from './logic.js';
@@ -80,8 +81,7 @@ function ShortPlay(){const [s,setS]=useState(()=>initShort());const [selected,se
  {done&&<div className="game-complete"><h2>Run complete</h2><strong>{s.score.toLocaleString()} pts</strong><button className="primary-btn" onClick={()=>setS(initShort())}>Play again <Icon name="refresh" size={18}/></button></div>}<EventLog history={s.history}/></div>}
 function Play({game}){return <div className="play-container"><a className="back-link" href={linkTo(`/games/${game.slug}`)}><Icon name="back" size={17}/> Back to game details</a>{game.id==='004'?<StormPlay/>:game.id==='010'?<ShortPlay/>:game.sourceExperiment?<ExternalPlay key={game.id} game={game}/>:<PrototypePlay key={game.id} game={game}/>}<p className="play-disclaimer">Functional browser prototype. Scores are local and do not affect published simulation results.</p></div>}
 export default function App(){const route=useRoute();const pathname=route.split('?')[0];
- const fullView=(new URLSearchParams(window.location.search).get('view')==='full'||
-   new URLSearchParams(route.includes('?')?route.slice(route.indexOf('?')+1):'').get('view')==='full')&&(pathname==='/play/overswing'||pathname==='/');
+ const fullView=isOverswingFullView(route,window.location.search);
  useEffect(()=>{
    document.documentElement.classList.toggle('overswing-full-active',fullView);
    document.body.classList.toggle('overswing-full-active',fullView);
