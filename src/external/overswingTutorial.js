@@ -9,24 +9,24 @@ export const OVERSWING_TUTORIAL_DECK=[
 ];
 
 export const OVERSWING_TUTORIAL_INTRO=[
-  {term:'FLIP',text:'Desteden rastgele bir kart açmak. Kart Pot’a gider.'},
-  {term:'STEER',text:'Elindeki kartlardan birini seçip oynamak.'},
-  {term:'POT',text:'Henüz BANK yapmadığın, riske attığın kart puanları.'},
-  {term:'SKOR',text:'BANK ile kasaya aldığın, kaybetmeyeceğin toplam puan.'}
+  {term:'FLIP',text:'Draw a random card from the deck. It enters the Pot.'},
+  {term:'STEER',text:'Play a card of your choice from your hand.'},
+  {term:'POT',text:'Unbanked card points. You lose them on SNAP.'},
+  {term:'SCORE',text:'Points safely collected by BANK.'}
 ];
 
-// Each step is one real engine action. No arbitrary scenario-state injections.
+// Ten guided actions, using the same fixed deck as the original tutorial.
 export const OVERSWING_TUTORIAL_STEPS=[
-  {type:'flip',title:'FLIP',instruction:'FLIP yap: +3.',why:'Rastgele kart Pot’a gider. FLIP ×2.'},
-  {type:'flip',title:'FLIP serisi',instruction:'Tekrar FLIP yap: +2.',why:'İki FLIP üst üste: FLIP ×3.'},
-  {type:'steer',card:27,title:'SWING',instruction:'Elinden 8♠ (−8) oyna: +5 → −3.',why:'Sıfırı geçtin: SWING ×2. Kart Pot’a girer.'},
-  {type:'steer',card:0,title:'STEER bedeli',instruction:'A♥ (+1) oyna: −3 → −2.',why:'Geçiş yok: SWING ×1’e düşer. Kart iskartaya gider.'},
-  {type:'flip',title:'JACKPOT',instruction:'FLIP yap: +6 ile −2 → +4.',why:'FLIP ile geçiş: SWING ×2, JACKPOT ×2 olur; sonraki geçişte ×3 olur. FLIP ×3 korunur.'},
-  {type:'bank',title:'BANK ve SKOR',instruction:'BANK yap ve puanları kasaya al.',why:'Pot × SWING × FLIP × JACKPOT skora eklenir.'},
-  {type:'steer',card:3,title:'Yeni tur',instruction:'4♥ (+4) oyna.',why:'İlk STEER Pot’a gider.'},
-  {type:'steer',card:23,title:'ZERO BREAK',instruction:'4♠ (−4) oyna: +4 → 0.',why:'Tam 0: çarpanlar ×1, Pot korunur.'},
-  {type:'flip',title:'Sınırı gör',instruction:'FLIP yap: +8.',why:'Sarkaç −10…+10 arasında kalmalı.'},
-  {type:'flip',title:'SNAP',instruction:'Yeniden FLIP yap: +8 → +13.',why:'Sınır aşıldı: Pot kaybolur. Eğitim bitti!'}
+  {type:'flip',title:'FLIP',instruction:'Tap FLIP to reveal +3.',why:'The random card enters the Pot. FLIP ×2.'},
+  {type:'flip',title:'FLIP STREAK',instruction:'FLIP again to reveal +2.',why:'Two FLIPs in a row: FLIP ×3.'},
+  {type:'steer',card:27,title:'SWING',instruction:'Play 8♠ (−8) from your hand: +5 → −3.',why:'You crossed zero: SWING ×2. The card enters the Pot.'},
+  {type:'steer',card:0,title:'STEER COST',instruction:'Play A♥ (+1): −3 → −2.',why:'No crossing: SWING drops to ×1. Card discarded.'},
+  {type:'flip',title:'JACKPOT',instruction:'FLIP +6: −2 → +4.',why:'FLIP crossing: SWING ×2 and JACKPOT ×2. The next crossing makes JACKPOT ×3.'},
+  {type:'bank',title:'BANK & SCORE',instruction:'Tap BANK to secure your points.',why:'Pot × SWING × FLIP × JACKPOT is added to your score.'},
+  {type:'steer',card:3,title:'NEW POT',instruction:'Play 4♥ (+4).',why:'The first STEER of a new Pot enters the Pot.'},
+  {type:'steer',card:23,title:'ZERO BREAK',instruction:'Play 4♠ (−4): +4 → 0.',why:'Exact zero resets all multipliers to ×1 but preserves the Pot.'},
+  {type:'flip',title:'THE LIMIT',instruction:'FLIP to reveal +8.',why:'Stay between −10 and +10.'},
+  {type:'flip',title:'SNAP',instruction:'FLIP again: +8 → +13.',why:'Outside the limit! The Pot is lost. Tutorial complete.'}
 ];
 
 export function overswingTutorialExpectedAction(deal,stepIndex){
