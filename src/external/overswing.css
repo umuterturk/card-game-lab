@@ -124,14 +124,23 @@
 .os8-settings .os8-tutorial-launch{font-size:.73rem;padding:6px}
 }
 
-/* Intro glossary: four foundational concepts before any tutorial move. */
-.os8-tutorial-intro>p{font-weight:500}
-.os8-tutorial-glossary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
-.os8-tutorial-term{border-radius:10px;padding:11px;background:#182f3b;border:1px solid #547082}
-.os8-tutorial-term>div{display:flex;align-items:center;gap:8px;margin-bottom:7px}
-.os8-tutorial-term>div>span{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;border-radius:7px;background:#d4b77d;color:#172835;font-weight:850}
-.os8-tutorial-term strong{font-size:.89rem;letter-spacing:.03em;color:#ffdeb0}
-.os8-tutorial-term p{font-size:.76rem;line-height:1.5;font-weight:450;margin:0;color:#e8edf1}
-.os8-tutorial-example{font-size:.83rem;line-height:1.55;border-left:3px solid #ddbd81;padding:9px 11px;background:#1f3945;border-radius:5px;margin:12px 0}
-.os8-tutorial .os8-start-tutorial{width:100%;min-height:45px;margin:3px 0 9px!important;font-size:.91rem}
-@media(max-width:370px){.os8-tutorial-glossary{grid-template-columns:1fr}.os8-tutorial-term{padding:9px}}
+/* Compact one-line glossary. Keep the guided task immediately beside its controls. */
+.os8-tutorial{margin:6px 0;padding:9px 11px;border-radius:10px}
+.os8-tutorial-head{font-size:.65rem}
+.os8-tutorial h3{font-size:.88rem;margin:6px 0 3px}
+.os8-tutorial p{font-size:.82rem;line-height:1.35;margin:4px 0}
+.os8-tutorial small{font-size:.7rem;line-height:1.35}
+.os8-tutorial-progress{height:4px;margin:6px 0}
+.os8-tutorial-exit{margin:3px 0 0;font-size:.68rem}
+.os8-tutorial-glossary{display:flex;flex-direction:column;gap:5px;margin:8px 0}
+.os8-tutorial-term{display:grid;grid-template-columns:49px 8px 1fr;align-items:start;column-gap:6px;font-size:.77rem;line-height:1.35}
+.os8-tutorial-term strong{font-size:.77rem;color:#ffdeb0}
+.os8-tutorial-term>span:nth-child(2){color:#f2d6ab}
+.os8-tutorial-term>span:last-child{color:#f0f3f5}
+.os8-tutorial .os8-start-tutorial{width:100%;min-height:38px;margin:2px 0!important;padding:7px 9px!important;font-size:.81rem}
+@media(max-width:430px){
+ .os8-tutorial{padding:8px 10px}
+ .os8-tutorial-term{grid-template-columns:47px 8px 1fr;font-size:.73rem;gap:5px}
+ .os8-tutorial-term strong{font-size:.73rem}
+ .os8-tutorial-glossary{gap:4px;margin:6px 0}
+}
