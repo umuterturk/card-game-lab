@@ -1,7 +1,7 @@
 import React,{useState,useEffect} from 'react';
 import {rank,suit,signed,applySwing,overswingActions,overswingPayout,overswingMultiplier} from './engines.js';
 import './overswing.css';
-import {OVERSWING_TUTORIAL_STEPS} from './overswingTutorial.js';
+import {OVERSWING_TUTORIAL_STEPS,OVERSWING_TUTORIAL_INTRO} from './overswingTutorial.js';
 
 const SUITS=['♥','♦','♠','♣'];
 const name=id=>(rank(id)===1?'A':rank(id))+SUITS[suit(id)];
@@ -62,7 +62,20 @@ export default function OverswingPlay({s,act,restart}){
       </div>
     </header>
     {tutorial&&<section className="os8-tutorial" aria-live="polite" aria-label="Zorunlu eğitim adımı">
-      {tutorialStep?<><div className="os8-tutorial-head"><strong>ADIM {s.tutorialStep+1} / {OVERSWING_TUTORIAL_STEPS.length}</strong><span>Yalnızca işaretli hamle açık</span></div>
+      {!s.tutorialIntroDone?<div className="os8-tutorial-intro">
+        <div className="os8-tutorial-head"><strong>BAŞLAMADAN ÖNCE</strong><span>4 temel kavram</span></div>
+        <h3>Overswing nasıl oynanır?</h3>
+        <p>Amacın sarkacı kontrol ederek Pot’u ve çarpanları büyütmek, doğru zamanda BANK yaparak puanı skoruna eklemek.</p>
+        <div className="os8-tutorial-glossary">
+          {OVERSWING_TUTORIAL_INTRO.map(item=><div className="os8-tutorial-term" key={item.term}>
+            <div><span aria-hidden="true">{item.sign}</span><strong>{item.term}</strong></div>
+            <p>{item.text}</p>
+          </div>)}
+        </div>
+        <div className="os8-tutorial-example"><strong>Örnek:</strong> Pot 10 puan ve toplam çarpan ×3 ise BANK yaptığında <b>30 puan</b> skoruna eklenir.</div>
+        <button type="button" className="os8-start-tutorial" onClick={()=>act({type:'tutorial-start'})}>Anladım, ilk FLIP ile başla</button>
+        <small>Sonraki 17 hamlede yalnızca işaretli kart veya buton kullanılabilir.</small>
+      </div>:tutorialStep?<><div className="os8-tutorial-head"><strong>ADIM {s.tutorialStep+1} / {OVERSWING_TUTORIAL_STEPS.length}</strong><span>Yalnızca işaretli hamle açık</span></div>
         <div className="os8-tutorial-progress"><span style={{width:((s.tutorialStep+1)/OVERSWING_TUTORIAL_STEPS.length*100)+'%'}}/></div>
         <h3>{tutorialStep.title}</h3>
         <p>{discardPick?'Şimdi işaretli kartı seçerek BANK işlemini tamamla.':tutorialStep.instruction}</p>
@@ -71,7 +84,7 @@ export default function OverswingPlay({s,act,restart}){
         <button type="button" onClick={()=>restart('short')}>Normal oyuna başla</button>
         <button type="button" onClick={()=>restart('tutorial')}>Eğitimi tekrarla</button>
       </>}
-      {tutorialStep&&<button type="button" className="os8-tutorial-exit" onClick={()=>restart('short')}>Eğitimden çık</button>}
+      {tutorialStep&&s.tutorialIntroDone&&<button type="button" className="os8-tutorial-exit" onClick={()=>restart('short')}>Eğitimden çık</button>}
     </section>}
     <div className="os8-legend"><span className="os8-redtext">♥ ♦ <b>+</b> SAĞA</span><span>♠ ♣ <b>−</b> SOLA</span><span>0 = ÇARPAN SIFIR</span><span>±10 = sınır</span></div>
     <div className="os8-scoreline">
