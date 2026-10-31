@@ -144,6 +144,7 @@ export function stepOverswing(s,a,rules={}){
     const gain=overswingPayout(s);
     const crownBonus=d.hand.some(id=>royalRank(id)==='K')?(d.crownBonus||0):0;
     d.T+=gain;d.discard.push(...d.pot);
+    const requestedDrop=a.dropIndex==null?null:d.hand[a.dropIndex];
     const crowned=d.hand.filter(id=>royalRank(id)==='K');
     d.hand=d.hand.filter(id=>royalRank(id)!=='K');
     d.discard.push(...crowned);
@@ -152,7 +153,7 @@ export function stepOverswing(s,a,rules={}){
     d.handCap=Math.max(2,d.handCap-effective.bankCapacityLoss);d.bankCount++;
     let dropped=null;
     if(d.hand.length>d.handCap){
-      dropped=d.hand.splice(a.dropIndex,1)[0];
+      dropped=d.hand.splice(d.hand.indexOf(requestedDrop),1)[0];
       d.discard.push(dropped);
     }
     n.lastAction={type:'bank',points:gain,pot:previousPot,multiplier:previousMultiplier,
