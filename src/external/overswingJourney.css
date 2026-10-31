@@ -149,3 +149,27 @@ button.oj-relic:hover,button.oj-relic:focus-visible{border-color:#ffe088;backgro
  .overswing-fullscreen .oj-home-copy{font-size:17px}
  .overswing-fullscreen .oj-choices button{min-height:38px}
 }
+
+
+/* Lifetime Gold is earned on BANK, not spent for Royal discoveries. */
+.oj-gold-progress{margin:12px auto;padding:9px 11px;max-width:440px;border:2px solid #85602c;background:#211722;color:#f4dca7;text-align:left}
+.oj-gold-progress>div:first-child{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;font:15px 'VT323',monospace}
+.oj-gold-progress strong{color:#ffe39b}
+.oj-gold-progress small{display:block;margin-top:4px;font:12px 'VT323',monospace;color:#d8b788}
+.oj-gold-track{height:7px;background:#0e0b10;border:1px solid #5a4325;overflow:hidden;margin:7px 0}
+.oj-gold-track span{display:block;height:100%;background:linear-gradient(90deg,#ba6d24,#ffe099)}
+.oj-royal-overlay{position:fixed;inset:0;z-index:2000;background:#080510e8;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top,0px) + 12px) 15px calc(env(safe-area-inset-bottom,0px) + 12px)}
+.oj-royal-modal{width:100%;max-width:390px;max-height:100%;overflow:hidden;text-align:center;color:#fff0ce;padding:20px 16px 15px;background:linear-gradient(145deg,#4c2d20,#1b111a 65%);border:3px solid #e6a048;box-shadow:0 15px 60px #000b,0 0 30px #dc642755}
+.oj-royal-modal .oj-eyebrow{margin:0 0 9px}
+.oj-royal-modal h2{font:clamp(12px,3vw,16px) var(--oj-pixel);line-height:1.5;color:#ffe196;margin:10px 0}
+.oj-royal-modal p{font:20px/1.1 'VT323',monospace;margin:8px 0}
+.oj-royal-modal .oj-royal-note{color:#d8ab80;font-size:17px}
+.oj-royal-modal button{font:11px var(--oj-pixel);width:100%;min-height:45px;margin-top:13px}
+.oj-royal-card{margin:4px auto;width:105px;height:143px;background:linear-gradient(150deg,#fff3cb,#dbaa60);
+  border:5px double #a76d25;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#432615;box-shadow:0 0 25px #f6b65466}
+.oj-royal-card span{font:42px var(--oj-pixel);line-height:1.2}
+.oj-royal-card strong{font:35px 'VT323',monospace}
+.oj-royal-card small{font:10px var(--oj-pixel)}
+.overswing-fullscreen .oj-gold-progress{margin:7px auto;padding:5px 8px}
+.overswing-fullscreen .oj-gold-progress>div:first-child{font-size:13px}
+.overswing-fullscreen .oj-gold-track{margin:4px 0}
