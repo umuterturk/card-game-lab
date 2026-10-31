@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {newOverswing,stepOverswing,overswingActions,overswingPayout,rank,label} from '../src/external/engines.js';
 import {startJourney,recordJourneyGold,EMPTY_JOURNEY_PROGRESS,stepJourney} from '../src/external/overswingJourney.js';
-import {ROYAL_THRESHOLDS,royalTier,pickRoyalCards,royalRank,royalId} from '../src/external/overswingRoyals.js';
+import {ROYAL_THRESHOLDS,royalTier,pickRoyalCards,royalRank,royalId,KING_INITIAL_BANK_BONUS,KING_DECAY_PER_MOVE,ROYAL_RULES} from '../src/external/overswingRoyals.js';
 
 test('lifetime Gold unlock thresholds and journey targets are immutable during the run',()=>{
   assert.deepEqual(ROYAL_THRESHOLDS,[40000,100000,180000]);
@@ -72,23 +72,27 @@ test('Q requires direction, adds 12 Pot on safe crossing and can SNAP',()=>{
 test('K offers an automatically decaying Crown or a dangerous ±13 STEER',()=>{
   const k=royalId('K',0);
   let s=newOverswing({seed:555,royals:[k]});
-  assert.equal(s.deal.crownBonus,50);
+  assert.equal(s.deal.crownBonus,80);
+  assert.equal(KING_INITIAL_BANK_BONUS,80);
+  assert.equal(KING_DECAY_PER_MOVE,10);
+  assert.match(ROYAL_RULES.K.description,/\+80%/);
   s={...s,deal:{...s.deal,S:-8}};
   const played=stepOverswing(s,{type:'steer',index:7});
   assert.equal(played.deal.S,5);assert.equal(played.lastAction.addedToPot,13);
   assert.equal(played.deal.crownBonus,0);
   let held=newOverswing({seed:44,royals:[k]});
   held={...held,deal:{...held.deal,S:0,plays:2,pot:[0,1]}};
-  assert.equal(overswingPayout(held),4); // floor(3 * 1.5)
+  assert.equal(overswingPayout(held),5); // floor(3 * 1.8)
   const bank=stepOverswing(held,{type:'bank'});
-  assert.equal(bank.lastAction.points,4);
-  assert.equal(bank.lastAction.crownBonus,50);
+  assert.equal(bank.lastAction.points,5);
+  assert.equal(bank.lastAction.crownBonus,80);
   assert.equal(bank.deal.hand.length,7); // K consumed covers the capacity drop
   assert.ok(bank.deal.discard.includes(k));
   let expiring=newOverswing({seed:1,royals:[k]});
-  for(let i=0;i<5;i++){
+  for(let i=0;i<8;i++){
     // A legal FLIP counts as a move even on SNAP.
     expiring=stepOverswing(expiring,{type:'flip'});
+    assert.equal(expiring.deal.crownBonus,Math.max(0,80-(i+1)*10));
   }
   assert.equal(expiring.deal.crownBonus,0);
   assert.ok(!expiring.deal.hand.includes(k));
