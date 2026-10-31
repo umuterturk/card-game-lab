@@ -55,13 +55,28 @@ export function newOverswing({seed,mode='short',deckOverride}={}){
 export function overswingMultiplier(d){
   return (d.W+1)*d.flipFactor*d.jackpotFactor;
 }
-export function overswingActions(s){
+// Journey applies these short-lived modifiers at resolution time. Ordinary modes
+// retain the exact v13 defaults; never mutate rules or the hidden deck.
+const OVERSWING_BASE_RULES=Object.freeze({
+  steerNoncrossPenalty:1,flipCrossJackpotGain:1,bankCapacityLoss:1,
+  steerCrossSwingBonus:0
+});
+function overswingEffectiveRules(input={}){
+  const rules={...OVERSWING_BASE_RULES,...input};
+  for(const [name,allowed] of Object.entries({
+    steerNoncrossPenalty:[0,1],flipCrossJackpotGain:[1,2],
+    bankCapacityLoss:[0,1],steerCrossSwingBonus:[0,1]
+  }))if(!allowed.includes(rules[name]))throw new RangeError('Invalid Overswing rule: '+name);
+  return rules;
+}
+export function overswingActions(s,rules={}){
   if(s.status!=='playing'||(s.mode==='tutorial'&&!s.tutorialIntroDone))return [];
+  const effective=overswingEffectiveRules(rules);
   const d=s.deal,a=[];
   if(d.pos<40)a.push({type:'flip'});
   d.hand.forEach((_,index)=>a.push({type:'steer',index}));
   if(d.pot.length&&(d.plays>=2||(d.pos>=40&&!d.hand.length))){
-    const newCap=Math.max(2,d.handCap-1);
+    const newCap=Math.max(2,d.handCap-effective.bankCapacityLoss);
     if(d.hand.length>newCap)d.hand.forEach((_,dropIndex)=>a.push({type:'bank',dropIndex}));
     else a.push({type:'bank'});
   }
@@ -95,11 +110,12 @@ function refillEmptyHand(d){
   }
   return drawn;
 }
-export function stepOverswing(s,a){
+export function stepOverswing(s,a,rules={}){
   if(s.mode==='tutorial'&&!s.tutorialIntroDone&&s.status==='playing'&&a?.type==='tutorial-start'){
     return mark({...s,tutorialIntroDone:true},'Kavramları öğrendin. Şimdi işaretli FLIP ile başla.');
   }
-  if(!a||!overswingActions(s).some(x=>x.type===a.type
+  const effective=overswingEffectiveRules(rules);
+  if(!a||!overswingActions(s,effective).some(x=>x.type===a.type
       &&(x.type!=='steer'||x.index===a.index)
       &&(x.type!=='bank'||x.dropIndex===a.dropIndex)))return s;
   const d={...s.deal,hand:[...s.deal.hand],pot:[...s.deal.pot],discard:[...s.deal.discard]};
@@ -111,14 +127,15 @@ export function stepOverswing(s,a){
     const gain=overswingPayout(s);
     d.T+=gain;d.discard.push(...d.pot);
     const oldCap=d.handCap;
-    d.handCap=Math.max(2,d.handCap-1);d.bankCount++;
+    d.handCap=Math.max(2,d.handCap-effective.bankCapacityLoss);d.bankCount++;
     let dropped=null;
     if(d.hand.length>d.handCap){
       dropped=d.hand.splice(a.dropIndex,1)[0];
       d.discard.push(dropped);
     }
     n.lastAction={type:'bank',points:gain,pot:previousPot,multiplier:previousMultiplier,
-      oldCap,newCap:d.handCap,dropped};
+      oldCap,newCap:d.handCap,dropped,
+      modifiersApplied:effective.bankCapacityLoss===0?['vault_seal']:[]};
     msg='BANK: '+gain+' puan. El kapasitesi '+oldCap+' → '+d.handCap+
       (dropped===null?'':'; '+label(dropped)+' çıkarıldı')+'.';
     ended=true;
@@ -137,7 +154,8 @@ export function stepOverswing(s,a){
       msg='SNAP! '+label(c)+' sınırı aştı. Pot kaybedildi.';
       ended=true;
     }else{
-      d.S=outcome.S;d.W=outcome.W;
+      d.S=outcome.S;
+      d.W=outcome.W+(a.type==='steer'&&outcome.swung?effective.steerCrossSwingBonus:0);
       const zeroBreak=previousS!==0&&d.S===0;
       let destination;
       if(a.type==='flip'){
@@ -148,12 +166,12 @@ export function stepOverswing(s,a){
           // Earned FLIP tiers persist across STEER; only the streak counter restarts.
           d.flipStreak++;
           d.flipFactor=Math.max(d.flipFactor,d.flipStreak+1);
-          if(outcome.swung)d.jackpotFactor+=1;
+          if(outcome.swung)d.jackpotFactor+=effective.flipCrossJackpotGain;
         }
       }else{
         d.flipStreak=0;
         // Steering without a crossing spends one SWING tier; ZERO BREAK resets all tiers below.
-        if(!outcome.swung&&!zeroBreak)d.W=Math.max(0,d.W-1);
+        if(!outcome.swung&&!zeroBreak)d.W=Math.max(0,d.W-effective.steerNoncrossPenalty);
         // Exact zero still deposits a STEER card in the Pot, without any bonus.
         if(opening||outcome.swung||zeroBreak){
           d.pot.push(c);destination='pot';
@@ -169,7 +187,12 @@ export function stepOverswing(s,a){
         destination,
         openingSteer:opening&&a.type==='steer',addedToPot,
         flipStreak:d.flipStreak,flipFactor:d.flipFactor,
-        jackpotFactor:d.jackpotFactor,multiplier:overswingMultiplier(d)};
+        jackpotFactor:d.jackpotFactor,multiplier:overswingMultiplier(d),
+        modifiersApplied:[
+          ...(a.type==='steer'&&!outcome.swung&&!zeroBreak&&effective.steerNoncrossPenalty===0?['steady_hand']:[]),
+          ...(a.type==='steer'&&outcome.swung&&effective.steerCrossSwingBonus>0?['swing_coil']:[]),
+          ...(a.type==='flip'&&outcome.swung&&effective.flipCrossJackpotGain>1?['jackpot_spark']:[])
+        ]};
       if(a.type==='flip')n.lastFlip=n.lastAction;
       msg=zeroBreak
         ?'ZERO BREAK! '+label(c)+' sarkacı tam sıfıra getirdi. Pot korundu, tüm çarpanlar ×1 oldu.'
