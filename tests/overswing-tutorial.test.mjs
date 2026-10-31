@@ -112,7 +112,8 @@ test('tutorial appears after pendulum before hand; buttons near requested action
   assert.ok(view.indexOf('{guidedActionFirst&&actionButtons}')>tutorial);
   assert.ok(view.indexOf('{guidedActionFirst&&actionButtons}')<hand);
   assert.ok(view.indexOf('{!guidedActionFirst&&actionButtons}')>hand);
-  assert.ok(view.indexOf('{tutorial&&multiplierDetails}')>hand);
+  assert.ok(view.indexOf('{multiplierDetails}')>tutorial && view.indexOf('{multiplierDetails}')<hand,'multipliers above played cards and hand');
+ assert.ok(view.indexOf('className="os8-pot"')<hand,'pot cards above hand');
   assert.ok(jsx.includes('label="JACKPOT"'));
   assert.ok(!jsx.includes('label="CROSS"'));
   assert.ok(!jsx.includes('label="SERİ"'));
