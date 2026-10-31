@@ -120,7 +120,7 @@ function clearSwing(d){
 function refillEmptyHand(d){
   const drawn=[];
   if(d.hand.length===0){
-    while(d.hand.length<d.handCap&&d.pos<40){
+    while(d.hand.length<d.handCap&&d.pos<d.deck.length){
       const card=d.deck[d.pos++];
       d.hand.push(card);drawn.push(card);
     }
