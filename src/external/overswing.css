@@ -159,8 +159,8 @@
   border-radius:0 0 9px 9px;
   color:#f9e6cb;
   background:
-    radial-gradient(ellipse 120px 300px at 5% 60%,#c72a1138,transparent 75%),
-    radial-gradient(ellipse 150px 260px at 95% 30%,#f44b1936,transparent 75%),
+    linear-gradient(180deg,#110d13bb,#120b14bb 45%,#190c13b8),
+    url('./overswing-stage.svg') center top / cover no-repeat,
     radial-gradient(ellipse at 50% 104%,#f56519aa 0%,#5a1e16 18%,transparent 45%),
     linear-gradient(180deg,#170e16,#0c0b12 30%,#1c1115 62%,#0b090f);
   box-shadow:0 0 30px #000c,inset 0 0 35px #e042141a;
