@@ -4,6 +4,47 @@ import {newOverswing,stepOverswing,overswingActions,overswingPayout,overswingMul
 const O=[32,2,6,29,12,15,34,16,31,1,13,35,26,3,18,10,5,11,27,4,28,21,37,38,7,19,36,14,25,20,8,39,23,0,24,9,22,33,17,30];
 const deckWith=prefix=>[...prefix,...Array.from({length:40},(_,i)=>i).filter(x=>!prefix.includes(x))];
 const go=(s,a)=>{const n=stepOverswing(s,a);assert.notStrictEqual(n,s,'Rejected '+JSON.stringify(a));return n;};
+test('strict SWING from ±1 or ±2 always raises multiplier by +1',()=>{
+ assert.deepEqual(applySwing(1,0,-3),{snap:false,S:-2,W:1,gain:1,swung:true});
+ assert.deepEqual(applySwing(-1,0,3),{snap:false,S:2,W:1,gain:1,swung:true});
+ assert.deepEqual(applySwing(2,1,-5),{snap:false,S:-3,W:2,gain:1,swung:true});
+ assert.deepEqual(applySwing(-2,0,4),{snap:false,S:2,W:1,gain:1,swung:true});
+});
+test('SWING still scales with distance and respects the ×6 cap',()=>{
+ assert.deepEqual(applySwing(5,0,-8),{snap:false,S:-3,W:1,gain:1,swung:true});
+ assert.deepEqual(applySwing(7,0,-9),{snap:false,S:-2,W:2,gain:2,swung:true});
+ assert.deepEqual(applySwing(-10,0,10),{snap:false,S:0,W:0,gain:0,swung:false});
+ assert.deepEqual(applySwing(9,3,-10),{snap:false,S:-1,W:5,gain:2,swung:true});
+ assert.deepEqual(applySwing(1,5,-3),{snap:false,S:-2,W:5,gain:0,swung:true});
+});
+test('neither starting at zero nor landing on zero is a SWING reward',()=>{
+ assert.deepEqual(applySwing(0,0,2),{snap:false,S:2,W:0,gain:0,swung:false});
+ assert.deepEqual(applySwing(2,0,-2),{snap:false,S:0,W:0,gain:0,swung:false});
+});
+test('actual STEER crossing from +1 to -2 increases SWING factor',()=>{
+ const base=newOverswing({deckOverride:O});
+ let s={...base,deal:{...base.deal,S:1,plays:1,pot:[0]}};
+ s=go(s,{type:'steer',index:0}); // 3♣ = -3
+ assert.equal(s.deal.S,-2);
+ assert.equal(s.deal.W,1);
+ assert.equal(s.lastAction.gain,1);
+ assert.equal(s.lastAction.swung,true);
+ assert.equal(s.lastAction.zeroBreak,false);
+ assert.equal(s.lastAction.destination,'pot');
+ assert.equal(overswingMultiplier(s.deal),2);
+});
+test('actual FLIP crossing from -1 to +1 grants both SWING and CROSS',()=>{
+ const deck=deckWith([32,2,6,29,12,15,34,16,1]);
+ let s=newOverswing({deckOverride:deck});
+ s={...s,deal:{...s.deal,S:-1,plays:1,pot:[30]}};
+ s=go(s,{type:'flip'}); // 2♥ = +2
+ assert.equal(s.deal.S,1);
+ assert.equal(s.deal.W,1);
+ assert.equal(s.deal.crossFactor,2);
+ assert.equal(s.lastAction.gain,1);
+ assert.equal(s.lastAction.swung,true);
+ assert.equal(overswingMultiplier(s.deal),4);
+});
 test('v9 starts with eight cards and correct suit signs',()=>{
  const s=newOverswing({deckOverride:O});
  assert.equal(s.version,9);assert.equal(s.deal.handCap,8);
