@@ -53,14 +53,14 @@ function Relic({id,selected=false,used=false,onClick}){
     <button className={'oj-relic '+(selected?'oj-relic-selected':'')} type="button" onClick={onClick}>{content}</button>:
     <div className={'oj-relic '+(used?'oj-relic-used':'')}>{content}</div>;
 }
-function Route({run,compact=false}){
+function Route({run,compact=false,tier=0}){
   const current=run?.encounterIndex??0;
   return <div className={'oj-route '+(compact?'oj-route-compact':'')} aria-label="Three-gate journey">
     {LAST_FLAME.encounters.map((e,index)=><React.Fragment key={e.id}>
       {index>0&&<div className="oj-route-line" aria-hidden="true"/>}
       <div className={'oj-route-node '+(index===current?'oj-route-current':'')+(index<current?' oj-route-done':'')}>
         <span className="oj-route-icon">{e.symbol}</span>
-        {!compact&&<><strong>{e.title}</strong><small>{fmt(e.target)}+ POINTS</small></>}
+        {!compact&&<><strong>{e.title}</strong><small>{fmt(Math.round(e.target*targetScale(run?.royalTier??tier)))}+ GOLD</small></>}
       </div>
     </React.Fragment>)}
   </div>;
@@ -126,7 +126,7 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
       <p className="oj-eyebrow">A FLAMEBOUND CARD ROGUELITE</p><h1>OVER<span>SWING</span></h1>
       <p className="oj-subtitle">THE LAST FLAME</p></header>
     <div className="oj-home-illustration" aria-hidden="true"><span>♨</span><i/><i/><i/></div>
-    <Route/>
+    <Route tier={unlockedRoyals(progress.lifetimeGold||0).length}/>
     <GoldProgress progress={progress}/>
     <p className="oj-home-copy">Three gates. Two relics. One last flame.<br/>Risk your Pot, master the swing, and survive the Keeper.</p>
     <div className="oj-choices"><button className="oj-primary" onClick={begin}>IGNITE THE JOURNEY</button>
