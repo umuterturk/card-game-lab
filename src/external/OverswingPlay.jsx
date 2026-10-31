@@ -192,7 +192,7 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fu
     </section>}
     <div className="os8-legend"><span className="os8-redtext">♥ ♦ POSITIVE</span><span>♠ ♣ NEGATIVE</span><span>0 = RESET</span><span>±10 = SNAP</span></div>
     <div className="os8-scoreline">
-      <div><small>✦ SCORE</small><b>{total.toLocaleString('en-US')}</b></div>
+      <div><small>✦ GOLD</small><b>{total.toLocaleString('en-US')}</b></div>
       <div><small>♨ POT</small><b>{pot}</b></div>
       <div><small>× MULTIPLIER</small><b>×{multiplier.toLocaleString('en-US')}</b></div>
       <div><small>♛ BANK NOW</small><b>+{payout.toLocaleString('en-US')}</b></div>
@@ -267,6 +267,6 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fu
         <button type="button" className="os8-queen-cancel" onClick={()=>setQueenPick(null)}>CANCEL</button>
       </div>
     </div>}
-    {s.status==='over'&&<div className="os8-complete"><h3>GAME OVER</h3><b>{s.dealTotals.reduce((a,b)=>a+b,0).toLocaleString('en-US')} pts</b><button type="button" onClick={()=>restart(s.mode)}>PLAY AGAIN</button></div>}
+    {s.status==='over'&&<div className="os8-complete"><h3>GAME OVER</h3><b>{s.dealTotals.reduce((a,b)=>a+b,0).toLocaleString('en-US')} GOLD</b><button type="button" onClick={()=>restart(s.mode)}>PLAY AGAIN</button></div>}
   </div>;
 }
