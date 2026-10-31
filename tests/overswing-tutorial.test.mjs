@@ -52,10 +52,10 @@ test('tutorial short fixed deck and concise basics',()=>{
   assert.equal(new Set(OVERSWING_TUTORIAL_DECK).size,40);
   assert.deepEqual(OVERSWING_TUTORIAL_DECK.slice(0,8),[27,0,3,23,5,28,7,2]);
   assert.deepEqual(OVERSWING_TUTORIAL_DECK.slice(8,13),[12,11,15,17,4]);
-  assert.deepEqual(OVERSWING_TUTORIAL_INTRO.map(i=>i.term),['FLIP','STEER','POT','SKOR']);
+  assert.deepEqual(OVERSWING_TUTORIAL_INTRO.map(i=>i.term),['FLIP','STEER','POT','SCORE']);
   assert.ok(OVERSWING_TUTORIAL_INTRO.every(i=>i.text.length<100));
-  assert.match(OVERSWING_TUTORIAL_INTRO[0].text,/rastgele/i);
-  assert.match(OVERSWING_TUTORIAL_INTRO[1].text,/Elindeki kart/i);
+  assert.match(OVERSWING_TUTORIAL_INTRO[0].text,/random card/i);
+  assert.match(OVERSWING_TUTORIAL_INTRO[1].text,/your hand/i);
   assert.equal(newOverswing({mode:'tutorial',seed:1}).deal.deck.join(','),
     newOverswing({mode:'tutorial',seed:999}).deal.deck.join(','));
 });
@@ -104,7 +104,7 @@ test('normal mode remains playable and does not accept tutorial-start',()=>{
 });
 test('tutorial appears after pendulum before hand; buttons near requested action',()=>{
   const jsx=readFileSync(new URL('../src/external/OverswingPlay.jsx',import.meta.url),'utf8');
-  const view=jsx.slice(jsx.indexOf('return <div className="os8">'));
+  const view=jsx.slice(jsx.indexOf("return <div className={'os8'"));
   const meter=view.indexOf('className="os8-meter"');
   const tutorial=view.indexOf('className="os8-tutorial"');
   const hand=view.indexOf('className="os8-hand"');
