@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {
   newOverswing,overswingActions,stepOverswing,overswingMultiplier,overswingPayout,
   applySwing
@@ -108,4 +109,26 @@ test('normal games do not show tutorial intro or accept tutorial-start',()=>{
   assert.equal(normal.tutorialIntroDone,true);
   assert.ok(overswingActions(normal).some(a=>a.type==='flip'));
   assert.strictEqual(stepOverswing(normal,{type:'tutorial-start'}),normal);
+});
+
+test('tutorial introduces FLIP / STEER / POT / SKOR with short explicit definitions',()=>{
+ assert.deepEqual(OVERSWING_TUTORIAL_INTRO.map(item=>item.term),['FLIP','STEER','POT','SKOR']);
+ assert.match(OVERSWING_TUTORIAL_INTRO[0].text,/rastgele/i);
+ assert.match(OVERSWING_TUTORIAL_INTRO[1].text,/Elindeki kartlardan birini seçip oynamak/i);
+ assert.match(OVERSWING_TUTORIAL_INTRO[2].text,/Henüz kasaya alınmamış/i);
+ assert.match(OVERSWING_TUTORIAL_INTRO[3].text,/BANK/i);
+ assert.ok(OVERSWING_TUTORIAL_INTRO.every(item=>item.text.length<=100),'glossary must be brief');
+});
+test('tutorial sits directly after pendulum and before hand; guided FLIP action is nearby',()=>{
+ const jsx=readFileSync(new URL('../src/external/OverswingPlay.jsx',import.meta.url),'utf8');
+ const view=jsx.slice(jsx.indexOf('return <div className="os8">'));
+ const meter=view.indexOf('className="os8-meter"');
+ const tut=view.indexOf('className="os8-tutorial"');
+ const hand=view.indexOf('className="os8-hand"');
+ assert.ok(meter>=0&&tut>meter&&hand>tut,'pendulum -> tutorial -> hand');
+ assert.ok(view.indexOf('{guidedActionFirst&&actionButtons}')>tut);
+ assert.ok(view.indexOf('{guidedActionFirst&&actionButtons}')<hand,'FLIP/BANK controls directly follow guide');
+ assert.ok(view.indexOf('{!guidedActionFirst&&actionButtons}')>hand,'STEER card choices directly follow guide');
+ assert.ok(view.indexOf('{tutorial&&multiplierDetails}')>hand,'details no longer separate guide from hand');
+ assert.ok(!view.includes('Pot 10 puan ve toplam çarpan'),'old verbose example removed');
 });
