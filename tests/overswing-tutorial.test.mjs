@@ -32,19 +32,19 @@ test('STEER penalty has minimum ×1, strict-cross STEER earns SWING but not JACK
   assert.equal(s.deal.S,-4);assert.equal(s.deal.W,1);
   assert.equal(s.deal.jackpotFactor,1);
 });
-test('JACKPOT only doubles on strict FLIP crossing; noncrossing FLIP preserves it',()=>{
+test('JACKPOT increases linearly on strict FLIP crossings; STEER preserves it',()=>{
   const deck=[20,21,22,23,24,25,26,27,1,31];
   const complete=[...deck,...Array.from({length:40},(_,i)=>i).filter(i=>!deck.includes(i))];
   let s=newOverswing({deckOverride:complete});
   s={...s,deal:{...s.deal,S:-1,jackpotFactor:4,plays:1,pot:[30]}};
-  s=stepOverswing(s,{type:'flip'}); // +2: -1 -> +1, JACKPOT 8
-  assert.equal(s.deal.S,1);assert.equal(s.deal.jackpotFactor,8);
+  s=stepOverswing(s,{type:'flip'}); // +2: -1 -> +1, JACKPOT 5
+  assert.equal(s.deal.S,1);assert.equal(s.deal.jackpotFactor,5);
   assert.equal(s.deal.flipFactor,2);
-  s=stepOverswing(s,{type:'flip'}); // -2: +1 -> -1, JACKPOT 16
-  assert.equal(s.deal.S,-1);assert.equal(s.deal.jackpotFactor,16);
+  s=stepOverswing(s,{type:'flip'}); // -2: +1 -> -1, JACKPOT 6
+  assert.equal(s.deal.S,-1);assert.equal(s.deal.jackpotFactor,6);
   assert.equal(s.deal.flipFactor,3);
   s=stepOverswing(s,{type:'steer',index:0}); // -1 -> -2 without a crossing
-  assert.equal(s.deal.jackpotFactor,16);
+  assert.equal(s.deal.jackpotFactor,6);
 });
 test('tutorial short fixed deck and concise basics',()=>{
   assert.equal(OVERSWING_TUTORIAL_STEPS.length,10);
@@ -61,7 +61,7 @@ test('tutorial short fixed deck and concise basics',()=>{
 });
 test('tutorial start requires glossary; every scripted action is forced and completes',()=>{
   let s=newOverswing({mode:'tutorial',seed:33});
-  assert.equal(s.version,12);
+  assert.equal(s.version,13);
   assert.equal(s.tutorialStep,0);
   assert.equal(s.tutorialIntroDone,false);
   assert.deepEqual(overswingActions(s),[]);
