@@ -1,5 +1,5 @@
 import {OVERSWING_TUTORIAL_DECK,OVERSWING_TUTORIAL_STEPS,overswingTutorialExpectedAction} from './overswingTutorial.js';
-import {isRoyal,royalRank,royalValue,royalSuit} from './overswingRoyals.js';
+import {isRoyal,royalRank,royalValue,royalSuit,KING_INITIAL_BANK_BONUS,KING_DECAY_PER_MOVE} from './overswingRoyals.js';
 
 export const rank = c => isRoyal(c)?royalValue(c):c % 10 + 1;
 export const suit = c => isRoyal(c)?royalSuit(c):Math.floor(c / 10);
@@ -47,7 +47,7 @@ function dealSwing(rng,override,royals=[]){
   const count=8-royals.length;
   return {deck,pos:count,hand:[...ordinary.slice(royals.length,8),...royals],
     handCap:8,bankCount:0,scoutNext:null,
-    crownBonus:royals.some(id=>royalRank(id)==='K')?50:0,
+    crownBonus:royals.some(id=>royalRank(id)==='K')?KING_INITIAL_BANK_BONUS:0,
     pot:[],discard:[],S:0,W:0,T:0,swingNo:1,flips:0,plays:0,
     flipStreak:0,flipFactor:1,jackpotFactor:1};
 }
@@ -168,7 +168,7 @@ export function stepOverswing(s,a,rules={}){
     if(a.type==='flip'){d.flips++;d.scoutNext=null;}
     d.plays++;
     if(d.hand.some(id=>royalRank(id)==='K')){
-      d.crownBonus=Math.max(0,(d.crownBonus||0)-10);
+      d.crownBonus=Math.max(0,(d.crownBonus||0)-KING_DECAY_PER_MOVE);
       if(d.crownBonus===0){
         const expired=d.hand.filter(id=>royalRank(id)==='K');
         d.hand=d.hand.filter(id=>royalRank(id)!=='K');
