@@ -31,16 +31,105 @@ export function stepBondstone(s,a){if(!bondActions(s).some(x=>x.type===a.type&&(
 }
 export const signed=c=>(suit(c)<2?1:-1)*rank(c);
 export function applySwing(S,W,value){const next=S+value;if(Math.abs(next)>10)return {snap:true};const swung=S!==0&&(next===0||Math.sign(next)!==Math.sign(S));const gain=swung?Math.min(Math.floor(Math.abs(S)/3),5-W):0;return {snap:false,S:next,W:W+gain,gain,swung};}
-function dealSwing(rng,override){const deck=override?override.slice():shuffle(all40(),rng);return {deck,pos:2,hand:deck.slice(0,2),pot:[],discard:[],S:0,W:0,T:0,swingNo:1,flips:0};}
-export function newOverswing({seed,mode='short',deckOverride}={}){const base=seed??Date.now();return {game:'overswing',seed:base,mode,dealIndex:0,dealTotals:[],deal:dealSwing(seeded(base),deckOverride),history:[],status:'playing',last:'Flip to start your first swing.'};}
-export function overswingActions(s){if(s.status==='over')return [];const d=s.deal;if(!d.pot.length)return d.pos<40?[{type:'flip'}]:[];const a=[];if(d.pos<40)a.push({type:'flip'});d.hand.forEach((_,i)=>a.push({type:'steer',index:i}));a.push({type:'bank'});return a;}
-export function overswingPayout(s){return s.deal.pot.reduce((a,c)=>a+rank(c),0)*(1+s.deal.W);}
-export function stepOverswing(s,a){if(!overswingActions(s).some(x=>x.type===a.type&&(x.type!=='steer'||x.index===a.index)))return s;const d={...s.deal,hand:[...s.deal.hand],pot:[...s.deal.pot],discard:[...s.deal.discard]};let n={...s,deal:d,dealTotals:[...s.dealTotals],history:[...s.history]};let msg='';let ended=false;const previousS=d.S,previousW=d.W;const previousPot=d.pot.reduce((sum,c)=>sum+rank(c),0);
- if(a.type==='bank'){const gain=overswingPayout(s);d.T+=gain;d.discard.push(...d.pot);d.pot=[];ended=true;n.lastAction={type:'bank',points:gain,pot:previousPot,multiplier:previousW+1};msg=`Banked ${gain} points at ×${d.W+1}.`;}
- else{let c;if(a.type==='flip'){c=d.deck[d.pos++];d.flips++;}else{c=d.hand.splice(a.index,1)[0];}const outcome=applySwing(d.S,d.W,signed(c));if(outcome.snap){n.lastAction={type:a.type,card:c,from:previousS,to:previousS+signed(c),snap:true,destination:'discard',lost:previousPot,beforeMultiplier:previousW+1,afterMultiplier:previousW+1,swung:false};if(a.type==='flip')n.lastFlip=n.lastAction;d.discard.push(...d.pot,c);d.pot=[];ended=true;msg=`SNAP! ${label(c)} pushed past ±10. Pot lost.`;}
- else{d.S=outcome.S;d.W=outcome.W;if(a.type==='flip'){if(outcome.swung&&d.hand.length<3)d.hand.push(c);else d.pot.push(c);}else{if(outcome.swung)d.pot.push(c);else d.discard.push(c);}n.lastAction={type:a.type,card:c,from:previousS,to:d.S,snap:false,swung:outcome.swung,gain:outcome.gain,destination:a.type==='flip'&&outcome.swung&&d.hand.includes(c)?'hand':a.type==='steer'&&!outcome.swung?'discard':'pot',beforeMultiplier:previousW+1,afterMultiplier:d.W+1,addedToPot:d.pot.reduce((sum,v)=>sum+rank(v),0)-previousPot};if(a.type==='flip')n.lastFlip=n.lastAction;msg=`${a.type==='flip'?'Flipped':'Steered'} ${label(c)} → ${d.S}; multiplier ×${d.W+1}.`;}}
- if(ended){if(d.pos>=40){n.dealTotals.push(d.T);if(n.mode==='match'&&n.dealIndex<2){n.dealIndex++;n.deal=dealSwing(seeded(n.seed*3+n.dealIndex));n.lastFlip=null;n.lastAction=null;msg+=` Deal ${n.dealIndex} ended at ${d.T}. Next deal begins.`;}else n.status='over';}else{d.S=0;d.W=0;d.pot=[];d.swingNo++;}}
- return mark(n,msg);
+// Overswing v7 experiment: A (start/cap 4), mild B (draw 1 on BANK), and
+// optional opening STEER. BANK needs two card actions per swing to discourage
+// open-steer -> immediate BANK -> refill farming.
+function dealSwing(rng,override){
+  const deck=override?override.slice():shuffle(all40(),rng);
+  return {deck,pos:4,hand:deck.slice(0,4),pot:[],discard:[],S:0,W:0,T:0,swingNo:1,flips:0,plays:0};
+}
+export function newOverswing({seed,mode='short',deckOverride}={}){
+  const base=seed??Date.now();
+  return {game:'overswing',version:7,seed:base,mode,dealIndex:0,dealTotals:[],
+    deal:dealSwing(seeded(base),deckOverride),history:[],status:'playing',
+    last:'4 kartın var. İstersen elinden bir kartla başla, istersen FLIP yap.'};
+}
+export function overswingActions(s){
+  if(s.status==='over')return [];
+  const d=s.deal,a=[];
+  if(d.pos<40)a.push({type:'flip'});
+  d.hand.forEach((_,index)=>a.push({type:'steer',index}));
+  // No instant open-card BANK loop; when all cards are gone, allow the
+  // final Pot to be banked regardless of count, to prevent a soft lock.
+  if(d.pot.length&&(d.plays>=2||(d.pos>=40&&!d.hand.length)))a.push({type:'bank'});
+  return a;
+}
+export function overswingPayout(s){
+  return s.deal.pot.reduce((a,c)=>a+rank(c),0)*(1+s.deal.W);
+}
+export function stepOverswing(s,a){
+  if(!overswingActions(s).some(x=>x.type===a.type&&(x.type!=='steer'||x.index===a.index)))return s;
+  const d={...s.deal,hand:[...s.deal.hand],pot:[...s.deal.pot],discard:[...s.deal.discard]};
+  let n={...s,deal:d,dealTotals:[...s.dealTotals],history:[...s.history]};
+  let msg='',ended=false;
+  const previousS=d.S,previousW=d.W,previousPot=d.pot.reduce((sum,c)=>sum+rank(c),0);
+  if(a.type==='bank'){
+    const gain=overswingPayout(s);
+    d.T+=gain;
+    d.discard.push(...d.pot);
+    d.pot=[];
+    ended=true;
+    let refill=null;
+    if(d.hand.length<4&&d.pos<40){
+      refill=d.deck[d.pos++];
+      d.hand.push(refill);
+    }
+    n.lastAction={type:'bank',points:gain,pot:previousPot,multiplier:previousW+1,refill};
+    msg='BANK: '+gain+' puan güvenceye alındı.'+(refill===null?'':' Eline 1 kart çekildi.');
+  }else{
+    const opening=d.plays===0;
+    let c;
+    if(a.type==='flip'){c=d.deck[d.pos++];d.flips++;}
+    else c=d.hand.splice(a.index,1)[0];
+    d.plays++;
+    const outcome=applySwing(d.S,d.W,signed(c));
+    if(outcome.snap){
+      n.lastAction={type:a.type,card:c,from:previousS,to:previousS+signed(c),
+        snap:true,destination:'discard',lost:previousPot,
+        beforeMultiplier:previousW+1,afterMultiplier:previousW+1,swung:false};
+      if(a.type==='flip')n.lastFlip=n.lastAction;
+      d.discard.push(...d.pot,c);
+      d.pot=[];
+      ended=true;
+      msg='SNAP! '+label(c)+' sınırı aştı. '+previousPot+' Pot puanı kaybedildi.';
+    }else{
+      d.S=outcome.S;d.W=outcome.W;
+      let destination;
+      if(a.type==='flip'){
+        if(outcome.swung&&d.hand.length<4){d.hand.push(c);destination='hand';}
+        else{d.pot.push(c);destination='pot';}
+      }else if(opening||outcome.swung){
+        d.pot.push(c);
+        destination='pot';
+      }else{
+        d.discard.push(c);
+        destination='discard';
+      }
+      const addedToPot=destination==='pot'?rank(c):0;
+      n.lastAction={type:a.type,card:c,from:previousS,to:d.S,
+        snap:false,swung:outcome.swung,gain:outcome.gain,destination,
+        beforeMultiplier:previousW+1,afterMultiplier:d.W+1,addedToPot,
+        openingSteer:opening&&a.type==='steer'};
+      if(a.type==='flip')n.lastFlip=n.lastAction;
+      msg=(a.type==='flip'?'FLIP ':'STEER ')+label(c)+' → '+d.S+
+        '; '+(destination==='hand'?'eline':destination==='pot'?'Pot’a':'iskartaya')+
+        '. Çarpan ×'+(d.W+1)+'.';
+    }
+  }
+  if(ended){
+    if(d.pos>=40){
+      n.dealTotals.push(d.T);
+      if(n.mode==='match'&&n.dealIndex<2){
+        n.dealIndex++;
+        n.deal=dealSwing(seeded(n.seed*3+n.dealIndex));
+        n.lastFlip=null;n.lastAction=null;
+        msg+=' Sonraki deste başladı.';
+      }else n.status='over';
+    }else{
+      d.S=0;d.W=0;d.pot=[];d.plays=0;d.swingNo++;
+    }
+  }
+  return mark(n,msg);
 }
 export const overswingFinal=s=>s.dealTotals.reduce((a,b)=>a+b,0)+(s.status==='over'?0:s.deal.T);
 export const tideLabel=x=>`${['J','Q','K'][x%3]}${tideSuits[Math.floor(x/3)]}`;
