@@ -1,98 +1,78 @@
 import React from 'react';
-import {rank,suit,label,signed,applySwing,overswingActions,overswingPayout} from './engines.js';
+import {rank,suit,signed,applySwing,overswingActions,overswingPayout} from './engines.js';
 import './overswing.css';
 
-const SUITS=['♥','♦','♠','♣'];
-const sign=n=>n>0?'+'+n:String(n);
-const where={hand:'ELE',pot:'POT’A',discard:'ISKARTAYA'};
-function PlayingCard({id,onClick,helper,highlight=false}){
+const SIGNS=['♥','♦','♠','♣'];
+const val=n=>n>0?'+'+n:String(n);
+const cardName=id=>(rank(id)===1?'A':rank(id))+SIGNS[suit(id)];
+const destination={hand:'ELİNE',pot:'POT’A',discard:'ISKARTAYA'};
+function Card({id,onClick,hint}){
   const red=suit(id)<2;
-  const Tag=onClick?'button':'div';
-  return <Tag type={onClick?'button':undefined} onClick={onClick} className={'os-card '+(red?'os-red':'os-black')+(onClick?' os-selectable':'')+(highlight?' os-highlight':'')} aria-label={label(id)+' '+(red?'kırmızı, artı':'siyah, eksi')+(helper?' '+helper:'')}>
-    <span className="os-corner">{rank(id)===1?'A':rank(id)}<span>{SUITS[suit(id)]}</span></span>
-    <span className="os-suit">{SUITS[suit(id)]}</span>
-    <span className="os-value">{sign(signed(id))}</span>
-    {helper&&<span className="os-helper">{helper}</span>}
-  </Tag>;
+  return <button type="button" disabled={!onClick} onClick={onClick}
+    className={'os7-card '+(red?'os7-red':'os7-black')}
+    aria-label={cardName(id)+', '+val(signed(id))+', '+hint}>
+    <span className="os7-corner">{cardName(id)}</span>
+    <strong>{SIGNS[suit(id)]}</strong>
+    <small>{hint}</small>
+  </button>;
 }
-function Info({title,value,sub}){return <div className="os-info"><span>{title}</span><strong>{value}</strong>{sub&&<small>{sub}</small>}</div>;}
-function ResolveText({e}){
-  if(!e)return <p>Başlamak için kapalı desteye dokun. İlk kart mutlaka açılır ve Pot’a eklenir.</p>;
-  if(e.type==='bank')return <p><strong>Kasaya alındı:</strong> {e.pot} × {e.multiplier} = <strong>{e.points} puan</strong>. Pot boşaldı, sarkaç ve çarpan sıfırlandı.</p>;
-  const card=label(e.card),source=e.type==='flip'?'FLIP':'STEER';
-  if(e.snap)return <p><strong>SNAP!</strong> {source} ile açılan/oynanan <strong>{card}</strong>, {sign(e.from)} → {sign(e.to)} noktasına taşacaktı. Sınır ±10! Kart iskartaya gitti, Pot’taki <strong>{e.lost} puan kaybedildi</strong>. Eldeki kartlar korundu.</p>;
-  return <p><strong>{source} — {card}:</strong> Sarkaç {sign(e.from)} → {sign(e.to)}. Kart <strong>{where[e.destination]}</strong> gitti. {e.swung?'Sıfır geçildi! ':'Sıfır geçilmedi. '}{e.gain>0?'Çarpan +'+e.gain+' arttı. ':''}{e.destination==='pot'?'Pot’a +'+e.addedToPot+' puan eklendi. ':''}{e.destination==='hand'?'Elinde artık yönlendirmek için bu kart var. ':''}{e.destination==='discard'?'STEER kartı sıfırı geçmediği için puan vermedi.':''}</p>;
+function Mini({id}){return <span className={'os7-mini '+(suit(id)<2?'os7-red':'os7-black')}>{cardName(id)}</span>;}
+function Event({e}){
+  if(!e)return <>Başlangıç: elinden bir kart seç veya FLIP yap.</>;
+  if(e.type==='bank')return <>BANK: <b>+{e.points} puan.</b> {e.refill!=null?'Eline 1 kart geldi.':'Yeni kart çekilmedi.'}</>;
+  if(e.snap)return <><b>SNAP!</b> {cardName(e.card)}: {val(e.from)} → {val(e.to)}. <b>{e.lost} puan kaybedildi.</b></>;
+  return <><b>{e.type==='flip'?'FLIP':'STEER'} {cardName(e.card)}</b>: {val(e.from)} → {val(e.to)} · <b>{destination[e.destination]}</b> {e.gain>0?'· Çarpan +'+e.gain:''}</>;
 }
 export default function OverswingPlay({s,act,restart}){
-  const d=s.deal;
-  const legal=overswingActions(s);
-  const canFlip=legal.some(a=>a.type==='flip');
-  const canBank=legal.some(a=>a.type==='bank');
-  const total=s.dealTotals.reduce((v,n)=>v+n,0)+(s.status==='over'?0:d.T);
-  const pot=d.pot.reduce((v,c)=>v+rank(c),0);
-  const e=s.lastAction;
-  const lastFlip=s.lastFlip;
-  return <div className="os-game">
-    <section className="os-guide" aria-label="Kısa kurallar">
-      <strong>Nasıl oynanır?</strong>
-      <p><b>1.</b> Kapalı kartı aç (<b>FLIP</b>). <b>2.</b> Elindeki kartla sarkacı yönlendir (<b>STEER</b>). <b>3.</b> Sınırı aşmadan puanını kasaya al (<b>BANK</b>).</p>
-      <div className="os-key"><span className="os-red-legend">♥ ♦ Kırmızı = sağa (+)</span><span className="os-black-legend">♠ ♣ Siyah = sola (−)</span></div>
-      <p className="os-guide-small">Sıfırı geçmek çarpanı büyütür. ±10 güvenli, ±11 ve ötesi <b>SNAP</b>: Pot kaybolur.</p>
-    </section>
-    <div className="os-topline"><label>Oyun modu <select value={s.mode} onChange={v=>restart(v.target.value)} aria-label="Oyun modu"><option value="short">Kısa · 1 deste</option><option value="match">Maç · 3 deste</option></select></label><span>{s.mode==='match'?'Deste '+(s.dealIndex+1)+' / 3':'Tek deste'}</span></div>
-    <div className="os-stats"><Info title="Toplam puan" value={total}/><Info title="Pot" value={pot}/><Info title="Çarpan" value={'×'+(d.W+1)}/><Info title="Şimdi BANK" value={overswingPayout(s)}/></div>
-    <section className="os-meter" aria-label={'Sarkaç konumu '+sign(d.S)}>
-      <div className="os-meter-title"><strong>SARKAÇ</strong><span className="os-position">{sign(d.S)}</span></div>
-      <div className="os-track">
-        <span className="os-zero" aria-hidden="true"/>
-        <span className="os-marker" style={{left:((d.S+10)*5)+'%'}} aria-hidden="true"/>
-      </div>
-      <div className="os-ticks"><span>−10</span><span>−5</span><span>0</span><span>+5</span><span>+10</span></div>
-      <small>Karşı tarafa geçince çarpan yükselir; kasaya almazsan mevcut Pot riskte.</small>
-    </section>
-    <section className="os-action-result" role="status" aria-live="polite">
-      <div className="os-section-head"><strong>SON HAMLE</strong><span>{e&&e.type==='flip'?'Kapalı kart açıldı':e&&e.type==='steer'?'Elden kart oynandı':e&&e.type==='bank'?'Puan kasaya alındı':'Başlangıç'}</span></div>
-      <ResolveText e={e}/>
-    </section>
-    <section className="os-last-flip">
-      <div className="os-section-head"><strong>SON FLIP KARTI</strong><span>{lastFlip?'Kartın ilk gittiği yer':'Henüz açılmadı'}</span></div>
-      {lastFlip?<div className="os-flow"><span className="os-source">KAPALI DESTE</span><span aria-hidden="true">→</span><PlayingCard id={lastFlip.card} highlight/><span aria-hidden="true">→</span><strong className={'os-destination '+(lastFlip.destination==='hand'?'os-dest-hand':lastFlip.destination==='pot'?'os-dest-pot':'os-dest-discard')}>{where[lastFlip.destination]}</strong></div>:<p className="os-muted">Açtığın ilk kart burada görünecek. Sıfırı geçen FLIP kartı, elinde yer varsa eline; aksi halde Pot’a gider.</p>}
-      {lastFlip?.swung&&lastFlip.destination==='hand'&&<p className="os-tiny">Bu kart sıfırı geçtiği için eline yakalandı. Artık STEER ile kullanabilirsin.</p>}
-    </section>
-    <div className="os-play-sections">
-      <section className="os-hand">
-        <div className="os-section-head"><strong>ELİN · {d.hand.length}/3</strong><span>Dokun = STEER</span></div>
-        {d.hand.length?<div className="os-cards">{d.hand.map((c,i)=>{
-          const result=applySwing(d.S,d.W,signed(c));
-          const hint=result.snap?'SNAP!':result.swung?'POT +'+rank(c)+' · ×'+(result.W+1):'İskarta · 0 puan';
-          return <PlayingCard key={c} id={c} helper={canBank?hint:'Pot boşken kullanılamaz'} onClick={canBank?()=>act({type:'steer',index:i}):undefined}/>;
-        })}</div>:<p className="os-muted">El boş. FLIP ile sıfırı geçen bir kart yakalayabilirsin.</p>}
-        <small>STEER kartı sıfırı geçerse Pot’a, geçmezse iskartaya gider. SNAP yapan kart da kaybolur.</small>
-      </section>
-      <section className="os-pot">
-        <div className="os-section-head"><strong>POT · {d.pot.length} kart</strong><span>Toplam {pot} puan</span></div>
-        {d.pot.length?<div className="os-cards">{d.pot.map(c=><PlayingCard key={c} id={c}/>)}</div>:<p className="os-muted">Pot boş. Açtığın her kart burada görünmeyebilir: sıfırı geçen FLIP kartı elinde yer varsa eline gider.</p>}
-        <div className="os-formula">Pot {pot} × Çarpan {d.W+1} = <b>{overswingPayout(s)} puan</b></div>
-      </section>
+  const d=s.deal,actions=overswingActions(s);
+  const flip=actions.some(a=>a.type==='flip');
+  const bankable=actions.some(a=>a.type==='bank');
+  const pot=d.pot.reduce((sum,id)=>sum+rank(id),0);
+  const bank=overswingPayout(s);
+  const total=s.dealTotals.reduce((sum,x)=>sum+x,0)+(s.status==='over'?0:d.T);
+  return <div className="os7">
+    <header className="os7-heading">
+      <div><span className="os7-eyebrow">V7 · DENEYSEL</span><h2>Overswing</h2></div>
+      <div className="os7-tools"><select aria-label="Oyun modu" value={s.mode} onChange={e=>restart(e.target.value)}><option value="short">1 deste</option><option value="match">3 deste</option></select><button type="button" onClick={()=>restart(s.mode)}>↻ Yenile</button></div>
+    </header>
+    <div className="os7-ruleline"><span className="os7-red">♥ ♦ sağa (+)</span><span>♠ ♣ sola (−)</span><span>0'ı geç → × artır</span></div>
+    <div className="os7-stats">
+      <div><small>SKOR</small><b>{total}</b></div><div><small>POT</small><b>{pot}</b></div>
+      <div><small>ÇARPAN</small><b>×{d.W+1}</b></div><div className="os7-gold"><small>BANK</small><b>+{bank}</b></div>
     </div>
-    <div className="os-main-actions">
-      <button type="button" className="os-flip" disabled={!canFlip} onClick={()=>act({type:'flip'})}>
-        <span className="os-deck-back" aria-hidden="true">✦</span><span><strong>FLIP · KAPALI KART AÇ</strong><small>Kalan {40-d.pos} kart · Ne çıkacağı bilinmiyor</small></span>
-      </button>
-      <button type="button" className="os-bank" disabled={!canBank} onClick={()=>act({type:'bank'})}>
-        <strong>BANK · {overswingPayout(s)} PUANI KASAYA AL</strong><small>Bu Pot artık kaybolmaz</small>
-      </button>
+    <div className="os7-pendulum" aria-label={'Sarkaç '+val(d.S)}>
+      <div className="os7-barhead"><strong>SARKAÇ</strong><b>{val(d.S)}</b></div>
+      <div className="os7-rail"><span className="os7-center"/><span className="os7-pin" style={{left:((d.S+10)*5)+'%'}}/></div>
+      <div className="os7-ticks"><span>−10</span><span>−5</span><span>0</span><span>+5</span><span>+10</span></div>
     </div>
-    {s.status==='over'&&<section className="os-finished"><h3>Oyun bitti</h3><strong>{s.dealTotals.reduce((v,n)=>v+n,0)} puan</strong><p>{s.dealTotals.reduce((v,n)=>v+n,0)>=(s.mode==='match'?2100:800)?'Masterful!':s.dealTotals.reduce((v,n)=>v+n,0)>=(s.mode==='match'?1500:500)?'Win!':'Tekrar dene!'}</p><button type="button" onClick={()=>restart(s.mode)}>Yeni oyun</button></section>}
-    <details className="os-details"><summary>Detaylı kurallar ve kartların nereye gittiği</summary><ul>
-      <li>Başlangıçta elinde 2 kart, 38 kapalı kart vardır. Her yeni seride ilk FLIP zorunludur.</li>
-      <li>FLIP sıfırı geçmezse açılan kart Pot’a girer. Sıfırı geçerse elde yer varsa ele gelir, el doluysa Pot’a girer.</li>
-      <li>STEER elinden oynanır: sıfırı geçerse kart Pot’a eklenir, geçmezse puan vermeden iskartaya gider.</li>
-      <li>Sıfırı geçmeden önceki uzaklık 1–2 ise +0, 3–5 ise +1, 6–8 ise +2, 9–10 ise +3 çarpan kademesi. Üst sınır ×6.</li>
-      <li>SNAP olursa yalnızca o serideki Pot ve SNAP yapan kart kaybolur. Elin korunur.</li>
-      <li>BANK = Pot’taki kartların sayı toplamı × mevcut çarpan. Sonraki seride sarkaç sıfır, çarpan ×1 olur.</li>
-      <li>Kapalı kartlar bitince BANK veya SNAP sonrası deste tamamlanır. Elde kalan kartlar puan vermez.</li>
-    </ul></details>
-    <div className="os-discard">İskarta: {d.discard.length} kart · Bu destede açılan: {d.flips}/38</div>
+    <div className={'os7-event '+(s.lastAction?.snap?'os7-danger':'')} role="status" aria-live="polite"><Event e={s.lastAction}/></div>
+    <section className="os7-hand">
+      <div className="os7-rowtitle"><h3>ELİN <small>{d.hand.length}/4</small></h3><span>Bir karta dokun → STEER</span></div>
+      <div className="os7-handcards">{d.hand.length?d.hand.map((id,index)=>{
+        const outcome=applySwing(d.S,d.W,signed(id));
+        const hint=outcome.snap?'SNAP':d.plays===0?'POT +'+rank(id):outcome.swung?'POT +'+rank(id):'İskarta';
+        return <Card key={id} id={id} hint={hint} onClick={actions.some(a=>a.type==='steer'&&a.index===index)?()=>act({type:'steer',index}):null}/>;
+      }):<span className="os7-empty">El boş. FLIP ile devam et.</span>}</div>
+      <p className="os7-hint">{d.plays===0?'İlk kartı elinden oynayabilir veya FLIP yapabilirsin.':'STEER sıfırı geçerse Pot’a gider; geçmezse iskartaya.'}</p>
+    </section>
+    <div className="os7-actions">
+      <button type="button" className="os7-flip" onClick={()=>act({type:'flip'})} disabled={!flip}><b>FLIP</b><small>Kapalı kart aç · {40-d.pos} kaldı</small></button>
+      <button type="button" className="os7-bank" onClick={()=>act({type:'bank'})} disabled={!bankable}><b>BANK +{bank}</b><small>{bankable?'Puanı koru · 1 kart çek':d.plays<2?'Önce '+(2-d.plays)+' hamle daha':'Pot boş'}</small></button>
+    </div>
+    <div className="os7-pot">
+      <div className="os7-rowtitle"><h3>POT</h3><span>{d.pot.length} kart · {pot} puan</span></div>
+      <div className="os7-minis">{d.pot.length?d.pot.map(id=><Mini key={id} id={id}/>):<span className="os7-empty">Boş</span>}</div>
+    </div>
+    {s.lastFlip&&<p className="os7-lastflip">Son FLIP: <Mini id={s.lastFlip.card}/> → <b>{destination[s.lastFlip.destination]}</b></p>}
+    <footer className="os7-footer"><span>{s.mode==='match'?'Deste '+(s.dealIndex+1)+'/3 · ':''}{d.pos}/40 kart kullanıldı</span>
+      <details><summary>Kurallar (30 saniye)</summary>
+        <p>4 kartla başlarsın. İlk hamle FLIP veya elinden kart (STEER) olabilir. Açılış STEER kartı Pot’a gider.</p>
+        <p>♥ ♦ artı, ♠ ♣ eksi. Sıfırı geçince çarpan artar. ±10 güvenli; ±11 ve ötesi SNAP, Pot kaybolur.</p>
+        <p>FLIP sıfırı geçerse ve elinde yer varsa kart eline gelir, yoksa Pot’a. STEER yalnızca sıfırı geçince Pot’a eklenir (açılış hariç).</p>
+        <p>BANK için aynı seride en az 2 kart hamlesi gerekir. BANK puanı korur ve elinde yer varsa desteden sadece 1 kart çeker. SNAP kart kazandırmaz.</p>
+        <p>Bu deneysel sürümün puan hedefleri henüz kalibre edilmedi.</p>
+      </details>
+    </footer>
+    {s.status==='over'&&<div className="os7-done"><h3>Oyun bitti</h3><b>{s.dealTotals.reduce((sum,x)=>sum+x,0)} puan</b><button type="button" onClick={()=>restart(s.mode)}>Yeni oyun</button></div>}
   </div>;
 }
