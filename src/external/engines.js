@@ -236,6 +236,14 @@ export function stepOverswing(s,a,rules={}){
   }
   if(ended)clearSwing(d);
   const refill=refillEmptyHand(d);
+  // Refill consumes the top of the ordinary deck. A Scout preview must always
+  // point at the next actual FLIP card, never a card moved into the hand.
+  if(d.scoutNext!=null&&refill.length)
+    d.scoutNext=d.pos<d.deck.length?d.deck[d.pos]:null;
+  if(n.lastAction?.type==='steer'&&royalRank(n.lastAction.card)==='J'&&!n.lastAction.snap){
+    d.scoutNext=d.pos<d.deck.length?d.deck[d.pos]:null;
+    n.lastAction={...n.lastAction,scouted:d.scoutNext};
+  }
   if(refill.length){
     msg+=' Hand refilled with '+refill.length+' cards (capacity '+d.handCap+').';
     n.lastRefill=refill;
