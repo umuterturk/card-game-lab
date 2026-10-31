@@ -57,7 +57,7 @@ export default function OverswingPlay({s,act,restart}){
     </section>
     <div className="os7-actions">
       <button type="button" className="os7-flip" onClick={()=>act({type:'flip'})} disabled={!flip}><b>FLIP</b><small>Kapalı kart aç · {40-d.pos} kaldı</small></button>
-      <button type="button" className="os7-bank" onClick={()=>act({type:'bank'})} disabled={!bankable}><b>BANK +{bank}</b><small>{bankable?'Puanı koru · 1 kart çek':d.plays<2?'Önce '+(2-d.plays)+' hamle daha':'Pot boş'}</small></button>
+      <button type="button" className="os7-bank" onClick={()=>act({type:'bank'})} disabled={!bankable}><b>BANK +{bank}</b><small>{bankable?(d.hand.length<4&&d.pos<40?'Puanı koru · 1 kart çek':'Puanı koru'):d.plays<2?'Önce '+(2-d.plays)+' hamle daha':'Pot boş'}</small></button>
     </div>
     <div className="os7-pot">
       <div className="os7-rowtitle"><h3>POT</h3><span>{d.pot.length} kart · {pot} puan</span></div>
