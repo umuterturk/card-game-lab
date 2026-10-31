@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
 /* Overswing v8 — compact mobile-first board */
 .os8,.os8 *{box-sizing:border-box}
 .os8{max-width:720px;margin:auto;color:#eff3f8;font:inherit}
@@ -147,7 +148,7 @@
 
 
 /* THE LAST FLAME — mobile pixel-art skin, based on the fiery game-screen reference. */
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+
 .ext-overswing-wrap{max-width:620px;margin:auto;padding:0 0 16px}
 .os8{
   --fire:#ff762a;--gold:#ffcd63;--ink:#0c0b12;--stone:#241e25;
