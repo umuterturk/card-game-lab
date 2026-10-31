@@ -10,7 +10,7 @@
 - **Baseline:** ordinary A–10 cards, no Royals, 100% target.
 - **J unlocked:** one Jack in the opening hand; ±11 and next-FLIP preview after safe STEER, 105% target.
 - **J + Q unlocked:** Jack and Queen in the opening hand; Q can choose ±12, 110% target.
-- **J + Q + K unlocked:** at most two hand-only Royals per gate, rotating pairs across three encounters. Gate 1 contains K and J/Q, Gate 2 J+Q, Gate 3 K and J/Q. K can STEER ±13 for 13 Pot points or be retained for a decaying BANK bonus (+50% initially, −10 percentage points per FLIP/STEER, expires at 0%), 115% target.
+- **J + Q + K unlocked:** at most two hand-only Royals per gate, rotating pairs across three encounters. Gate 1 contains K and J/Q, Gate 2 J+Q, Gate 3 K and J/Q. K can STEER ±13 for 13 Pot points or be retained for a decaying BANK bonus (+80% initially, −10 percentage points per FLIP/STEER, expires at 0%), 115% target.
 
 Ordinary FLIP decks contain no Royals. The total encounter deck is **40 cards** in every configuration. A newly unlocked K is guaranteed to appear in the first gate of the next fully-unlocked journey.
 
@@ -31,7 +31,7 @@ Each cell shows **average Gold per encounter / pass rate**. Pass thresholds rise
 | Baseline | 2,180 / 98.40% | 2,158 / 65.05% | 2,183 / 7.10% |
 | J | 2,286 / 99.20% | 2,227 / 66.70% | 2,245 / 6.00% |
 | J + Q | 2,392 / 98.80% | 2,364 / 68.00% | 2,376 / 6.10% |
-| J + Q + K | 2,252 / 98.20% | 2,372 / 63.30% | 2,168 / 2.85% |
+| J + Q + K | 2,275 / 98.25% | 2,372 / 63.30% | 2,196 / 3.00% |
 
 Additional Royal-aware signals:
 
@@ -40,15 +40,31 @@ Additional Royal-aware signals:
 | Baseline | 2.85 | 0 | 0% |
 | J | 2.74 | 0 | 0% |
 | J + Q | 2.67 | 0 | 0% |
-| J + Q + K | 2.70 | 0.37 | 56.65% |
+| J + Q + K | 2.70 | 0.34 | 66.00% |
 
 ### Interpretation
 
 1. **J improves average Gold.** Its preview is useful with the tested policy and does not cause large systemic risk.
 2. **Q adds measurable control.** J+Q has the highest average Gold in the first gate under `royal_aware`, but this also depends on how the bot values crossing.
-3. **K is not yet proven balanced.** With at most two Royals, K replaces J or Q in gates 1 and 3; its decaying BANK bonus did not compensate for that opportunity cost under `royal_aware`. Average first-gate Gold drops from 2392 (J+Q) to 2252 (full pool). The boss pass rate also drops when the tier target rises. This does **not** establish that K is intrinsically weak: the card-selection mix and higher target are confounders, and the agent is not an optimal King strategist.
+3. **K is not yet proven balanced.** With at most two Royals, K replaces J or Q in gates 1 and 3; its decaying BANK bonus did not compensate for that opportunity cost under `royal_aware`. Average first-gate Gold drops from 2392 (J+Q) to 2275 (full pool). The boss pass rate also drops when the tier target rises. This does **not** establish that K is intrinsically weak: the card-selection mix and higher target are confounders, and the agent is not an optimal King strategist.
 4. **The boss remains tough.** The low pass rates indicate the current 3000+ base and SNAP tax deserve separate balancing. Do not solve this by simply buffing J/Q/K.
 5. **Policy matters.** For example, the baseline `cross_control` policy obtains only about 538 Gold on Ash Gate, versus 2180 for `royal_aware`; a simplistic STEER-heavy strategy is not a reasonable reference player.
+
+## K Crown rebalance: +50% → +80%
+
+The initial Crown BANK bonus was raised from **+50% to +80%**, while the per-move decay remained **−10 percentage points**. At the earliest ordinarily legal BANK (after two actions), the new Crown bonus is +60% rather than +30%.
+
+Using the same seeds and the same `royal_aware` heuristic, with the same fully-unlocked two-Royal hand selection:
+
+| Metric | Old K (+50%) | New K (+80%) | Difference |
+|---|---:|---:|---:|
+| Ash Gate average Gold | 2,252.33 | 2,275.18 | +22.85 |
+| Ash Gate pass rate | 98.20% | 98.25% | +0.05 percentage points |
+| Ash Gate Crown BANK frequency | 56.65% | 66.00% | +9.35 percentage points |
+| Ember Keeper average Gold | 2,167.70 | 2,196.43 | +28.73 |
+| Ember Keeper pass rate | 2.85% | 3.00% | +0.15 percentage points |
+
+This is a **modest measurable improvement** in the tested policy, not a full balancing solution. K still replaces J or Q in the first and last gates, and the raised tier target remains a confounder in comparisons against the J+Q stage. The baseline numbers above were produced before the change with the same script and seeds; the current simulation artifacts contain the +80% measurements.
 
 ## Limits
 
@@ -60,7 +76,7 @@ Additional Royal-aware signals:
 
 ## Recommendation / next experiment
 
-**Keep the implemented rules for now**, playtest the K tradeoff and record whether human players cash K out, steer it, or let it expire. Then independently evaluate Crown parameters (+50/−10 vs +60/−10 vs +50/−5) against an identical encounter-target baseline. That separates the King's true strategic value from the target-tier increase and card-replacement opportunity cost.
+**Keep the implemented rules for now**, playtest the K tradeoff and record whether human players cash K out, steer it, or let it expire. Then independently evaluate Crown parameters (+50/−10 vs +80/−10 vs +100/−10) against an identical encounter-target baseline. That separates the King's true strategic value from the target-tier increase and card-replacement opportunity cost.
 
 ## Reproduce
 
