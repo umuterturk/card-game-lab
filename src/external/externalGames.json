@@ -38,13 +38,13 @@
     "status": "pass",
     "score": 8,
     "sourceExperiment": "CGL-20261029-23",
-    "description": "Swing a pendulum across zero with red and black cards to grow a multiplier. Bank before you snap past ±10.",
+    "description": "Overswing v7: 4-card hand. Start with a chosen card or flip blind; swing across zero for multipliers and bank before the pendulum snaps.",
     "mechanic": "Pendulum control",
-    "components": "40 unique suited cards, Hand of up to three, Pendulum −10 to +10.",
-    "loop": "Flip blind or Steer with hand cards. Crossing zero raises W; swing flips can be caught into your Hand. Bank for Pot × (1+W).",
-    "risk": "Passing ±10 Snaps and destroys the current pot. One-deal Short and three-deal Match available.",
-    "caveat": "Independent provisional assessment; high-pot-volatility (reported SD 207 on strategic mean 605), with some overlap in signed-meter mechanics with Rebound. No human playtests.",
-    "evidence": "Supplied v6 agent report: 2,000 Short deals; strategic mean 604.8 (SD 207.4), adaptive 459.1, random 165.9; strategic Win ≥500 69.4%. Stats not independently reproduced.",
+    "components": "40 unique suited cards; 4-card opening hand and capacity; Pendulum −10 to +10.",
+    "loop": "Choose FLIP or opening STEER. Build a pot and zero-crossing multiplier; BANK after at least two card actions, scoring Pot × multiplier and drawing one replacement card if possible.",
+    "risk": "Going past ±10 Snaps and loses the current pot. BANK refills exactly one card, SNAP never refills.",
+    "caveat": "v7 is an experimental rules variation (4-card hand, one BANK refill, optional hand opening, two-action BANK minimum); balance and targets have NOT been independently simulated or human-tested. The displayed 8.0 design rating and reported evidence describe v6.",
+    "evidence": "Historical v6 agent results: strategic mean 604.8 in 2,000 short deals; not applicable to this revised v7 engine. Local v7 automated rule/termination tests passed.",
     "tags": [
       "Push your luck",
       "Multiplier",
@@ -61,7 +61,7 @@
       "senseOfLoss": 8,
       "replayability": 8
     },
-    "scoreBasis": "Provisional independent eight-category design review (2026-10-31); psychological dimensions are predictions; supplied simulation results were not independently rerun."
+    "scoreBasis": "Previously published provisional 8-category score for v6 only; v7 has not yet been re-rated. Do not treat v6 simulation metrics as v7 results."
   },
   {
     "id": "021",
