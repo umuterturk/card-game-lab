@@ -4,3 +4,21 @@
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
 
 .game-card-play{display:flex;align-items:center;justify-content:center;gap:9px;padding:12px 14px;margin:0 20px 18px;border-radius:10px;border:1px solid #6d5b43;color:#f0be7b;background:#282322;font-size:13px;font-weight:800;transition:background .15s}.game-card-play:hover{background:#3e3028}
+
+/* Dedicated Overswing full-screen route. The rest of Card Game Lab is unaffected. */
+html.overswing-full-active,
+body.overswing-full-active,
+html.overswing-full-active #root {
+  width:100%;height:100%;overflow:hidden!important;overscroll-behavior:none;
+}
+.overswing-fullscreen{
+  position:fixed;z-index:1000;inset:0;
+  width:100%;height:100vh;height:100dvh;
+  padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px)
+          env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);
+  background:#09080e;overflow:hidden;overscroll-behavior:none;
+  display:block;box-sizing:border-box;
+}
+.ov-full-frame{width:100%;height:100%;max-height:100%;overflow:hidden;overscroll-behavior:none;position:relative}
+.ov-full-surface{width:100%;max-width:560px;margin:0 auto;transform-origin:top center;will-change:transform;box-sizing:border-box}
+.overswing-fullscreen .ext-play{padding:0}
