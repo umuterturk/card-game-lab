@@ -20,10 +20,10 @@ function Outcome({e}){
   if(e.type==='bank')return <><b>+{e.points.toLocaleString('tr-TR')} BANK</b> · Kapasite {e.oldCap} → {e.newCap}. {e.dropped!=null?name(e.dropped)+' çıkarıldı. ':''}{e.refilled?.length?'Elin yeniden dolduruldu.':''}</>;
   if(e.snap)return <><b>SNAP!</b> <b>{name(e.card)}</b> ile {val(e.from)} → {val(e.to)}. {e.lostPayout.toLocaleString('tr-TR')} olası puan kaybedildi.</>;
   if(e.zeroBreak)return <><b>ZERO BREAK!</b> {name(e.card)} ile {val(e.from)} → 0. <b>Tüm çarpanlar ×1 oldu.</b> Pot korunuyor{e.refilled?.length?', elin yenilendi':''}.</>;
-  return <><b>{e.type==='flip'?'FLIP':'STEER'} {name(e.card)}</b> · {val(e.from)} → {val(e.to)} · <b>{target[e.destination]}</b>{e.swung?<b> · SWING {e.gain>0?'+'+e.gain:'MAX'}</b>:null} · toplam ×{e.multiplier.toLocaleString('tr-TR')}{e.refilled?.length?' · Elin '+e.refilled.length+' kartla yenilendi.':''}</>;
+  return <><b>{e.type==='flip'?'FLIP':'STEER'} {name(e.card)}</b> · {val(e.from)} → {val(e.to)} · <b>{target[e.destination]}</b>{e.swung?<b> · SWING +{e.gain}</b>:null} · toplam ×{e.multiplier.toLocaleString('tr-TR')}{e.refilled?.length?' · Elin '+e.refilled.length+' kartla yenilendi.':''}</>;
 }
 const FACTOR_HELP={
-  swing:{title:'SWING',text:'Sarkaç sıfırın bir tarafından diğerine geçtiğinde artar. Önceki konumun sıfıra uzaklığı 1–5 ise +1, 6–8 ise +2, 9–10 ise +3 kademe kazanırsın. En fazla ×6 olabilir. Tam sıfır CROSS sayılmaz: ZERO BREAK bütün çarpanları ×1 yapar.'},
+  swing:{title:'SWING',text:'Sarkaç sıfırın bir tarafından diğerine geçtiğinde artar. Önceki konumun sıfıra uzaklığı 1–5 ise +1, 6–8 ise +2, 9–10 ise +3 kademe kazanırsın. Üst sınır yoktur; her gerçek geçişte artmaya devam eder. Tam sıfır CROSS sayılmaz: ZERO BREAK bütün çarpanları ×1 yapar.'},
   flip:{title:'FLIP',text:'Sıfırı geçmeden yapılan ardışık FLIP hamlelerinde çarpan ×2, ×3, ×4… büyür. STEER veya sıfır geçişi bu ardışık sayacı durdurur; önceden kazanılmış FLIP çarpanı BANK, SNAP veya ZERO BREAK’e kadar korunur.'},
   combo:{title:'SERİ',text:'Üst üste iki FLIP yapınca ayrı bir ×2 bonus kazanırsın. Üçüncü ardışık FLIP sıfırı geçerse ayrıca ×3 daha kazanırsın. STEER art arda FLIP sayacını sıfırlar.'},
   cross:{title:'CROSS',text:'FLIP ile tam sıfıra basmadan karşı tarafa geçtiğinde ayrıca ×2 kazanırsın. Tekrar başarılı FLIP CROSS yaparsan bu bonuslar çarpılarak büyür. STEER ile sıfırı geçmek CROSS bonusu değil, SWING bonusu verir.'}
