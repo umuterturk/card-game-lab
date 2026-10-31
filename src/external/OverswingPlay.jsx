@@ -8,7 +8,7 @@ import {journeyRules} from './overswingJourney.js';
 const SUITS=['♥','♦','♠','♣'];
 const name=id=>(rank(id)===1?'A':rank(id))+SUITS[suit(id)];
 const val=n=>n>0?'+'+n:String(n);
-const target={pot:'POT',discard:'ISKARTA'};
+const target={pot:'POT',discard:'DISCARD'};
 function Card({id,onClick,caption,chosen=false,mini=false}){
   return <button type="button" disabled={!onClick} onClick={onClick}
     className={'os8-card '+(suit(id)<2?'os8-red':'os8-black')+(chosen?' os8-selected':'')+(mini?' os8-mini':'')}
@@ -19,11 +19,11 @@ function Card({id,onClick,caption,chosen=false,mini=false}){
   </button>;
 }
 function Outcome({e}){
-  if(!e)return <>Bir kart seç veya <b>FLIP</b> yap. Kırmızı sağa, siyah sola hareket eder.</>;
-  if(e.type==='bank')return <><b>+{e.points.toLocaleString('tr-TR')} BANK</b> · Kapasite {e.oldCap} → {e.newCap}. {e.dropped!=null?name(e.dropped)+' çıkarıldı. ':''}{e.refilled?.length?'Elin yeniden dolduruldu.':''}</>;
-  if(e.snap)return <><b>SNAP!</b> <b>{name(e.card)}</b> ile {val(e.from)} → {val(e.to)}. {e.lostPayout.toLocaleString('tr-TR')} olası puan kaybedildi.</>;
-  if(e.zeroBreak)return <><b>ZERO BREAK!</b> {name(e.card)} ile {val(e.from)} → 0. <b>Tüm çarpanlar ×1 oldu.</b> Pot korunuyor{e.refilled?.length?', elin yenilendi':''}.</>;
-  return <><b>{e.type==='flip'?'FLIP':'STEER'} {name(e.card)}</b> · {val(e.from)} → {val(e.to)} · <b>{target[e.destination]}</b>{e.swung?<b> · SWING +{e.gain}</b>:null}{e.swingPenalty?<b> · SWING −1</b>:null} · toplam ×{e.multiplier.toLocaleString('tr-TR')}{e.refilled?.length?' · Elin '+e.refilled.length+' kartla yenilendi.':''}</>;
+  if(!e)return <>Choose a card to <b>STEER</b>, or <b>FLIP</b> a random card.</>;
+  if(e.type==='bank')return <><b>+{e.points.toLocaleString('en-US')} BANKED</b> · Hand limit {e.oldCap} → {e.newCap}. {e.dropped!=null?name(e.dropped)+' discarded. ':''}{e.refilled?.length?'Hand refilled.':''}</>;
+  if(e.snap)return <><b>SNAP!</b> <b>{name(e.card)}</b>: {val(e.from)} → {val(e.to)}. Lost {e.lostPayout.toLocaleString('en-US')} potential points.</>;
+  if(e.zeroBreak)return <><b>ZERO BREAK!</b> {name(e.card)}: {val(e.from)} → 0. <b>All multipliers reset to ×1.</b> Pot kept{e.refilled?.length?', hand refilled':''}.</>;
+  return <><b>{e.type==='flip'?'FLIP':'STEER'} {name(e.card)}</b> · {val(e.from)} → {val(e.to)} · <b>{target[e.destination]}</b>{e.swung?<b> · SWING +{e.gain}</b>:null}{e.swingPenalty?<b> · SWING −1</b>:null} · total ×{e.multiplier.toLocaleString('en-US')}{e.refilled?.length?' · '+e.refilled.length+' cards refilled':''}</>;
 }
 
 function FlameMeter({position}){
@@ -74,16 +74,16 @@ function FlameMeter({position}){
 }
 
 const FACTOR_HELP={
-  swing:{title:'SWING',text:'Sıfırın karşı tarafına geçince artar. Geçmeden STEER yaparsan 1 kademe düşer (en az ×1).'},
-  flip:{title:'FLIP',text:'Her başarılı ardışık FLIP çarpanı büyütür: ×2, ×3, ×4… Sıfırı geçsen de artar. STEER seriyi durdurur ama kazanılan çarpanı silmez.'},
-  jackpot:{title:'JACKPOT',text:'FLIP ile sıfırın karşı tarafına geçtiğinde +1 artar: ×2, ×3, ×4… Geçemezsen değişmez. Tam sıfır (ZERO BREAK) bütün çarpanları ×1 yapar.'}
+  swing:{title:'SWING',text:'Cross zero to gain SWING. A noncrossing STEER costs 1 SWING tier (minimum ×1).'},
+  flip:{title:'FLIP',text:'Each consecutive safe FLIP builds ×2, ×3, ×4… even when it crosses zero. STEER ends the streak but preserves earned FLIP.'},
+  jackpot:{title:'JACKPOT',text:'Every zero crossing made by FLIP adds one tier: ×2, ×3, ×4… A noncrossing FLIP does not reduce it. Exact zero resets all multipliers.'}
 };
 function Factor({id,label,value,onClick,expanded}){
   return <button type="button" className={'os8-factor '+(value>1?'os8-active':'')+(expanded?' os8-factor-open':'')}
       onClick={onClick} aria-expanded={expanded} aria-controls="os8-factor-help"
-      aria-label={label+' çarpanı ×'+value+'. Açıklama için dokun'}>
+      aria-label={label+' multiplier '+value+'. Tap for help'}>
     <span>{label} <span className="os8-info-icon" aria-hidden="true">ⓘ</span></span>
-    <b>×{value.toLocaleString('tr-TR')}</b>
+    <b>×{value.toLocaleString('en-US')}</b>
   </button>;
 }
 export default function OverswingPlay({s,act,restart,journey=null,onBack=null}){
@@ -121,13 +121,13 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null}){
     </div>
   </>;
   const multiplierDetails=<>
-    <div className="os8-factors" aria-label="Çarpan ayrıntıları; bilgi almak için çarpana dokun">
+    <div className="os8-factors" aria-label="Multiplier details; tap for an explanation">
       <Factor id="swing" label="SWING" value={d.W+1} onClick={()=>setOpenFactor(openFactor==='swing'?null:'swing')} expanded={openFactor==='swing'}/>
       <Factor id="flip" label="FLIP" value={d.flipFactor} onClick={()=>setOpenFactor(openFactor==='flip'?null:'flip')} expanded={openFactor==='flip'}/>
       <Factor id="jackpot" label="JACKPOT" value={d.jackpotFactor} onClick={()=>setOpenFactor(openFactor==='jackpot'?null:'jackpot')} expanded={openFactor==='jackpot'}/>
     </div>
-    {openFactor&&FACTOR_HELP[openFactor]&&<div id="os8-factor-help" className="os8-factor-tooltip" role="region" aria-label={FACTOR_HELP[openFactor].title+' açıklaması'}>
-      <div className="os8-tooltip-header"><strong>{FACTOR_HELP[openFactor].title} nasıl çalışır?</strong><button type="button" aria-label="Açıklamayı kapat" onClick={()=>setOpenFactor(null)}>×</button></div>
+    {openFactor&&FACTOR_HELP[openFactor]&&<div id="os8-factor-help" className="os8-factor-tooltip" role="region" aria-label={FACTOR_HELP[openFactor].title+' explanation'}>
+      <div className="os8-tooltip-header"><strong >How {FACTOR_HELP[openFactor].title} works</strong><button type="button" aria-label="Close explanation" onClick={()=>setOpenFactor(null)}>×</button></div>
       <p>{FACTOR_HELP[openFactor].text}</p>
     </div>}
     <div className={'os8-event '+(s.lastAction?.snap?'os8-snap':s.lastAction?.zeroBreak?'os8-zero-break':'')} role="status" aria-live="polite">
@@ -142,7 +142,7 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null}){
       <div className="os8-settings">
         {isJourney?<button type="button" title="Back to journey" onClick={onBack}>‹ MAP</button>:null}
         {!isJourney&&!tutorial&&<button className="os8-tutorial-launch" type="button" onClick={()=>{setDiscardPick(false);setOpenFactor(null);restart('tutorial');}}>TRAIN</button>}
-        {!isJourney&&<select value={s.mode} aria-label="Oyun modu" onChange={e=>{setDiscardPick(false);setOpenFactor(null);restart(e.target.value);}}>
+        {!isJourney&&<select value={s.mode} aria-label="Game mode" onChange={e=>{setDiscardPick(false);setOpenFactor(null);restart(e.target.value);}}>
           <option value="short">QUICK</option><option value="match">3 DECKS</option><option value="tutorial">TRAIN</option>
         </select>}
         {!isJourney&&<button title="Restart" aria-label="Restart" onClick={()=>{setDiscardPick(false);restart(s.mode);}} type="button">↻</button>}
@@ -171,61 +171,60 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null}){
       <FlameMeter position={d.S}/>
       <div className="os8-zero-warning">ZERO BREAK = RESET MULTIPLIERS · CROSS ZERO = SWING</div>
     </section>
-    {tutorial&&<section className="os8-tutorial" aria-live="polite" aria-label="Zorunlu eğitim adımı">
+    {tutorial&&<section className="os8-tutorial" aria-live="polite" aria-label="Required tutorial step">
       {!s.tutorialIntroDone?<div className="os8-tutorial-intro">
-        <div className="os8-tutorial-head"><strong>ÖNCE 4 KAVRAM</strong><span>Eğitim başlamadan</span></div>
+        <div className="os8-tutorial-head"><strong>FOUR BASICS</strong><span>BEFORE YOU PLAY</span></div>
         <div className="os8-tutorial-glossary">
           {OVERSWING_TUTORIAL_INTRO.map(item=><div className="os8-tutorial-term" key={item.term}>
             <strong>{item.term}</strong><span>=</span><span>{item.text}</span>
           </div>)}
         </div>
-        <button type="button" className="os8-start-tutorial" onClick={()=>act({type:'tutorial-start'})}>Anladım, başla</button>
-      </div>:tutorialStep?<><div className="os8-tutorial-head"><strong>ADIM {s.tutorialStep+1} / {OVERSWING_TUTORIAL_STEPS.length}</strong><span>Yalnızca işaretli hamle açık</span></div>
+        <button type="button" className="os8-start-tutorial" onClick={()=>act({type:'tutorial-start'})}>GOT IT — START</button>
+      </div>:tutorialStep?<><div className="os8-tutorial-head"><strong>STEP {s.tutorialStep+1} / {OVERSWING_TUTORIAL_STEPS.length}</strong><span>FOLLOW THE HIGHLIGHT</span></div>
         <div className="os8-tutorial-progress"><span style={{width:((s.tutorialStep+1)/OVERSWING_TUTORIAL_STEPS.length*100)+'%'}}/></div>
         <h3>{tutorialStep.title}</h3>
-        <p>{discardPick?'Şimdi işaretli kartı seçerek BANK işlemini tamamla.':tutorialStep.instruction}</p>
+        <p>{discardPick?'Choose the highlighted card to finish banking.':tutorialStep.instruction}</p>
         <small>{tutorialStep.why}</small>
-      </>:<><h3>Eğitimi tamamladın!</h3><p>Üç çarpanı, STEER cezasını ve riskleri öğrendin. Artık normal oyunu deneyebilirsin.</p>
-        <button type="button" onClick={()=>restart('short')}>Normal oyuna başla</button>
-        <button type="button" onClick={()=>restart('tutorial')}>Eğitimi tekrarla</button>
+      </>:<><h3>TUTORIAL COMPLETE!</h3><p>You know all three multipliers, the STEER cost, and the risks. Ready to play?</p>
+        <button type="button" onClick={()=>restart('short')}>PLAY A GAME</button>
+        <button type="button" onClick={()=>restart('tutorial')}>REPLAY TUTORIAL</button>
       </>}
-      {tutorialStep&&s.tutorialIntroDone&&<button type="button" className="os8-tutorial-exit" onClick={()=>restart('short')}>Eğitimden çık</button>}
+      {tutorialStep&&s.tutorialIntroDone&&<button type="button" className="os8-tutorial-exit" onClick={()=>restart('short')}>EXIT TUTORIAL</button>}
     </section>}
     {guidedActionFirst&&actionButtons}
     {multiplierDetails}
     <section className="os8-pot">
-      <div className="os8-section-heading"><h3>♨ POT CARDS</h3><span>{d.pot.length} kart · {pot} puan</span></div>
-      <div className="os8-potcards">{d.pot.map(c=><Card key={c} id={c} mini/>)}{!d.pot.length&&<span className="os8-empty">Henüz boş</span>}</div>
+      <div className="os8-section-heading"><h3>♨ POT CARDS</h3><span>{d.pot.length} cards · {pot} pts</span></div>
+      <div className="os8-potcards">{d.pot.map(c=><Card key={c} id={c} mini/>)}{!d.pot.length&&<span className="os8-empty">EMPTY</span>}</div>
     </section>
     <section className="os8-hand">
-      <div className="os8-section-heading"><h3>{discardPick?'BANK · REMOVE 1 CARD':'YOUR HAND'}</h3><span>{d.hand.length}/{d.handCap} kart · BANK sonrası kapasite {nextCap}</span></div>
-      {discardPick&&<p className="os8-attention">El kapasitesi {d.handCap} → {nextCap} düşecek. {tutorial?'Yalnızca işaretli kartı çıkar.':'Çıkarmak istediğin karta dokun.'} <button type="button" onClick={()=>setDiscardPick(false)}>Vazgeç</button></p>}
+      <div className="os8-section-heading"><h3>{discardPick?'BANK · REMOVE 1 CARD':'YOUR HAND'}</h3><span>{d.hand.length}/{d.handCap} cards · after BANK: {nextCap}</span></div>
+      {discardPick&&<p className="os8-attention">Hand limit {d.handCap} → {nextCap}. {tutorial?'Remove only the highlighted card.':'Tap the card to discard.'} <button type="button" onClick={()=>setDiscardPick(false)}>CANCEL</button></p>}
       <div className="os8-handcards">
         {d.hand.map((id,index)=>{
           const o=applySwing(d.S,d.W,signed(id));
-          const caption=discardPick?'ÇIKAR':o.snap?'SNAP':d.S!==0&&o.S===0?'ZERO BREAK':d.plays===0||o.swung?'POT +'+rank(id):d.W>0?'SWING −1':'ISKARTA';
+          const caption=discardPick?'REMOVE':o.snap?'SNAP':d.S!==0&&o.S===0?'ZERO BREAK':d.plays===0||o.swung?'POT +'+rank(id):d.W>0?'SWING −1':'DISCARD';
           const allowed=discardPick?legal.some(a=>a.type==='bank'&&a.dropIndex===index):legal.some(a=>a.type==='steer'&&a.index===index);
           const highlighted=(tutorial||steerFocus)&&allowed;
           return <Card key={id} id={id} chosen={highlighted||(!tutorial&&discardPick)} onClick={allowed?()=>doSteer(index):null} caption={caption}/>;
         })}
-        {!d.hand.length&&<p className="os8-empty">El boş. Destede kart varsa otomatik olarak kapasiteye kadar doldurulur.</p>}
+        {!d.hand.length&&<p className="os8-empty">No cards in hand. It refills automatically when deck cards remain.</p>}
       </div>
     </section>
     {!guidedActionFirst&&actionButtons}
     <footer className="os8-footer">
-      <span>{s.mode==='match'?'Deste '+(s.dealIndex+1)+'/3 · ':''}{d.pos}/40 kart çekildi</span>
-      <details><summary>Kurallar ve çarpanlar</summary>
-        <p>8 kartla başlarsın. ♥ ♦ artı, ♠ ♣ eksi. Sarkaç ±10 sınırını aşarsa Pot kaybolur.</p>
-        <p>FLIP açılan kartı Pot’a ekler. Başarılı ardışık FLIP hamleleri çarpanı ×2, ×3, ×4… artırır; sıfır geçişleri de sayılır.</p>
-        <p>FLIP ile sıfırın karşı tarafına geçince SWING artar ve JACKPOT ×1 kademe yükselir. Karşıya geçmeden FLIP yaparsan JACKPOT değişmez.</p>
-        <p>ZERO BREAK: Tam sıfıra gelince SWING, FLIP ve JACKPOT ×1 olur; Pot korunur. ±10 sınırını aşmak SNAP'tir: Pot kaybolur.</p>
-        <p>STEER ardışık FLIP sayacını durdurur; kazanılan FLIP ve JACKPOT korunur. Sıfırı geçmeyen STEER, SWING’i 1 azaltır (en az ×1).</p>
-        <p>İlk STEER, sıfırı geçen STEER ve ZERO BREAK yapan STEER Pot’a girer; diğer STEER kartları iskartaya gider.</p>
-        <p>BANK için en az 2 kart hamlesi gerekir. BANK yaptıkça el kapasitesi 8 → 7 → … → 2 azalır. Fazla el kartın varsa hangisini çıkaracağını seçersin.</p>
-        <p>Elin sıfıra indiğinde, kapalı destede yeterli kart varsa yeni elin mevcut maksimum kapasiteye kadar otomatik dolar.</p>
-        <p>Çarpanlar deneysel; skor hedefleri henüz yeniden kalibre edilmedi.</p>
+      <span>{s.mode==='match'?'Deck '+(s.dealIndex+1)+'/3 · ':''}{d.pos}/40 drawn</span>
+      <details><summary>Rules & multipliers</summary>
+        <p>Start with 8 cards. Hearts and diamonds move right (+); spades and clubs move left (−). Exceed ±10 and you lose the Pot.</p>
+        <p>FLIP draws a random card into the Pot. Consecutive safe FLIPs grow FLIP: ×2, ×3, ×4… Crossing zero counts.</p>
+        <p>Crossing zero with FLIP raises SWING and adds +1 JACKPOT tier. A noncrossing FLIP leaves JACKPOT unchanged.</p>
+        <p>ZERO BREAK: Land exactly on zero to reset all multipliers to ×1, but keep the Pot. SNAP: Go outside ±10 and lose the Pot.</p>
+        <p>STEER ends the current FLIP streak but preserves earned FLIP and JACKPOT tiers. STEER without crossing costs 1 SWING tier (minimum ×1).</p>
+        <p>The first STEER of a Pot, crossing STEER, and ZERO BREAK STEER enter the Pot; other STEER cards are discarded.</p>
+        <p>BANK becomes available after at least 2 card actions. Each BANK reduces hand capacity from 8 toward 2 (unless a relic prevents it). Choose which card to discard if necessary.</p>
+        <p>An empty hand refills automatically from the remaining deck, up to its capacity.</p>
       </details>
     </footer>
-    {s.status==='over'&&<div className="os8-complete"><h3>Oyun bitti</h3><b>{s.dealTotals.reduce((a,b)=>a+b,0).toLocaleString('tr-TR')} puan</b><button type="button" onClick={()=>restart(s.mode)}>Yeni oyun</button></div>}
+    {s.status==='over'&&<div className="os8-complete"><h3>GAME OVER</h3><b>{s.dealTotals.reduce((a,b)=>a+b,0).toLocaleString('en-US')} pts</b><button type="button" onClick={()=>restart(s.mode)}>PLAY AGAIN</button></div>}
   </div>;
 }
