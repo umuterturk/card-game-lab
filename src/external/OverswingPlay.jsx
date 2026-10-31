@@ -50,55 +50,18 @@ export default function OverswingPlay({s,act,restart}){
   useEffect(()=>setDiscardPick(false),[s.dealIndex,d.bankCount,s.status]);
   const doSteer=index=>{if(discardPick){if(legal.some(a=>a.type==='bank'&&a.dropIndex===index)){act({type:'bank',dropIndex:index});setDiscardPick(false);}}else if(legal.some(a=>a.type==='steer'&&a.index===index))act({type:'steer',index});};
   const bank=()=>{if(mustDiscard)setDiscardPick(true);else act({type:'bank'});};
-  return <div className="os8">
-    <header className="os8-head">
-      <div><span>{tutorial?'REHBERLİ EĞİTİM':'V10 · OVERSWING'}</span><h2>OVERSWING</h2></div>
-      <div className="os8-settings">
-        {!tutorial&&<button className="os8-tutorial-launch" type="button" onClick={()=>{setDiscardPick(false);setOpenFactor(null);restart('tutorial');}}>Eğitim</button>}
-        <select value={s.mode} aria-label="Oyun modu" onChange={e=>{setDiscardPick(false);setOpenFactor(null);restart(e.target.value);}}>
-          <option value="short">1 deste</option><option value="match">3 deste</option><option value="tutorial">Eğitim</option>
-        </select>
-        <button title="Yeniden başlat" aria-label="Yeniden başlat" onClick={()=>{setDiscardPick(false);restart(s.mode);}} type="button">↻</button>
-      </div>
-    </header>
-    {tutorial&&<section className="os8-tutorial" aria-live="polite" aria-label="Zorunlu eğitim adımı">
-      {!s.tutorialIntroDone?<div className="os8-tutorial-intro">
-        <div className="os8-tutorial-head"><strong>BAŞLAMADAN ÖNCE</strong><span>4 temel kavram</span></div>
-        <h3>Overswing nasıl oynanır?</h3>
-        <p>Amacın sarkacı kontrol ederek Pot’u ve çarpanları büyütmek, doğru zamanda BANK yaparak puanı skoruna eklemek.</p>
-        <div className="os8-tutorial-glossary">
-          {OVERSWING_TUTORIAL_INTRO.map(item=><div className="os8-tutorial-term" key={item.term}>
-            <div><span aria-hidden="true">{item.sign}</span><strong>{item.term}</strong></div>
-            <p>{item.text}</p>
-          </div>)}
-        </div>
-        <div className="os8-tutorial-example"><strong>Örnek:</strong> Pot 10 puan ve toplam çarpan ×3 ise BANK yaptığında <b>30 puan</b> skoruna eklenir.</div>
-        <button type="button" className="os8-start-tutorial" onClick={()=>act({type:'tutorial-start'})}>Anladım, ilk FLIP ile başla</button>
-        <small>Sonraki 17 hamlede yalnızca işaretli kart veya buton kullanılabilir.</small>
-      </div>:tutorialStep?<><div className="os8-tutorial-head"><strong>ADIM {s.tutorialStep+1} / {OVERSWING_TUTORIAL_STEPS.length}</strong><span>Yalnızca işaretli hamle açık</span></div>
-        <div className="os8-tutorial-progress"><span style={{width:((s.tutorialStep+1)/OVERSWING_TUTORIAL_STEPS.length*100)+'%'}}/></div>
-        <h3>{tutorialStep.title}</h3>
-        <p>{discardPick?'Şimdi işaretli kartı seçerek BANK işlemini tamamla.':tutorialStep.instruction}</p>
-        <small>{tutorialStep.why}</small>
-      </>:<><h3>Eğitimi tamamladın!</h3><p>Dört çarpanı, STEER cezasını, ZERO BREAK’i ve riskleri gördün. Artık normal oyunu deneyebilirsin.</p>
-        <button type="button" onClick={()=>restart('short')}>Normal oyuna başla</button>
-        <button type="button" onClick={()=>restart('tutorial')}>Eğitimi tekrarla</button>
-      </>}
-      {tutorialStep&&s.tutorialIntroDone&&<button type="button" className="os8-tutorial-exit" onClick={()=>restart('short')}>Eğitimden çık</button>}
-    </section>}
-    <div className="os8-legend"><span className="os8-redtext">♥ ♦ <b>+</b> SAĞA</span><span>♠ ♣ <b>−</b> SOLA</span><span>0 = ÇARPAN SIFIR</span><span>±10 = sınır</span></div>
-    <div className="os8-scoreline">
-      <div><small>SKOR</small><b>{total.toLocaleString('tr-TR')}</b></div>
-      <div><small>POT</small><b>{pot}</b></div>
-      <div><small>ÇARPAN</small><b>×{multiplier.toLocaleString('tr-TR')}</b></div>
-      <div><small>BANK</small><b>+{payout.toLocaleString('tr-TR')}</b></div>
+  const guidedActionFirst=tutorial&&s.tutorialIntroDone&&(tutorialStep?.type==='flip'||tutorialStep?.type==='bank');
+  const actionButtons=<>
+    <div className="os8-actions">
+      <button type="button" disabled={!canFlip||discardPick} className={'os8-flip '+(tutorial&&canFlip?'os8-guide-action':'')} onClick={()=>act({type:'flip'})}>
+        <b>FLIP</b><small>Kapalı kart aç · {40-d.pos} kaldı</small><small>Seri: {d.flipStreak} FLIP</small>
+      </button>
+      <button type="button" disabled={!canBank||discardPick} className={'os8-bank '+(tutorial&&canBank?'os8-guide-action':'')} onClick={bank}>
+        <b>BANK +{payout.toLocaleString('tr-TR')}</b><small>Kasaya al · Kapasite {d.handCap} → {nextCap}</small>
+      </button>
     </div>
-    <section className="os8-meter" aria-label={'Sarkaç '+val(d.S)}>
-      <div className="os8-meter-heading"><strong>SARKAÇ</strong><b>{val(d.S)}</b></div>
-      <div className="os8-track"><span className="os8-zero"/><span className="os8-pointer" style={{left:((d.S+10)*5)+'%'}}/></div>
-      <div className="os8-ticks"><span>−10</span><span>−5</span><span>0</span><span>+5</span><span>+10</span></div>
-      <div className="os8-zero-warning">Tam 0: tüm çarpanlar ×1 · Sıfırı geçmek: bonus</div>
-    </section>
+  </>;
+  const multiplierDetails=<>
     <div className="os8-factors" aria-label="Çarpan ayrıntıları; bilgi almak için çarpana dokun">
       <Factor id="swing" label="SWING" value={d.W+1} onClick={()=>setOpenFactor(openFactor==='swing'?null:'swing')} expanded={openFactor==='swing'}/>
       <Factor id="flip" label="FLIP" value={d.flipFactor} onClick={()=>setOpenFactor(openFactor==='flip'?null:'flip')} expanded={openFactor==='flip'}/>
@@ -113,6 +76,54 @@ export default function OverswingPlay({s,act,restart}){
       {s.lastAction?.card!=null&&<Card id={s.lastAction.card} mini/>}
       <p><Outcome e={s.lastAction}/></p>
     </div>
+  </>;
+
+  return <div className="os8">
+    <header className="os8-head">
+      <div><span>{tutorial?'REHBERLİ EĞİTİM':'V10 · OVERSWING'}</span><h2>OVERSWING</h2></div>
+      <div className="os8-settings">
+        {!tutorial&&<button className="os8-tutorial-launch" type="button" onClick={()=>{setDiscardPick(false);setOpenFactor(null);restart('tutorial');}}>Eğitim</button>}
+        <select value={s.mode} aria-label="Oyun modu" onChange={e=>{setDiscardPick(false);setOpenFactor(null);restart(e.target.value);}}>
+          <option value="short">1 deste</option><option value="match">3 deste</option><option value="tutorial">Eğitim</option>
+        </select>
+        <button title="Yeniden başlat" aria-label="Yeniden başlat" onClick={()=>{setDiscardPick(false);restart(s.mode);}} type="button">↻</button>
+      </div>
+    </header>
+    <div className="os8-legend"><span className="os8-redtext">♥ ♦ <b>+</b> SAĞA</span><span>♠ ♣ <b>−</b> SOLA</span><span>0 = ÇARPAN SIFIR</span><span>±10 = sınır</span></div>
+    <div className="os8-scoreline">
+      <div><small>SKOR</small><b>{total.toLocaleString('tr-TR')}</b></div>
+      <div><small>POT</small><b>{pot}</b></div>
+      <div><small>ÇARPAN</small><b>×{multiplier.toLocaleString('tr-TR')}</b></div>
+      <div><small>BANK</small><b>+{payout.toLocaleString('tr-TR')}</b></div>
+    </div>
+    <section className="os8-meter" aria-label={'Sarkaç '+val(d.S)}>
+      <div className="os8-meter-heading"><strong>SARKAÇ</strong><b>{val(d.S)}</b></div>
+      <div className="os8-track"><span className="os8-zero"/><span className="os8-pointer" style={{left:((d.S+10)*5)+'%'}}/></div>
+      <div className="os8-ticks"><span>−10</span><span>−5</span><span>0</span><span>+5</span><span>+10</span></div>
+      <div className="os8-zero-warning">Tam 0: tüm çarpanlar ×1 · Sıfırı geçmek: bonus</div>
+    </section>
+    {tutorial&&<section className="os8-tutorial" aria-live="polite" aria-label="Zorunlu eğitim adımı">
+      {!s.tutorialIntroDone?<div className="os8-tutorial-intro">
+        <div className="os8-tutorial-head"><strong>ÖNCE 4 KAVRAM</strong><span>Eğitim başlamadan</span></div>
+        <div className="os8-tutorial-glossary">
+          {OVERSWING_TUTORIAL_INTRO.map(item=><div className="os8-tutorial-term" key={item.term}>
+            <strong>{item.term}</strong><span>=</span><span>{item.text}</span>
+          </div>)}
+        </div>
+        <button type="button" className="os8-start-tutorial" onClick={()=>act({type:'tutorial-start'})}>Anladım, başla</button>
+      </div>:tutorialStep?<><div className="os8-tutorial-head"><strong>ADIM {s.tutorialStep+1} / {OVERSWING_TUTORIAL_STEPS.length}</strong><span>Yalnızca işaretli hamle açık</span></div>
+        <div className="os8-tutorial-progress"><span style={{width:((s.tutorialStep+1)/OVERSWING_TUTORIAL_STEPS.length*100)+'%'}}/></div>
+        <h3>{tutorialStep.title}</h3>
+        <p>{discardPick?'Şimdi işaretli kartı seçerek BANK işlemini tamamla.':tutorialStep.instruction}</p>
+        <small>{tutorialStep.why}</small>
+      </>:<><h3>Eğitimi tamamladın!</h3><p>Dört çarpanı, STEER cezasını, ZERO BREAK’i ve riskleri gördün. Artık normal oyunu deneyebilirsin.</p>
+        <button type="button" onClick={()=>restart('short')}>Normal oyuna başla</button>
+        <button type="button" onClick={()=>restart('tutorial')}>Eğitimi tekrarla</button>
+      </>}
+      {tutorialStep&&s.tutorialIntroDone&&<button type="button" className="os8-tutorial-exit" onClick={()=>restart('short')}>Eğitimden çık</button>}
+    </section>}
+    {guidedActionFirst&&actionButtons}
+    {!tutorial&&multiplierDetails}
     <section className="os8-hand">
       <div className="os8-section-heading"><h3>{discardPick?'BANK: BİR KART ÇIKAR':'ELİN'}</h3><span>{d.hand.length}/{d.handCap} kart · BANK sonrası kapasite {nextCap}</span></div>
       {discardPick&&<p className="os8-attention">El kapasitesi {d.handCap} → {nextCap} düşecek. {tutorial?'Yalnızca işaretli kartı çıkar.':'Çıkarmak istediğin karta dokun.'} <button type="button" onClick={()=>setDiscardPick(false)}>Vazgeç</button></p>}
@@ -127,14 +138,8 @@ export default function OverswingPlay({s,act,restart}){
         {!d.hand.length&&<p className="os8-empty">El boş. Destede kart varsa otomatik olarak kapasiteye kadar doldurulur.</p>}
       </div>
     </section>
-    <div className="os8-actions">
-      <button type="button" disabled={!canFlip||discardPick} className={'os8-flip '+(tutorial&&canFlip?'os8-guide-action':'')} onClick={()=>act({type:'flip'})}>
-        <b>FLIP</b><small>Kapalı kart aç · {40-d.pos} kaldı</small><small>Seri: {d.flipStreak} FLIP</small>
-      </button>
-      <button type="button" disabled={!canBank||discardPick} className={'os8-bank '+(tutorial&&canBank?'os8-guide-action':'')} onClick={bank}>
-        <b>BANK +{payout.toLocaleString('tr-TR')}</b><small>Kasaya al · Kapasite {d.handCap} → {nextCap}</small>
-      </button>
-    </div>
+    {!guidedActionFirst&&actionButtons}
+    {tutorial&&multiplierDetails}
     <section className="os8-pot">
       <div className="os8-section-heading"><h3>POT</h3><span>{d.pot.length} kart · {pot} puan</span></div>
       <div className="os8-potcards">{d.pot.map(c=><Card key={c} id={c} mini/>)}{!d.pot.length&&<span className="os8-empty">Henüz boş</span>}</div>
