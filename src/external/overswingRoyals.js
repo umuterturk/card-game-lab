@@ -1,10 +1,12 @@
 // Hand-only Royal Cards. IDs 40..51 never enter the random FLIP deck.
 export const ROYAL_THRESHOLDS=Object.freeze([40000,100000,180000]);
 export const ROYAL_NAMES=Object.freeze(['J','Q','K']);
+export const KING_INITIAL_BANK_BONUS=80;
+export const KING_DECAY_PER_MOVE=10;
 export const ROYAL_RULES=Object.freeze({
   J:{value:11,title:'THE SCOUT',description:'STEER ±11 safely to reveal the next FLIP card.'},
   Q:{value:12,title:'THE MIRROR',description:'Choose +12 or −12 when you STEER the Queen.'},
-  K:{value:13,title:'THE MELTING CROWN',description:'BANK for up to +50%, losing 10 percentage points each move; or STEER ±13.'}
+  K:{value:13,title:'THE MELTING CROWN',description:'BANK for up to +80%, losing 10 percentage points each move; or STEER ±13.'}
 });
 export const isRoyal=id=>Number.isInteger(id)&&id>=40&&id<52;
 export const royalRank=id=>isRoyal(id)?ROYAL_NAMES[Math.floor((id-40)/4)]:null;
