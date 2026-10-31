@@ -7,6 +7,15 @@ export const OVERSWING_TUTORIAL_DECK=[
   ...Array.from({length:40},(_,i)=>i).filter(id=>!OPENING_HAND.includes(id)&&!GUIDED_FLIPS.includes(id))
 ];
 
+// The initial glossary is shown before the first forced action. It deliberately
+// uses the actual engine terminology (FLIP, STEER, Pot, Score / BANK).
+export const OVERSWING_TUTORIAL_INTRO=[
+  {term:'FLIP',sign:'?',text:'Kapalı desteden bir kart açarsın. Kart sarkacı otomatik hareket ettirir ve Pot’a gider. Hangi kartın geleceğini bilemezsin.'},
+  {term:'STEER',sign:'±',text:'Elindeki açık kartlardan birini seçerek sarkacı sen hareket ettirirsin. Kırmızı kartlar (+), siyah kartlar (−). Kontrol sende, ama kartı harcarsın.'},
+  {term:'POT',sign:'+',text:'Bu seride topladığın, henüz güvenceye alınmamış kart puanlarıdır. Çarpanlarla büyüyebilir; SNAP olursa Pot’u kaybedersin.'},
+  {term:'SKOR',sign:'✓',text:'BANK yaptığında Pot’taki puanlar bütün çarpanlarla çarpılır ve toplam skoruna eklenir. Skorun korunur; Pot sıfırlanır.'}
+];
+
 // No tutorial step may be skipped. The deck, hand selection and BANK discard
 // are scripted; every step is a real engine action (not a simulated animation).
 export const OVERSWING_TUTORIAL_STEPS=[
