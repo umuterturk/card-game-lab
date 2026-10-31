@@ -1,0 +1,33 @@
+name: Overswing Royal Simulation
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/external/engines.js'
+      - 'src/external/overswingRoyals.js'
+      - 'src/external/overswingJourney.js'
+      - 'src/external/overswingJourneyContent.js'
+      - 'experiments/run-overswing-royals.mjs'
+      - '.github/workflows/royal-simulation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: royal-simulation
+  cancel-in-progress: true
+jobs:
+  extended-simulation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run 96,000 seeded Royal encounters
+        run: node experiments/run-overswing-royals.mjs 2000 900000
+      - name: Upload full CSV and JSON findings
+        uses: actions/upload-artifact@v4
+        with:
+          name: overswing-royal-simulation
+          path: artifacts/royal-simulation.*
