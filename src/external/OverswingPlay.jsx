@@ -3,7 +3,7 @@ import {rank,suit,signed,applySwing,overswingActions,overswingPayout,overswingMu
 import './overswing.css';
 import {OVERSWING_TUTORIAL_STEPS,OVERSWING_TUTORIAL_INTRO} from './overswingTutorial.js';
 import {LAST_FLAME,LAST_FLAME_RELICS} from './overswingJourneyContent.js';
-import {journeyRules} from './overswingJourney.js';
+import {journeyRules,journeyActions} from './overswingJourney.js';
 
 const SUITS=['♥','♦','♠','♣'];
 const name=id=>(rank(id)===1?'A':rank(id))+SUITS[suit(id)];
@@ -95,7 +95,7 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fu
   const tutorial=s.mode==='tutorial';
   const isJourney=!!journey;
   const tutorialStep=tutorial?OVERSWING_TUTORIAL_STEPS[s.tutorialStep]:null;
-  const d=s.deal,legal=overswingActions(s),pot=d.pot.reduce((a,c)=>a+rank(c),0);
+  const d=s.deal,legal=isJourney?journeyActions(journey):overswingActions(s),pot=d.pot.reduce((a,c)=>a+rank(c),0);
   const payout=overswingPayout(s),multiplier=overswingMultiplier(d);
   const total=s.dealTotals.reduce((a,b)=>a+b,0)+(s.status==='over'?0:d.T);
   const canFlip=legal.some(a=>a.type==='flip'),canBank=legal.some(a=>a.type==='bank');
