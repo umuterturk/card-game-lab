@@ -10,125 +10,111 @@ import {
   overswingTutorialExpectedAction
 } from '../src/external/overswingTutorial.js';
 
-test('STEER without crossing costs one SWING tier and preserves other bonuses',()=>{
+test('STEER without crossing costs exactly one SWING and preserves JACKPOT/FLIP',()=>{
   const deck=[0,...Array.from({length:40},(_,id)=>id).filter(id=>id!==0)];
   let s=newOverswing({deckOverride:deck});
-  s={...s,deal:{...s.deal,S:4,W:3,plays:2,flipFactor:3,comboFactor:4,crossFactor:2,pot:[12]}};
-  assert.equal(overswingMultiplier(s.deal),96);
-  s=stepOverswing(s,{type:'steer',index:0}); // +1: +4 -> +5
-  assert.equal(s.deal.S,5);
-  assert.equal(s.deal.W,2);
-  assert.equal(overswingMultiplier(s.deal),72);
+  s={...s,deal:{...s.deal,S:4,W:3,plays:2,flipFactor:3,jackpotFactor:4,pot:[12]}};
+  assert.equal(overswingMultiplier(s.deal),48);
+  s=stepOverswing(s,{type:'steer',index:0});
+  assert.equal(s.deal.S,5);assert.equal(s.deal.W,2);
+  assert.equal(overswingMultiplier(s.deal),36);
   assert.equal(s.lastAction.swingPenalty,true);
-  assert.equal(s.lastAction.swung,false);
   assert.equal(s.deal.flipFactor,3);
-  assert.equal(s.deal.comboFactor,4);
-  assert.equal(s.deal.crossFactor,2);
+  assert.equal(s.deal.jackpotFactor,4);
 });
-test('STEER penalty minimum is ×1; strict-cross STEER earns SWING',()=>{
+test('STEER penalty has minimum ×1, strict-cross STEER earns SWING but not JACKPOT',()=>{
   const deck=[0,27,...Array.from({length:40},(_,id)=>id).filter(id=>id!==0&&id!==27)];
   let s=newOverswing({deckOverride:deck});
   s={...s,deal:{...s.deal,S:3,W:0,plays:1,pot:[12]}};
-  s=stepOverswing(s,{type:'steer',index:0}); // +1: +3 -> +4
-  assert.equal(s.deal.W,0);
-  assert.equal(s.lastAction.swingPenalty,false);
-  s=stepOverswing(s,{type:'steer',index:0}); // -8: +4 -> -4
-  assert.equal(s.deal.W,1);
-  assert.equal(s.lastAction.swung,true);
-  assert.equal(s.lastAction.swingPenalty,false);
+  s=stepOverswing(s,{type:'steer',index:0});
+  assert.equal(s.deal.W,0);assert.equal(s.lastAction.swingPenalty,false);
+  s=stepOverswing(s,{type:'steer',index:0});
+  assert.equal(s.deal.S,-4);assert.equal(s.deal.W,1);
+  assert.equal(s.deal.jackpotFactor,1);
 });
-test('tutorial deck is complete, deterministic, and uniquely suited',()=>{
+test('JACKPOT only doubles on strict FLIP crossing; noncrossing FLIP preserves it',()=>{
+  const deck=[20,21,22,23,24,25,26,27,1,31];
+  const complete=[...deck,...Array.from({length:40},(_,i)=>i).filter(i=>!deck.includes(i))];
+  let s=newOverswing({deckOverride:complete});
+  s={...s,deal:{...s.deal,S:-1,jackpotFactor:4,plays:1,pot:[30]}};
+  s=stepOverswing(s,{type:'flip'}); // +2: -1 -> +1, JACKPOT 8
+  assert.equal(s.deal.S,1);assert.equal(s.deal.jackpotFactor,8);
+  assert.equal(s.deal.flipFactor,2);
+  s=stepOverswing(s,{type:'flip'}); // -2: +1 -> -1, JACKPOT 16
+  assert.equal(s.deal.S,-1);assert.equal(s.deal.jackpotFactor,16);
+  assert.equal(s.deal.flipFactor,3);
+  s=stepOverswing(s,{type:'steer',index:0}); // -1 -> -2 without a crossing
+  assert.equal(s.deal.jackpotFactor,16);
+});
+test('tutorial short fixed deck and concise basics',()=>{
+  assert.equal(OVERSWING_TUTORIAL_STEPS.length,10);
   assert.equal(OVERSWING_TUTORIAL_DECK.length,40);
   assert.equal(new Set(OVERSWING_TUTORIAL_DECK).size,40);
-  assert.equal(OVERSWING_TUTORIAL_STEPS.length,17);
-  assert.deepEqual(OVERSWING_TUTORIAL_INTRO.map(item=>item.term),['FLIP','STEER','POT','SKOR']);
-  assert.deepEqual(OVERSWING_TUTORIAL_DECK.slice(0,8),[27,5,0,3,23,28,7,2]);
-  assert.deepEqual(OVERSWING_TUTORIAL_DECK.slice(8,15),[12,11,24,21,15,17,4]);
-  assert.deepEqual(newOverswing({mode:'tutorial',seed:1}).deal.deck,
-    newOverswing({mode:'tutorial',seed:99}).deal.deck);
+  assert.deepEqual(OVERSWING_TUTORIAL_DECK.slice(0,8),[27,0,3,23,5,28,7,2]);
+  assert.deepEqual(OVERSWING_TUTORIAL_DECK.slice(8,13),[12,11,15,17,4]);
+  assert.deepEqual(OVERSWING_TUTORIAL_INTRO.map(i=>i.term),['FLIP','STEER','POT','SKOR']);
+  assert.ok(OVERSWING_TUTORIAL_INTRO.every(i=>i.text.length<100));
+  assert.match(OVERSWING_TUTORIAL_INTRO[0].text,/rastgele/i);
+  assert.match(OVERSWING_TUTORIAL_INTRO[1].text,/Elindeki kart/i);
+  assert.equal(newOverswing({mode:'tutorial',seed:1}).deal.deck.join(','),
+    newOverswing({mode:'tutorial',seed:999}).deal.deck.join(','));
 });
-test('tutorial enforces one action per step and replays all concepts',()=>{
+test('tutorial start requires glossary; every scripted action is forced and completes',()=>{
   let s=newOverswing({mode:'tutorial',seed:33});
-  assert.equal(s.mode,'tutorial');assert.equal(s.version,11);
-  assert.equal(s.tutorialStep,0);assert.equal(s.status,'playing');
+  assert.equal(s.version,12);
+  assert.equal(s.tutorialStep,0);
   assert.equal(s.tutorialIntroDone,false);
-  const untouched=s.deal;
   assert.deepEqual(overswingActions(s),[]);
-  assert.strictEqual(stepOverswing(s,{type:'flip'}),s,'FLIP blocked before intro is read');
-  assert.strictEqual(stepOverswing(s,{type:'steer',index:0}),s,'STEER blocked before intro');
-  assert.strictEqual(stepOverswing(s,{type:'bank'}),s,'BANK blocked before intro');
+  assert.strictEqual(stepOverswing(s,{type:'flip'}),s);
+  assert.strictEqual(stepOverswing(s,{type:'steer',index:0}),s);
+  const originalDeal=s.deal;
   s=stepOverswing(s,{type:'tutorial-start'});
   assert.equal(s.tutorialIntroDone,true);
-  assert.strictEqual(s.deal,untouched,'intro should not consume or reorder rigged cards');
-  assert.equal(s.tutorialStep,0,'first guided move follows glossary');
-  let previousTotal=0;
+  assert.equal(s.tutorialStep,0);
+  assert.strictEqual(s.deal,originalDeal);
+
   for(let i=0;i<OVERSWING_TUTORIAL_STEPS.length;i++){
-    const d=s.deal;
     assert.equal(s.tutorialStep,i);
-    assert.equal((40-d.pos)+d.hand.length+d.pot.length+d.discard.length,40,'cards conserved '+i);
-    const expected=overswingTutorialExpectedAction(d,i);
-    const legal=overswingActions(s);
-    assert.deepEqual(legal,[expected],'step '+i+' must expose exactly one action');
-    const wrong=expected.type==='flip'?{type:'steer',index:0}:{type:'flip'};
-    assert.strictEqual(stepOverswing(s,wrong),s,'cannot bypass step '+i);
-    const prev=s;
+    assert.equal((40-s.deal.pos)+s.deal.hand.length+s.deal.pot.length+s.deal.discard.length,40,'card count '+i);
+    const expected=overswingTutorialExpectedAction(s.deal,i);
+    assert.deepEqual(overswingActions(s),[expected],'step '+i+' must offer one action');
+    const invalid=expected.type==='flip'?{type:'steer',index:0}:{type:'flip'};
+    assert.strictEqual(stepOverswing(s,invalid),s,'wrong action blocked '+i);
     s=stepOverswing(s,expected);
-    assert.notStrictEqual(s,prev);
     assert.equal(s.tutorialStep,i+1);
     if(i===0){assert.equal(s.deal.S,3);assert.equal(s.deal.flipFactor,2);}
-    if(i===1){assert.equal(s.deal.S,5);assert.equal(s.deal.flipFactor,3);assert.equal(s.deal.comboFactor,2);}
+    if(i===1){assert.equal(s.deal.S,5);assert.equal(s.deal.flipFactor,3);}
     if(i===2){assert.equal(s.deal.S,-3);assert.equal(s.deal.W,1);}
-    if(i===3){assert.equal(s.deal.S,3);assert.equal(s.deal.W,2);}
-    if(i===4){assert.equal(s.deal.S,4);assert.equal(s.deal.W,1);assert.equal(s.lastAction.swingPenalty,true);}
-    if(i===5){assert.equal(s.deal.S,-1);assert.equal(s.deal.crossFactor,2);}
-    if(i===6){assert.equal(s.deal.S,-3);assert.equal(s.deal.comboFactor,4);}
-    if(i===7){assert.equal(s.deal.S,3);assert.equal(s.deal.comboFactor,12);assert.equal(s.deal.crossFactor,4);}
-    if(i===8){assert.equal(s.deal.handCap,7);assert.equal(s.deal.S,0);assert.ok(s.deal.T>0);}
-    if(i===10){assert.equal(s.deal.S,0);assert.equal(s.lastAction.zeroBreak,true);assert.equal(overswingMultiplier(s.deal),1);assert.deepEqual(s.deal.pot,[3,23]);}
-    if(i===12){assert.equal(s.lastAction.snap,true);assert.equal(s.deal.S,0);assert.equal(s.deal.pot.length,0);}
-    if(i===15){assert.equal(s.deal.handCap,7);assert.equal(s.deal.hand.length,7);assert.deepEqual(s.lastRefill,[1,6,8,9,10,13,14]);}
-    if(i===16){assert.equal(s.deal.handCap,6);assert.equal(s.deal.hand.length,6);assert.equal(s.lastAction.dropped,14);}
-    assert.ok(s.deal.T>=previousTotal);
-    previousTotal=s.deal.T;
+    if(i===3){assert.equal(s.deal.S,-2);assert.equal(s.deal.W,0);assert.equal(s.lastAction.swingPenalty,true);}
+    if(i===4){assert.equal(s.deal.S,4);assert.equal(s.deal.W,1);assert.equal(s.deal.flipFactor,3);assert.equal(s.deal.jackpotFactor,2);assert.equal(overswingPayout(s),228);}
+    if(i===5){assert.equal(s.deal.T,228);assert.equal(s.deal.handCap,7);assert.equal(s.deal.S,0);}
+    if(i===7){assert.equal(s.lastAction.zeroBreak,true);assert.deepEqual(s.deal.pot,[3,23]);assert.equal(overswingMultiplier(s.deal),1);}
+    if(i===8){assert.equal(s.deal.S,8);assert.equal(s.deal.flipFactor,2);}
+    if(i===9){assert.equal(s.lastAction.snap,true);assert.equal(s.deal.pot.length,0);assert.equal(s.deal.T,228);}
   }
   assert.equal(s.status,'tutorial-complete');
   assert.deepEqual(overswingActions(s),[]);
   assert.strictEqual(stepOverswing(s,{type:'flip'}),s);
 });
-test('guided strict SWING and ZERO BREAK use the normal engine math',()=>{
+test('normal mode remains playable and does not accept tutorial-start',()=>{
+  const s=newOverswing({mode:'short',seed:11});
+  assert.equal(s.version,12);
+  assert.ok(overswingActions(s).some(a=>a.type==='flip'));
+  assert.strictEqual(stepOverswing(s,{type:'tutorial-start'}),s);
+});
+test('tutorial appears after pendulum before hand; buttons near requested action',()=>{
+  const jsx=readFileSync(new URL('../src/external/OverswingPlay.jsx',import.meta.url),'utf8');
+  const view=jsx.slice(jsx.indexOf('return <div className="os8">'));
+  const meter=view.indexOf('className="os8-meter"');
+  const tutorial=view.indexOf('className="os8-tutorial"');
+  const hand=view.indexOf('className="os8-hand"');
+  assert.ok(meter>=0&&tutorial>meter&&hand>tutorial);
+  assert.ok(view.indexOf('{guidedActionFirst&&actionButtons}')>tutorial);
+  assert.ok(view.indexOf('{guidedActionFirst&&actionButtons}')<hand);
+  assert.ok(view.indexOf('{!guidedActionFirst&&actionButtons}')>hand);
+  assert.ok(view.indexOf('{tutorial&&multiplierDetails}')>hand);
+  assert.ok(jsx.includes('label="JACKPOT"'));
+  assert.ok(!jsx.includes('label="CROSS"'));
+  assert.ok(!jsx.includes('label="SERİ"'));
   assert.deepEqual(applySwing(5,0,-8),{snap:false,S:-3,W:1,gain:1,swung:true});
-  assert.deepEqual(applySwing(4,3,-4),{snap:false,S:0,W:3,gain:0,swung:false});
-  const s=newOverswing({mode:'tutorial'});
-  assert.equal(s.deal.hand.length,8);
-  assert.equal(overswingPayout(s),0);
-});
-
-test('normal games do not show tutorial intro or accept tutorial-start',()=>{
-  const normal=newOverswing({mode:'short',seed:11});
-  assert.equal(normal.version,11);
-  assert.equal(normal.tutorialIntroDone,true);
-  assert.ok(overswingActions(normal).some(a=>a.type==='flip'));
-  assert.strictEqual(stepOverswing(normal,{type:'tutorial-start'}),normal);
-});
-
-test('tutorial introduces FLIP / STEER / POT / SKOR with short explicit definitions',()=>{
- assert.deepEqual(OVERSWING_TUTORIAL_INTRO.map(item=>item.term),['FLIP','STEER','POT','SKOR']);
- assert.match(OVERSWING_TUTORIAL_INTRO[0].text,/rastgele/i);
- assert.match(OVERSWING_TUTORIAL_INTRO[1].text,/Elindeki kartlardan birini seçip oynamak/i);
- assert.match(OVERSWING_TUTORIAL_INTRO[2].text,/Henüz kasaya alınmamış/i);
- assert.match(OVERSWING_TUTORIAL_INTRO[3].text,/BANK/i);
- assert.ok(OVERSWING_TUTORIAL_INTRO.every(item=>item.text.length<=100),'glossary must be brief');
-});
-test('tutorial sits directly after pendulum and before hand; guided FLIP action is nearby',()=>{
- const jsx=readFileSync(new URL('../src/external/OverswingPlay.jsx',import.meta.url),'utf8');
- const view=jsx.slice(jsx.indexOf('return <div className="os8">'));
- const meter=view.indexOf('className="os8-meter"');
- const tut=view.indexOf('className="os8-tutorial"');
- const hand=view.indexOf('className="os8-hand"');
- assert.ok(meter>=0&&tut>meter&&hand>tut,'pendulum -> tutorial -> hand');
- assert.ok(view.indexOf('{guidedActionFirst&&actionButtons}')>tut);
- assert.ok(view.indexOf('{guidedActionFirst&&actionButtons}')<hand,'FLIP/BANK controls directly follow guide');
- assert.ok(view.indexOf('{!guidedActionFirst&&actionButtons}')>hand,'STEER card choices directly follow guide');
- assert.ok(view.indexOf('{tutorial&&multiplierDetails}')>hand,'details no longer separate guide from hand');
- assert.ok(!view.includes('Pot 10 puan ve toplam çarpan'),'old verbose example removed');
 });
