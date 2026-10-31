@@ -86,10 +86,12 @@ function Factor({id,label,value,onClick,expanded}){
     <b>×{value.toLocaleString('en-US')}</b>
   </button>;
 }
-export default function OverswingPlay({s,act,restart,journey=null,onBack=null}){
+export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fullView=false}){
   const [discardPick,setDiscardPick]=useState(false);
   const [openFactor,setOpenFactor]=useState(null);
   const [steerFocus,setSteerFocus]=useState(false);
+  const [helpOpen,setHelpOpen]=useState(false);
+  useEffect(()=>setHelpOpen(false),[s.mode,s.dealIndex]);
   const tutorial=s.mode==='tutorial';
   const isJourney=!!journey;
   const tutorialStep=tutorial?OVERSWING_TUTORIAL_STEPS[s.tutorialStep]:null;
@@ -136,10 +138,23 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null}){
     </div>
   </>;
 
-  return <div className="os8">
+  if(fullView&&helpOpen)return <section className="os8 os8-full os8-help-screen" aria-label="How to play Overswing">
+    <div className="os8-help-heading"><h2>HOW TO PLAY</h2><button type="button" onClick={()=>setHelpOpen(false)}>✕ CLOSE</button></div>
+    <h3>FLIP · STEER · BANK</h3>
+    <p><b>FLIP</b> draws a random card into your Pot. <b>STEER</b> plays a card from your hand. <b>BANK</b> secures Pot points multiplied by SWING × FLIP × JACKPOT.</p>
+    <h3>THE PENDULUM</h3>
+    <p>Red cards move right (+), black cards left (−). Keep the meter between −10 and +10. Crossing zero grows SWING. Landing exactly on zero resets all multipliers.</p>
+    <h3>MULTIPLIERS</h3>
+    <p>Consecutive safe FLIPs build FLIP ×2, ×3, ×4… Crossing zero with a FLIP adds a JACKPOT tier. A noncrossing STEER costs one SWING tier. SNAP loses your Pot.</p>
+    <h3>THE JOURNEY</h3>
+    <p>Meet each gate's target with a 40-card deck. Choose a relic between gates. Boss SNAPs increase the required score.</p>
+    <button type="button" className="os8-help-return" onClick={()=>setHelpOpen(false)}>BACK TO GAME</button>
+  </section>;
+  return <div className={'os8'+(fullView?' os8-full':'')}>
     <header className="os8-head">
       <div className="os8-brand"><span>{tutorial?'GUIDED TRAINING':isJourney?'THE LAST FLAME':'V13 · ARCADE MODE'}</span><h2>OVER<span>SWING</span></h2></div>
       <div className="os8-settings">
+        {fullView&&<button type="button" aria-label="How to play" title="How to play" onClick={()=>setHelpOpen(true)}>?</button>}
         {isJourney?<button type="button" title="Back to journey" onClick={onBack}>‹ MAP</button>:null}
         {!isJourney&&!tutorial&&<button className="os8-tutorial-launch" type="button" onClick={()=>{setDiscardPick(false);setOpenFactor(null);restart('tutorial');}}>TRAIN</button>}
         {!isJourney&&<select value={s.mode} aria-label="Game mode" onChange={e=>{setDiscardPick(false);setOpenFactor(null);restart(e.target.value);}}>
@@ -195,7 +210,7 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null}){
     {multiplierDetails}
     <section className="os8-pot">
       <div className="os8-section-heading"><h3>♨ POT CARDS</h3><span>{d.pot.length} cards · {pot} pts</span></div>
-      <div className="os8-potcards">{d.pot.map(c=><Card key={c} id={c} mini/>)}{!d.pot.length&&<span className="os8-empty">EMPTY</span>}</div>
+      <div className="os8-potcards">{(fullView?d.pot.slice(-6):d.pot).map(c=><Card key={c} id={c} mini/>)}{fullView&&d.pot.length>6&&<span className="os8-pot-overflow" aria-label={(d.pot.length-6)+' more cards'}>+{d.pot.length-6}</span>}{!d.pot.length&&<span className="os8-empty">EMPTY</span>}</div>
     </section>
     <section className="os8-hand">
       <div className="os8-section-heading"><h3>{discardPick?'BANK · REMOVE 1 CARD':'YOUR HAND'}</h3><span>{d.hand.length}/{d.handCap} cards · after BANK: {nextCap}</span></div>
