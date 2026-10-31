@@ -57,7 +57,7 @@ function Recap({run,onNew,onMenu,progress}){
       <button className="oj-secondary" onClick={onMenu}>MENU</button></div>
   </div>;
 }
-export default function OverswingJourney({quickState,quickAct,quickRestart}){
+export default function OverswingJourney({quickState,quickAct,quickRestart,fullView=false}){
   const [view,setView]=useState('journey');
   const [run,setRun]=useState(()=>{
     const candidate=readSaved(RUN_KEY);return isValidJourney(candidate)?candidate:null;
@@ -82,7 +82,7 @@ export default function OverswingJourney({quickState,quickAct,quickRestart}){
   const abandon=()=>setRun(current=>current?stepJourney(current,{type:'ABANDON'}):current);
   if(view==='quick')return <div className="oj-shell oj-quick">
     <button type="button" className="oj-back" onClick={()=>setView('journey')}>‹ JOURNEY MENU</button>
-    <OverswingPlay s={quickState} act={quickAct} restart={quickRestart}/>
+    <OverswingPlay s={quickState} act={quickAct} restart={quickRestart} fullView={fullView}/>
   </div>;
   if(!run)return <main className="oj-shell oj-home">
     <header className="oj-title"><span className="oj-flame" aria-hidden="true">♨</span>
@@ -113,7 +113,7 @@ export default function OverswingJourney({quickState,quickAct,quickRestart}){
     <p className="oj-record">Runs {progress.totalRuns} · Victories {progress.wins} · Best {fmt(progress.bestRunScore)}</p>
   </main>;
   if(run.phase==='playing')return <div className="oj-shell oj-playing">
-    <OverswingPlay s={run.encounter.engineState} act={play} journey={run}
+    <OverswingPlay s={run.encounter.engineState} act={play} journey={run} fullView={fullView}
       onBack={()=>setView('menu')}/>
     <div className="oj-exit-row"><button type="button" onClick={()=>setView('menu')}>LEAVE BOARD</button></div>
   </div>;
