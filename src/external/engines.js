@@ -49,8 +49,8 @@ export function newOverswing({seed,mode='short',deckOverride}={}){
   return {game:'overswing',version:13,seed:base,mode,dealIndex:0,dealTotals:[],
     deal:dealSwing(seeded(base),tutorial?OVERSWING_TUTORIAL_DECK:deckOverride),
     tutorialStep:tutorial?0:null,tutorialIntroDone:!tutorial,history:[],status:'playing',
-    last:tutorial?'Önce FLIP, STEER, Pot ve Skor kavramlarını öğren.':
-      '8 kartın var. Kırmızı kart sağa (+), siyah kart sola (−). FLIP veya kart seç.'};
+    last:tutorial?'Learn FLIP, STEER, Pot, and Score before you begin.':
+      'You have 8 cards. Red moves right (+), black moves left (−). FLIP or play a card.'};
 }
 export function overswingMultiplier(d){
   return (d.W+1)*d.flipFactor*d.jackpotFactor;
@@ -112,7 +112,7 @@ function refillEmptyHand(d){
 }
 export function stepOverswing(s,a,rules={}){
   if(s.mode==='tutorial'&&!s.tutorialIntroDone&&s.status==='playing'&&a?.type==='tutorial-start'){
-    return mark({...s,tutorialIntroDone:true},'Kavramları öğrendin. Şimdi işaretli FLIP ile başla.');
+    return mark({...s,tutorialIntroDone:true},'Basics complete. Start with the highlighted FLIP.');
   }
   const effective=overswingEffectiveRules(rules);
   if(!a||!overswingActions(s,effective).some(x=>x.type===a.type
@@ -136,8 +136,8 @@ export function stepOverswing(s,a,rules={}){
     n.lastAction={type:'bank',points:gain,pot:previousPot,multiplier:previousMultiplier,
       oldCap,newCap:d.handCap,dropped,
       modifiersApplied:effective.bankCapacityLoss===0?['vault_seal']:[]};
-    msg='BANK: '+gain+' puan. El kapasitesi '+oldCap+' → '+d.handCap+
-      (dropped===null?'':'; '+label(dropped)+' çıkarıldı')+'.';
+    msg='BANK: +'+gain+' points. Hand capacity '+oldCap+' → '+d.handCap+
+      (dropped===null?'':'; discarded '+label(dropped))+'.';
     ended=true;
   }else{
     const opening=d.plays===0;
@@ -151,7 +151,7 @@ export function stepOverswing(s,a,rules={}){
         lostPayout:previousPot*previousMultiplier};
       if(a.type==='flip')n.lastFlip=n.lastAction;
       d.discard.push(...d.pot,c);
-      msg='SNAP! '+label(c)+' sınırı aştı. Pot kaybedildi.';
+      msg='SNAP! '+label(c)+' exceeded the limit. Pot lost.';
       ended=true;
     }else{
       d.S=outcome.S;
@@ -195,16 +195,16 @@ export function stepOverswing(s,a,rules={}){
         ]};
       if(a.type==='flip')n.lastFlip=n.lastAction;
       msg=zeroBreak
-        ?'ZERO BREAK! '+label(c)+' sarkacı tam sıfıra getirdi. Pot korundu, tüm çarpanlar ×1 oldu.'
+        ?'ZERO BREAK! '+label(c)+' landed exactly on zero. Pot kept, all multipliers reset to ×1.'
         :(a.type==='flip'?'FLIP ':'STEER ')+label(c)+' → '+d.S+
-          ', '+(destination==='pot'?'Pot’a':'iskartaya')+
-          '. Toplam çarpan ×'+overswingMultiplier(d)+'.';
+          ', '+(destination==='pot'?'added to Pot':'discarded')+
+          '. Total multiplier ×'+overswingMultiplier(d)+'.';
     }
   }
   if(ended)clearSwing(d);
   const refill=refillEmptyHand(d);
   if(refill.length){
-    msg+=' El '+refill.length+' kartla '+d.handCap+' kapasiteye kadar dolduruldu.';
+    msg+=' Hand refilled with '+refill.length+' cards (capacity '+d.handCap+').';
     n.lastRefill=refill;
     if(n.lastAction)n.lastAction={...n.lastAction,refilled:refill};
   }else n.lastRefill=[];
@@ -215,14 +215,14 @@ export function stepOverswing(s,a,rules={}){
       n.dealIndex++;
       n.deal=dealSwing(seeded(n.seed*3+n.dealIndex));
       n.lastFlip=null;n.lastAction=null;n.lastRefill=[];
-      msg+=' Sonraki deste başladı.';
+      msg+=' Next deck started.';
     }else n.status='over';
   }
   if(n.mode==='tutorial'){
     n.tutorialStep=s.tutorialStep+1;
     if(n.tutorialStep===OVERSWING_TUTORIAL_STEPS.length){
       n.status='tutorial-complete';
-      msg+=' Eğitimi tamamladın! Artık normal oyuna geçebilirsin.';
+      msg+=' Tutorial complete! You can now play a normal game.';
     }
   }
   return mark(n,msg);
