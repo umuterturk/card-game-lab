@@ -74,7 +74,7 @@ function Recap({run,onNew,onMenu,progress}){
     <p>{won?'The Ember Keeper has fallen. The furnace burns again.':
       run.phase==='abandoned'?'You left the furnace. Your collected knowledge remains.':
       'The gate demanded more fire than you could bank.'}</p>
-    <div className="oj-recap-total"><small>RUN SCORE</small><strong>{fmt(journeyRunScore(run))}</strong></div>
+    <div className="oj-recap-total"><small>RUN GOLD</small><strong>{fmt(journeyRunScore(run))}</strong></div>
     <div className="oj-recap-rows">{run.completedEncounters.map(row=>
       <div key={row.id}><span>{LAST_FLAME.encounters.find(e=>e.id===row.id)?.title}</span>
         <strong className={row.passed?'oj-passed':'oj-failed'}>{fmt(row.finalScore)} / {fmt(row.target)}</strong></div>)}</div>
