@@ -26,7 +26,7 @@ function Outcome({e}){
 const FACTOR_HELP={
   swing:{title:'SWING',text:'Sıfırın karşı tarafına geçince artar. Geçmeden STEER yaparsan 1 kademe düşer (en az ×1).'},
   flip:{title:'FLIP',text:'Her başarılı ardışık FLIP çarpanı büyütür: ×2, ×3, ×4… Sıfırı geçsen de artar. STEER seriyi durdurur ama kazanılan çarpanı silmez.'},
-  jackpot:{title:'JACKPOT',text:'FLIP ile sıfırın karşı tarafına geçince iki katına çıkar. Geçemezsen değişmez. Tam sıfır (ZERO BREAK) bütün çarpanları ×1 yapar.'}
+  jackpot:{title:'JACKPOT',text:'FLIP ile sıfırın karşı tarafına geçtiğinde +1 artar: ×2, ×3, ×4… Geçemezsen değişmez. Tam sıfır (ZERO BREAK) bütün çarpanları ×1 yapar.'}
 };
 function Factor({id,label,value,onClick,expanded}){
   return <button type="button" className={'os8-factor '+(value>1?'os8-active':'')+(expanded?' os8-factor-open':'')}
@@ -78,7 +78,7 @@ export default function OverswingPlay({s,act,restart}){
 
   return <div className="os8">
     <header className="os8-head">
-      <div><span>{tutorial?'REHBERLİ EĞİTİM':'V12 · OVERSWING'}</span><h2>OVERSWING</h2></div>
+      <div><span>{tutorial?'REHBERLİ EĞİTİM':'V13 · OVERSWING'}</span><h2>OVERSWING</h2></div>
       <div className="os8-settings">
         {!tutorial&&<button className="os8-tutorial-launch" type="button" onClick={()=>{setDiscardPick(false);setOpenFactor(null);restart('tutorial');}}>Eğitim</button>}
         <select value={s.mode} aria-label="Oyun modu" onChange={e=>{setDiscardPick(false);setOpenFactor(null);restart(e.target.value);}}>
@@ -147,7 +147,7 @@ export default function OverswingPlay({s,act,restart}){
       <details><summary>Kurallar ve çarpanlar</summary>
         <p>8 kartla başlarsın. ♥ ♦ artı, ♠ ♣ eksi. Sarkaç ±10 sınırını aşarsa Pot kaybolur.</p>
         <p>FLIP açılan kartı Pot’a ekler. Başarılı ardışık FLIP hamleleri çarpanı ×2, ×3, ×4… artırır; sıfır geçişleri de sayılır.</p>
-        <p>FLIP ile sıfırın karşı tarafına geçince SWING artar ve JACKPOT ikiye katlanır. Karşıya geçmeden FLIP yaparsan JACKPOT değişmez.</p>
+        <p>FLIP ile sıfırın karşı tarafına geçince SWING artar ve JACKPOT ×1 kademe yükselir. Karşıya geçmeden FLIP yaparsan JACKPOT değişmez.</p>
         <p>ZERO BREAK: Tam sıfıra gelince SWING, FLIP ve JACKPOT ×1 olur; Pot korunur. ±10 sınırını aşmak SNAP'tir: Pot kaybolur.</p>
         <p>STEER ardışık FLIP sayacını durdurur; kazanılan FLIP ve JACKPOT korunur. Sıfırı geçmeyen STEER, SWING’i 1 azaltır (en az ×1).</p>
         <p>İlk STEER, sıfırı geçen STEER ve ZERO BREAK yapan STEER Pot’a girer; diğer STEER kartları iskartaya gider.</p>
