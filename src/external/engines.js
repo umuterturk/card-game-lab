@@ -87,7 +87,7 @@ export function overswingActions(s,rules={}){
       a.push({type:'steer',index,direction:1},{type:'steer',index,direction:-1});
     }else a.push({type:'steer',index});
   });
-  if(d.pot.length&&(d.plays>=2||(d.pos>=40&&!d.hand.length))){
+  if(d.pot.length&&(d.plays>=2||(d.pos>=d.deck.length&&!d.hand.length))){
     const newCap=Math.max(2,d.handCap-effective.bankCapacityLoss);
     const remaining=d.hand.filter(id=>royalRank(id)!=='K').length;
     if(remaining>newCap)d.hand.forEach((id,dropIndex)=>{
