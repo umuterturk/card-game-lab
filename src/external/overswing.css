@@ -433,3 +433,19 @@
  .os8-full .os8-hand .os8-card{min-height:48px}
  .os8-full .os8-actions button{min-height:46px}
 }
+
+
+/* Royal hand cards and single-action Queen direction choice. */
+.os8-card.os8-royal{border-color:#d8a045;background:linear-gradient(155deg,#fff4cc,#d7aa5c);color:#352111;box-shadow:inset 0 0 0 1px #aa6634,0 0 9px #eec06a77}
+.os8-card.os8-royal .os8-card-top{font-weight:900}
+.os8-card.os8-royal small{color:#6f3a1b;font-weight:900}
+.os8-scout-preview{padding:6px 9px;margin:4px 0;border:2px solid #c5a34f;background:#33271c;color:#ffdfa4;font:16px 'VT323',monospace}
+.os8-queen-overlay{position:fixed;z-index:1000;inset:0;background:#07050bdc;display:flex;align-items:center;justify-content:center;padding:15px}
+.os8-queen-modal{width:100%;max-width:340px;text-align:center;padding:18px 14px;border:3px solid #e1a24e;background:linear-gradient(155deg,#422c25,#160f19);color:#ffebc6;box-shadow:0 20px 45px #0009}
+.os8-queen-modal h3{font:13px var(--pixel);color:#ffda84;line-height:1.4;margin:3px 0 12px}
+.os8-queen-modal p{font:19px/1.2 'VT323',monospace}
+.os8-queen-choices{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:14px 0}
+.os8-queen-choices button{font:22px 'VT323',monospace;color:#fff0ca;min-height:75px;border:2px solid #c17d36;background:#753c1d}
+.os8-queen-choices button small{display:block;font-size:14px;color:#fff0c5}
+.os8-queen-cancel{font:16px 'VT323',monospace;color:#e6caad;padding:7px 14px;border:1px solid #84502d;background:#21171b}
+.os8-full .os8-scout-preview{font-size:13px;padding:3px 6px;margin:2px 0}
