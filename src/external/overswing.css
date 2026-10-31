@@ -89,3 +89,14 @@
 /* Zero Break: exact zero is a penalty, separate from SNAP. */
 .os8-zero-warning{margin-top:9px;color:#ffcb8c;font-size:.72rem;text-align:center;font-weight:700}
 .os8-event.os8-zero-break{border-color:#f3bc57;background:#4b3c29}
+
+/* Tappable multiplier tooltips: real buttons work on touch and keyboard. */
+.os8-factor{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;text-align:center;appearance:none}
+.os8-factor:focus-visible{outline:3px solid #f5c673;outline-offset:2px}
+.os8-factor.os8-factor-open{border-color:#f3c779;background:#4e4733}
+.os8-info-icon{font-size:.71rem;opacity:.9;margin-left:2px;vertical-align:baseline}
+.os8-factor-tooltip{position:relative;margin:-1px 0 10px;padding:12px 14px;background:#24384b;border:1px solid #b79764;border-radius:10px;box-shadow:0 5px 14px #0003}
+.os8-tooltip-header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.os8-tooltip-header strong{color:#ffe0a3;font-size:.83rem}
+.os8-tooltip-header button{border:1px solid #71869a;border-radius:7px;background:#30495c;color:#f8f9fa;font-size:1.1rem;line-height:1;cursor:pointer;padding:3px 9px}
+.os8-factor-tooltip p{font-size:.8rem;line-height:1.55;color:#e4ebf1;margin:7px 0 0}
