@@ -46,7 +46,7 @@ function dealSwing(rng,override){
 export function newOverswing({seed,mode='short',deckOverride}={}){
   const base=seed??Date.now();
   const tutorial=mode==='tutorial';
-  return {game:'overswing',version:12,seed:base,mode,dealIndex:0,dealTotals:[],
+  return {game:'overswing',version:13,seed:base,mode,dealIndex:0,dealTotals:[],
     deal:dealSwing(seeded(base),tutorial?OVERSWING_TUTORIAL_DECK:deckOverride),
     tutorialStep:tutorial?0:null,tutorialIntroDone:!tutorial,history:[],status:'playing',
     last:tutorial?'Önce FLIP, STEER, Pot ve Skor kavramlarını öğren.':
@@ -148,7 +148,7 @@ export function stepOverswing(s,a){
           // Earned FLIP tiers persist across STEER; only the streak counter restarts.
           d.flipStreak++;
           d.flipFactor=Math.max(d.flipFactor,d.flipStreak+1);
-          if(outcome.swung)d.jackpotFactor*=2;
+          if(outcome.swung)d.jackpotFactor+=1;
         }
       }else{
         d.flipStreak=0;
