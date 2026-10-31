@@ -38,13 +38,13 @@
     "status": "pass",
     "score": 8,
     "sourceExperiment": "CGL-20261029-23",
-    "description": "Overswing v9: start with 8 cards, build FLIP streak and crossing multipliers, and avoid landing exactly on zero (Zero Break resets all multipliers to ×1 while preserving the Pot). Hand capacity shrinks after BANK.",
+    "description": "Overswing v10: guided 17-step tutorial with a fixed deck, optional 8-card hand control, uncapped FLIP/CROSS/SWING bonuses and a one-tier SWING cost for STEER that does not cross.",
     "mechanic": "Pendulum control",
     "components": "40 suited A–10 cards; opening hand and capacity 8; automatic refill to current capacity when hand empties; pendulum −10…+10.",
-    "loop": "Choose a card (STEER) or reveal a card into Pot (FLIP). Strictly crossing zero grows the Swing multiplier and a crossing FLIP adds ×2. No-cross FLIPs grow ×2, ×3… and consecutive FLIPs add a separate streak bonus. Exact zero resets all factors and streaks; BANK scores the remaining Pot × multiplier and reduces hand cap toward 2.",
-    "risk": "ZERO BREAK on exact zero resets every multiplier and FLIP streak but keeps the Pot; SNAP beyond ±10 loses the Pot. BANK protects points while reducing hand capacity by one.",
-    "caveat": "v9 experimental rules: Zero Break replaces Perfect Zero; no-cross FLIP streaks and full crossing still provide bonuses. Historical 8.00 rating and v6 Python stats do not measure v9, which needs balance testing.",
-    "evidence": "Historical v6 source report: strategic mean 604.8 across 2,000 short deals (not comparable to v9). V9 has automated Zero Break, crossing and termination tests.",
+    "loop": "Red cards move right (+), black left (−). FLIP sends its card straight to Pot, builds FLIP/SERİ streaks and awards CROSS for strict zero-crossing. STEER can cross to grow SWING or move safely at a cost of −1 SWING tier (minimum ×1). ZERO BREAK resets all factors, SNAP loses Pot. BANK locks scoring and reduces hand capacity toward 2. A rigged 17-move tutorial forces the correct moves and teaches each rule.",
+    "risk": "Non-crossing STEER costs 1 SWING tier (min ×1); exactly zero resets multipliers, while ±11+ SNAP loses Pot. BANK reduces maximum hand capacity, and empty hands refill to that capacity.",
+    "caveat": "v10 rule update adds STEER SWING cost and forced fixed-deck tutorial. Historical score and old simulations relate to v6 only; v10 balance has not been independently simulated or human-tested.",
+    "evidence": "The v10 engine has deterministic tutorial replay and forced-action tests, plus STEER penalty and historical randomized-game regression tests; earlier v6 simulations do not apply to v10.",
     "tags": [
       "Push your luck",
       "Multiplier",
@@ -61,7 +61,7 @@
       "senseOfLoss": 8,
       "replayability": 8
     },
-    "scoreBasis": "Historical provisional v6 score, not a re-evaluation of Zero Break v9."
+    "scoreBasis": "Historical provisional v6 score only, not a tested v10 ranking."
   },
   {
     "id": "021",
