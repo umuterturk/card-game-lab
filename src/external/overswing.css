@@ -21,7 +21,7 @@
 .os8-zero{position:absolute;left:50%;top:-7px;height:31px;width:2px;background:#fff9e7;opacity:.8}
 .os8-pointer{position:absolute;top:-9px;width:9px;height:34px;transform:translateX(-50%);background:#fdd78f;box-shadow:0 0 8px #ffd48888;border-radius:7px;border:1px solid #70512c;transition:left .2s}
 .os8-ticks{display:flex;justify-content:space-between;font-size:.69rem;color:#becddd}
-.os8-factors{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:8px 0}
+.os8-factors{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:8px 0}
 .os8-factor{display:flex;align-items:center;justify-content:center;flex-direction:column;border-radius:8px;background:#1e3444;border:1px solid #385366;min-width:0;padding:7px 3px}
 .os8-factor span{font-size:.6rem;letter-spacing:.025em;color:#acc0d0}
 .os8-factor b{font-size:.9rem;margin-top:3px;font-variant-numeric:tabular-nums}
