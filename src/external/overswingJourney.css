@@ -3,8 +3,9 @@
   max-width:560px;margin:0 auto;min-height:600px;padding:14px 12px 24px;
   color:#fae4c5;position:relative;overflow:hidden;isolation:isolate;
   background:
+    linear-gradient(180deg,#110b13aa,#100b13de 52%,#210c17b5),
+    url('./overswing-stage.svg') center top / cover no-repeat,
     radial-gradient(ellipse 220px 320px at 50% 98%,#ff681c6b,transparent 74%),
-    radial-gradient(ellipse 250px 300px at 93% 34%,#9e281f51,transparent 75%),
     linear-gradient(170deg,#1b1019,#0d0b12 55%,#29151a);
   border:2px solid #4b2c28;border-top:0}
 .oj-shell:before{content:"";position:absolute;inset:0;pointer-events:none;z-index:-1;opacity:.55;
