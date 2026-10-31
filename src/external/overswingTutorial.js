@@ -10,16 +10,16 @@ export const OVERSWING_TUTORIAL_DECK=[
 // The initial glossary is shown before the first forced action. It deliberately
 // uses the actual engine terminology (FLIP, STEER, Pot, Score / BANK).
 export const OVERSWING_TUTORIAL_INTRO=[
-  {term:'FLIP',sign:'?',text:'Kapalı desteden bir kart açarsın. Kart sarkacı otomatik hareket ettirir ve Pot’a gider. Hangi kartın geleceğini bilemezsin.'},
-  {term:'STEER',sign:'±',text:'Elindeki açık kartlardan birini seçerek sarkacı sen hareket ettirirsin. Kırmızı kartlar (+), siyah kartlar (−). Kontrol sende, ama kartı harcarsın.'},
-  {term:'POT',sign:'+',text:'Bu seride topladığın, henüz güvenceye alınmamış kart puanlarıdır. Çarpanlarla büyüyebilir; SNAP olursa Pot’u kaybedersin.'},
-  {term:'SKOR',sign:'✓',text:'BANK yaptığında Pot’taki puanlar bütün çarpanlarla çarpılır ve toplam skoruna eklenir. Skorun korunur; Pot sıfırlanır.'}
+  {term:'FLIP',text:'Desteden rastgele bir kart açmak. Açılan kart Pot’a gider.'},
+  {term:'STEER',text:'Elindeki kartlardan birini seçip oynamak.'},
+  {term:'POT',text:'Henüz kasaya alınmamış kart puanların. SNAP olursa kaybolur.'},
+  {term:'SKOR',text:'BANK ile kazandığın, artık kaybetmeyeceğin toplam puan.'}
 ];
 
 // No tutorial step may be skipped. The deck, hand selection and BANK discard
 // are scripted; every step is a real engine action (not a simulated animation).
 export const OVERSWING_TUTORIAL_STEPS=[
-  {type:'flip',title:'1. Kırmızı (+), siyah (−)',instruction:'FLIP’e dokun. Açılan kırmızı 3♦ sarkacı +3’e taşıyacak.',why:'FLIP kapalı desteden rastgele kart açar; tutorial’da sıra önceden belirlenmiştir. FLIP kartı doğrudan Pot’a gider.'},
+  {type:'flip',title:'1. Kırmızı (+), siyah (−)',instruction:'FLIP’e dokun. Açılan kırmızı 3♦ sarkacı +3’e taşıyacak.',why:'Kırmızı kartlar (+), siyah kartlar (−) yönünde hareket ettirir. Eğitimde kartların sırası sabittir.'},
   {type:'flip',title:'2. FLIP çarpanı ve seri',instruction:'Bir kez daha FLIP yap. +2 gelince sarkaç +5 olacak.',why:'Sıfırı geçmeyen ikinci FLIP, FLIP çarpanını ×3; art arda iki FLIP ise SERİ çarpanını ×2 yapar.'},
   {type:'steer',card:27,title:'3. SWING: sıfırın ötesine geç',instruction:'Elindeki 8♠ (−8) kartına dokun: +5 → −3.',why:'Tam 0’a basmadın; sıfırın karşı tarafına geçtin. SWING bir kademe artar; STEER kartı Pot’a gider.'},
   {type:'steer',card:5,title:'4. Bir kez daha SWING',instruction:'6♥ (+6) kartını kullan: −3 → +3.',why:'Kontrollü STEER geçişleri SWING’i artırabilir. Çarpanın üst sınırı yoktur.'},
