@@ -71,7 +71,7 @@ test('FLIP crossing from -1 to +1 grants SWING FLIP and JACKPOT',()=>{
 });
 test('v12 starts with eight cards and correct suit signs',()=>{
  const s=newOverswing({deckOverride:O});
- assert.equal(s.version,12);assert.equal(s.deal.handCap,8);
+ assert.equal(s.version,13);assert.equal(s.deal.handCap,8);
  assert.deepEqual(s.deal.hand,O.slice(0,8));assert.equal(s.deal.pos,8);
  assert.equal(overswingActions(s).filter(a=>a.type==='steer').length,8);
  assert.ok(overswingActions(s).some(a=>a.type==='flip'));
