@@ -1,5 +1,6 @@
 import {newOverswing,overswingActions,stepOverswing,overswingFinal} from './engines.js';
 import {LAST_FLAME,LAST_FLAME_RELICS} from './overswingJourneyContent.js';
+import {royalTier,targetScale,pickRoyalCards} from './overswingRoyals.js';
 
 export const JOURNEY_SCHEMA=1;
 export const JOURNEY_PHASES=['playing','choosing_relic','won','lost','abandoned'];
@@ -25,11 +26,12 @@ function drawRandom(seed){
     return ((t^(t>>>14))>>>0)/4294967296;
   };
 }
-function dealFor(runSeed,index){
+function dealFor(runSeed,index,tier=0){
   const config=LAST_FLAME.encounters[index];
+  const royals=pickRoyalCards(tier,journeySeed(runSeed,index,'royals'),index);
   return {encounterId:config.id,engineState:newOverswing({
-    seed:journeySeed(runSeed,index,'deck'),mode:'short'
-  }),effectiveTarget:config.target,snapCount:0,relicUses:{}};
+    seed:journeySeed(runSeed,index,'deck'),mode:'short',royals
+  }),effectiveTarget:Math.round(config.target*targetScale(tier)),snapCount:0,relicUses:{}};
 }
 export function offerJourneyRelics(run){
   const choices=LAST_FLAME.relics.filter(r=>!run.relicIds.includes(r.id)).map(r=>r.id);
@@ -40,13 +42,13 @@ export function offerJourneyRelics(run){
   }
   return choices.slice(0,LAST_FLAME.rewards.offerCount);
 }
-export function startJourney(runSeed=Date.now()){
+export function startJourney(runSeed=Date.now(),lifetimeGold=0){
   if(!Number.isSafeInteger(runSeed)||runSeed<0)throw new TypeError('Invalid run seed');
-  const seed=runSeed;
+  const seed=runSeed,tier=royalTier(Math.max(0,lifetimeGold));
   return {schemaVersion:JOURNEY_SCHEMA,contentPackId:LAST_FLAME.id,
     contentVersion:LAST_FLAME.version,runId:'last-flame-'+seed.toString(36),
-    runSeed:seed,phase:'playing',encounterIndex:0,relicIds:[],
-    offeredRelicIds:[],encounter:dealFor(seed,0),completedEncounters:[]};
+    runSeed:seed,royalTier:tier,phase:'playing',encounterIndex:0,relicIds:[],
+    offeredRelicIds:[],encounter:dealFor(seed,0,tier),completedEncounters:[]};
 }
 export function isValidJourney(run){
   return !!run&&run.schemaVersion===JOURNEY_SCHEMA&&
@@ -91,7 +93,7 @@ export function stepJourney(run,command){
     if(nextIndex>=LAST_FLAME.encounters.length)return run;
     return {...run,phase:'playing',encounterIndex:nextIndex,
       relicIds:[...run.relicIds,command.relicId],offeredRelicIds:[],
-      encounter:dealFor(run.runSeed,nextIndex)};
+      encounter:dealFor(run.runSeed,nextIndex,run.royalTier||0)};
   }
   if(run.phase!=='playing'||command.type!=='PLAY'||!command.action)return run;
   const old=run.encounter,engine=stepOverswing(old.engineState,command.action,journeyRules(run));
@@ -102,8 +104,8 @@ export function stepJourney(run,command){
   const snapCount=old.snapCount+(engine.lastAction?.snap?1:0);
   const content=LAST_FLAME.encounters[run.encounterIndex];
   const objective=content.objective;
-  const effectiveTarget=content.target+(objective?.type==='snap_target_tax'?
-    snapCount*objective.pointsPerSnap:0);
+  const effectiveTarget=Math.round(content.target*targetScale(run.royalTier||0))+
+    (objective?.type==='snap_target_tax'?snapCount*objective.pointsPerSnap:0);
   const encounter={...old,engineState:engine,relicUses:uses,snapCount,effectiveTarget};
   if(engine.status!=='over')return {...run,encounter};
   const finalScore=overswingFinal(engine);
@@ -119,6 +121,7 @@ export function stepJourney(run,command){
 }
 export const EMPTY_JOURNEY_PROGRESS=Object.freeze({
   schemaVersion:JOURNEY_SCHEMA,totalRuns:0,wins:0,bestRunScore:0,
+  lifetimeGold:0,creditedBankIds:[],seenRoyalIds:[],
   discoveredRelicIds:[],unlockedStartingStyles:[],clearedChapterIds:[],
   recordedRunIds:[]
 });
@@ -126,6 +129,18 @@ export function validJourneyProgress(value){
   return !!value&&value.schemaVersion===JOURNEY_SCHEMA&&
     Number.isInteger(value.totalRuns)&&Array.isArray(value.recordedRunIds)&&
     Array.isArray(value.discoveredRelicIds);
+}
+// Credit each BANK once, even after a browser reload or repeated React effects.
+// Counting BANKs rather than end-of-run score also credits gold from failed runs.
+export function recordJourneyGold(progress,run){
+  if(!isValidJourney(run)||run.encounter.engineState.lastAction?.type!=='bank')return progress;
+  const old=validJourneyProgress(progress)?progress:EMPTY_JOURNEY_PROGRESS;
+  const id=run.runId+'|'+run.encounterIndex+'|'+run.encounter.engineState.deal.bankCount;
+  if((old.creditedBankIds||[]).includes(id))return old;
+  const points=run.encounter.engineState.lastAction.points;
+  if(!Number.isFinite(points)||points<0)return old;
+  return {...old,lifetimeGold:(old.lifetimeGold||0)+points,
+    creditedBankIds:[...(old.creditedBankIds||[]),id]};
 }
 // Idempotent: a completed run may be observed repeatedly across React render or reload.
 export function recordJourneyProgress(progress,run){
