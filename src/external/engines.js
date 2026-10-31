@@ -30,9 +30,9 @@ export function stepBondstone(s,a){if(!bondActions(s).some(x=>x.type===a.type&&(
  n.t++;if(n.t===40)n.status='over';return mark(n,msg);
 }
 export const signed=c=>(suit(c)<2?1:-1)*rank(c);
-// A strict crossing always grants at least +1 SWING tier (unless already at the ×6 cap).
-// Previous v9 behavior wrongly awarded +0 from ±1 and ±2.
-export function applySwing(S,W,value){const next=S+value;if(Math.abs(next)>10)return {snap:true};const swung=S!==0&&next!==0&&Math.sign(next)!==Math.sign(S);const gain=swung?Math.min(Math.max(1,Math.floor(Math.abs(S)/3)),Math.max(0,5-W)):0;return {snap:false,S:next,W:W+gain,gain,swung};}
+// Every strict zero-crossing adds SWING tiers without a multiplier cap.
+// The distance determines the gain (+1/+2/+3), and exact zero still triggers Zero Break.
+export function applySwing(S,W,value){const next=S+value;if(Math.abs(next)>10)return {snap:true};const swung=S!==0&&next!==0&&Math.sign(next)!==Math.sign(S);const gain=swung?Math.max(1,Math.floor(Math.abs(S)/3)):0;return {snap:false,S:next,W:W+gain,gain,swung};}
 // Overswing v9: exact zero is a trap, not a crossing.
 // Zero Break resets all multipliers (not the Pot); only a strict sign change grants crossing bonuses.
 function dealSwing(rng,override){
