@@ -1,3 +1,5 @@
+import {OVERSWING_TUTORIAL_DECK,OVERSWING_TUTORIAL_STEPS,overswingTutorialExpectedAction} from './overswingTutorial.js';
+
 export const rank = c => c % 10 + 1;
 export const suit = c => Math.floor(c / 10);
 export const SUITS = ['♥','♦','♠','♣'];
@@ -43,15 +45,18 @@ function dealSwing(rng,override){
 }
 export function newOverswing({seed,mode='short',deckOverride}={}){
   const base=seed??Date.now();
-  return {game:'overswing',version:9,seed:base,mode,dealIndex:0,dealTotals:[],
-    deal:dealSwing(seeded(base),deckOverride),history:[],status:'playing',
-    last:'8 kartın var. Kırmızı kart sağa (+), siyah kart sola (−). FLIP veya kart seç.'};
+  const tutorial=mode==='tutorial';
+  return {game:'overswing',version:10,seed:base,mode,dealIndex:0,dealTotals:[],
+    deal:dealSwing(seeded(base),tutorial?OVERSWING_TUTORIAL_DECK:deckOverride),
+    tutorialStep:tutorial?0:null,history:[],status:'playing',
+    last:tutorial?'Eğitim başladı. Sadece işaretli hamleyi yapabilirsin.':
+      '8 kartın var. Kırmızı kart sağa (+), siyah kart sola (−). FLIP veya kart seç.'};
 }
 export function overswingMultiplier(d){
   return (d.W+1)*d.flipFactor*d.comboFactor*d.crossFactor;
 }
 export function overswingActions(s){
-  if(s.status==='over')return [];
+  if(s.status!=='playing')return [];
   const d=s.deal,a=[];
   if(d.pos<40)a.push({type:'flip'});
   d.hand.forEach((_,index)=>a.push({type:'steer',index}));
@@ -59,6 +64,12 @@ export function overswingActions(s){
     const newCap=Math.max(2,d.handCap-1);
     if(d.hand.length>newCap)d.hand.forEach((_,dropIndex)=>a.push({type:'bank',dropIndex}));
     else a.push({type:'bank'});
+  }
+  if(s.mode==='tutorial'){
+    const expected=overswingTutorialExpectedAction(d,s.tutorialStep);
+    return expected?a.filter(action=>action.type===expected.type
+      &&(action.type!=='steer'||action.index===expected.index)
+      &&(action.type!=='bank'||action.dropIndex===expected.dropIndex)):[];
   }
   return a;
 }
@@ -185,6 +196,13 @@ export function stepOverswing(s,a){
       n.lastFlip=null;n.lastAction=null;n.lastRefill=[];
       msg+=' Sonraki deste başladı.';
     }else n.status='over';
+  }
+  if(n.mode==='tutorial'){
+    n.tutorialStep=s.tutorialStep+1;
+    if(n.tutorialStep===OVERSWING_TUTORIAL_STEPS.length){
+      n.status='tutorial-complete';
+      msg+=' Eğitimi tamamladın! Artık normal oyuna geçebilirsin.';
+    }
   }
   return mark(n,msg);
 }
