@@ -30,26 +30,23 @@ export function stepBondstone(s,a){if(!bondActions(s).some(x=>x.type===a.type&&(
  n.t++;if(n.t===40)n.status='over';return mark(n,msg);
 }
 export const signed=c=>(suit(c)<2?1:-1)*rank(c);
-export function applySwing(S,W,value){const next=S+value;if(Math.abs(next)>10)return {snap:true};const swung=S!==0&&(next===0||Math.sign(next)!==Math.sign(S));const gain=swung?Math.min(Math.floor(Math.abs(S)/3),5-W):0;return {snap:false,S:next,W:W+gain,gain,swung};}
-// Overswing v7 experiment: A (start/cap 4), mild B (draw 1 on BANK), and
-// optional opening STEER. BANK needs two card actions per swing to discourage
-// open-steer -> immediate BANK -> refill farming.
-// Overswing v8: explicit multiplicative rewards and shrinking hand capacity.
-// All bonus factors last until BANK or SNAP. The active FLIP run itself resets on STEER.
+export function applySwing(S,W,value){const next=S+value;if(Math.abs(next)>10)return {snap:true};const swung=S!==0&&next!==0&&Math.sign(next)!==Math.sign(S);const gain=swung?Math.min(Math.floor(Math.abs(S)/3),5-W):0;return {snap:false,S:next,W:W+gain,gain,swung};}
+// Overswing v9: exact zero is a trap, not a crossing.
+// Zero Break resets all multipliers (not the Pot); only a strict sign change grants crossing bonuses.
 function dealSwing(rng,override){
   const deck=override?override.slice():shuffle(all40(),rng);
   return {deck,pos:8,hand:deck.slice(0,8),handCap:8,bankCount:0,
     pot:[],discard:[],S:0,W:0,T:0,swingNo:1,flips:0,plays:0,
-    flipStreak:0,dryFlips:0,flipFactor:1,comboFactor:1,crossFactor:1,zeroFactor:1};
+    flipStreak:0,dryFlips:0,flipFactor:1,comboFactor:1,crossFactor:1};
 }
 export function newOverswing({seed,mode='short',deckOverride}={}){
   const base=seed??Date.now();
-  return {game:'overswing',version:8,seed:base,mode,dealIndex:0,dealTotals:[],
+  return {game:'overswing',version:9,seed:base,mode,dealIndex:0,dealTotals:[],
     deal:dealSwing(seeded(base),deckOverride),history:[],status:'playing',
     last:'8 kartın var. Kırmızı kart sağa (+), siyah kart sola (−). FLIP veya kart seç.'};
 }
 export function overswingMultiplier(d){
-  return (d.W+1)*d.flipFactor*d.comboFactor*d.crossFactor*d.zeroFactor;
+  return (d.W+1)*d.flipFactor*d.comboFactor*d.crossFactor;
 }
 export function overswingActions(s){
   if(s.status==='over')return [];
@@ -66,10 +63,13 @@ export function overswingActions(s){
 export function overswingPayout(s){
   return s.deal.pot.reduce((a,c)=>a+rank(c),0)*overswingMultiplier(s.deal);
 }
+function resetMultipliers(d){
+  d.W=0;d.flipStreak=0;d.dryFlips=0;
+  d.flipFactor=1;d.comboFactor=1;d.crossFactor=1;
+}
 function clearSwing(d){
-  d.S=0;d.W=0;d.pot=[];d.plays=0;
-  d.flipStreak=0;d.dryFlips=0;
-  d.flipFactor=1;d.comboFactor=1;d.crossFactor=1;d.zeroFactor=1;
+  d.S=0;d.pot=[];d.plays=0;
+  resetMultipliers(d);
   d.swingNo++;
 }
 function refillEmptyHand(d){
@@ -122,38 +122,45 @@ export function stepOverswing(s,a){
       ended=true;
     }else{
       d.S=outcome.S;d.W=outcome.W;
+      const zeroBreak=previousS!==0&&d.S===0;
       let destination;
       if(a.type==='flip'){
-        // Every FLIP card enters the pot, including crossing cards.
+        // Every successful FLIP enters the Pot, including exact-zero cards.
         d.pot.push(c);destination='pot';
-        d.flipStreak++;
-        if(outcome.swung){
-          d.crossFactor*=2; // bonus for any crossing FLIP
-          d.dryFlips=0;
-          if(d.flipStreak===3)d.comboFactor*=3; // extra 3rd-flip crossing bonus
-        }else{
-          d.dryFlips++;
-          d.flipFactor=Math.max(d.flipFactor,d.dryFlips+1); // 1st x2, 2nd x3 ...
+        if(!zeroBreak){
+          d.flipStreak++;
+          if(outcome.swung){
+            d.crossFactor*=2;
+            d.dryFlips=0;
+            if(d.flipStreak===3)d.comboFactor*=3;
+          }else{
+            d.dryFlips++;
+            d.flipFactor=Math.max(d.flipFactor,d.dryFlips+1);
+          }
+          if(d.flipStreak===2)d.comboFactor*=2;
         }
-        if(d.flipStreak===2)d.comboFactor*=2; // separate consecutive-FLIP bonus
       }else{
         d.flipStreak=0;d.dryFlips=0;
-        if(opening||outcome.swung){
+        // Exact zero still deposits a STEER card in the Pot, without any bonus.
+        if(opening||outcome.swung||zeroBreak){
           d.pot.push(c);destination='pot';
         }else{d.discard.push(c);destination='discard';}
-        if(previousS!==0&&d.S===0)d.zeroFactor*=2; // intentional exact-zero STEER
       }
+      if(zeroBreak)resetMultipliers(d);
       const addedToPot=destination==='pot'?rank(c):0;
       n.lastAction={type:a.type,card:c,from:previousS,to:d.S,
-        snap:false,swung:outcome.swung,gain:outcome.gain,destination,
+        snap:false,swung:outcome.swung,zeroBreak,
+        resetFromMultiplier:zeroBreak?previousMultiplier:null,
+        gain:zeroBreak?0:outcome.gain,destination,
         openingSteer:opening&&a.type==='steer',addedToPot,
         flipStreak:d.flipStreak,flipFactor:d.flipFactor,comboFactor:d.comboFactor,
-        crossFactor:d.crossFactor,zeroFactor:d.zeroFactor,
-        multiplier:overswingMultiplier(d)};
+        crossFactor:d.crossFactor,multiplier:overswingMultiplier(d)};
       if(a.type==='flip')n.lastFlip=n.lastAction;
-      msg=(a.type==='flip'?'FLIP ':'STEER ')+label(c)+' → '+d.S+
-        ', '+(destination==='pot'?'Pot’a':'iskartaya')+
-        '. Toplam çarpan ×'+overswingMultiplier(d)+'.';
+      msg=zeroBreak
+        ?'ZERO BREAK! '+label(c)+' sarkacı tam sıfıra getirdi. Pot korundu, tüm çarpanlar ×1 oldu.'
+        :(a.type==='flip'?'FLIP ':'STEER ')+label(c)+' → '+d.S+
+          ', '+(destination==='pot'?'Pot’a':'iskartaya')+
+          '. Toplam çarpan ×'+overswingMultiplier(d)+'.';
     }
   }
   if(ended)clearSwing(d);
