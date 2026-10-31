@@ -1,17 +1,18 @@
 import React,{useState,useEffect} from 'react';
-import {rank,suit,signed,applySwing,overswingActions,overswingPayout,overswingMultiplier} from './engines.js';
+import {rank,suit,signed,label,applySwing,overswingActions,overswingPayout,overswingMultiplier} from './engines.js';
+import {royalRank} from './overswingRoyals.js';
 import './overswing.css';
 import {OVERSWING_TUTORIAL_STEPS,OVERSWING_TUTORIAL_INTRO} from './overswingTutorial.js';
 import {LAST_FLAME,LAST_FLAME_RELICS} from './overswingJourneyContent.js';
 import {journeyRules,journeyActions} from './overswingJourney.js';
 
 const SUITS=['♥','♦','♠','♣'];
-const name=id=>(rank(id)===1?'A':rank(id))+SUITS[suit(id)];
+const name=id=>label(id);
 const val=n=>n>0?'+'+n:String(n);
 const target={pot:'POT',discard:'DISCARD'};
 function Card({id,onClick,caption,chosen=false,mini=false}){
   return <button type="button" disabled={!onClick} onClick={onClick}
-    className={'os8-card '+(suit(id)<2?'os8-red':'os8-black')+(chosen?' os8-selected':'')+(mini?' os8-mini':'')}
+    className={'os8-card '+(suit(id)<2?'os8-red':'os8-black')+(royalRank(id)?' os8-royal':'')+(chosen?' os8-selected':'')+(mini?' os8-mini':'')}
     aria-label={name(id)+' '+val(signed(id))+(caption?' '+caption:'')}>
     <span className="os8-card-top">{name(id)}</span>
     {!mini&&<strong>{val(signed(id))}</strong>}
@@ -20,10 +21,10 @@ function Card({id,onClick,caption,chosen=false,mini=false}){
 }
 function Outcome({e}){
   if(!e)return <>Choose a card to <b>STEER</b>, or <b>FLIP</b> a random card.</>;
-  if(e.type==='bank')return <><b>+{e.points.toLocaleString('en-US')} BANKED</b> · Hand limit {e.oldCap} → {e.newCap}. {e.dropped!=null?name(e.dropped)+' discarded. ':''}{e.refilled?.length?'Hand refilled.':''}</>;
+  if(e.type==='bank')return <><b>+{e.points.toLocaleString('en-US')} BANKED</b>{e.crownBonus?' · CROWN +'+e.crownBonus+'%':''} · Hand limit {e.oldCap} → {e.newCap}. {e.dropped!=null?name(e.dropped)+' discarded. ':''}{e.refilled?.length?'Hand refilled.':''}</>;
   if(e.snap)return <><b>SNAP!</b> <b>{name(e.card)}</b>: {val(e.from)} → {val(e.to)}. Lost {e.lostPayout.toLocaleString('en-US')} potential points.</>;
   if(e.zeroBreak)return <><b>ZERO BREAK!</b> {name(e.card)}: {val(e.from)} → 0. <b>All multipliers reset to ×1.</b> Pot kept{e.refilled?.length?', hand refilled':''}.</>;
-  return <><b>{e.type==='flip'?'FLIP':'STEER'} {name(e.card)}</b> · {val(e.from)} → {val(e.to)} · <b>{target[e.destination]}</b>{e.swung?<b> · SWING +{e.gain}</b>:null}{e.swingPenalty?<b> · SWING −1</b>:null} · total ×{e.multiplier.toLocaleString('en-US')}{e.refilled?.length?' · '+e.refilled.length+' cards refilled':''}</>;
+  return <><b>{e.type==='flip'?'FLIP':'STEER'} {name(e.card)}</b> · {val(e.from)} → {val(e.to)} · <b>{target[e.destination]}</b>{e.scouted!=null?<b> · NEXT FLIP: {name(e.scouted)}</b>:null}{e.swung?<b> · SWING +{e.gain}</b>:null}{e.swingPenalty?<b> · SWING −1</b>:null} · total ×{e.multiplier.toLocaleString('en-US')}{e.refilled?.length?' · '+e.refilled.length+' cards refilled':''}</>;
 }
 
 function FlameMeter({position}){
@@ -91,6 +92,7 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fu
   const [openFactor,setOpenFactor]=useState(null);
   const [steerFocus,setSteerFocus]=useState(false);
   const [helpOpen,setHelpOpen]=useState(false);
+  const [queenPick,setQueenPick]=useState(null);
   useEffect(()=>setHelpOpen(false),[s.mode,s.dealIndex]);
   const tutorial=s.mode==='tutorial';
   const isJourney=!!journey;
@@ -99,10 +101,23 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fu
   const payout=overswingPayout(s),multiplier=overswingMultiplier(d);
   const total=s.dealTotals.reduce((a,b)=>a+b,0)+(s.status==='over'?0:d.T);
   const canFlip=legal.some(a=>a.type==='flip'),canBank=legal.some(a=>a.type==='bank');
-  const nextCap=Math.max(2,d.handCap-(isJourney?journeyRules(journey).bankCapacityLoss:1)),mustDiscard=d.hand.length>nextCap;
-  useEffect(()=>setDiscardPick(false),[s.dealIndex,d.bankCount,s.status]);
-  const doSteer=index=>{setSteerFocus(false);if(discardPick){if(legal.some(a=>a.type==='bank'&&a.dropIndex===index)){act({type:'bank',dropIndex:index});setDiscardPick(false);}}else if(legal.some(a=>a.type==='steer'&&a.index===index))act({type:'steer',index});};
+  const nextCap=Math.max(2,d.handCap-(isJourney?journeyRules(journey).bankCapacityLoss:1)),mustDiscard=d.hand.filter(id=>royalRank(id)!=='K').length>nextCap;
+  useEffect(()=>{setDiscardPick(false);setQueenPick(null);},[s.dealIndex,d.bankCount,s.status]);
+  const doSteer=index=>{
+    setSteerFocus(false);
+    if(discardPick){
+      if(legal.some(a=>a.type==='bank'&&a.dropIndex===index)){
+        act({type:'bank',dropIndex:index});setDiscardPick(false);
+      }
+    }else if(royalRank(d.hand[index])==='Q')setQueenPick(index);
+    else if(legal.some(a=>a.type==='steer'&&a.index===index))act({type:'steer',index});
+  };
   const bank=()=>{if(mustDiscard)setDiscardPick(true);else act({type:'bank'});};
+  const playQueen=direction=>{
+    if(queenPick!=null&&legal.some(a=>a.type==='steer'&&a.index===queenPick&&a.direction===direction))
+      act({type:'steer',index:queenPick,direction});
+    setQueenPick(null);
+  };
   const guidedActionFirst=tutorial&&s.tutorialIntroDone&&(tutorialStep?.type==='flip'||tutorialStep?.type==='bank');
   const actionButtons=<>
     <div className="os8-actions">
@@ -182,6 +197,7 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fu
       <div><small>× MULTIPLIER</small><b>×{multiplier.toLocaleString('en-US')}</b></div>
       <div><small>♛ BANK NOW</small><b>+{payout.toLocaleString('en-US')}</b></div>
     </div>
+    {d.scoutNext!=null&&<div className="os8-scout-preview" role="status">✦ SCOUT · NEXT FLIP: <b>{name(d.scoutNext)} ({val(signed(d.scoutNext))})</b></div>}
     <section className="os8-meter" aria-label={'Swing '+val(d.S)}>
       <FlameMeter position={d.S}/>
       <div className="os8-zero-warning">ZERO BREAK = RESET MULTIPLIERS · CROSS ZERO = SWING</div>
@@ -218,7 +234,8 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fu
       <div className="os8-handcards">
         {d.hand.map((id,index)=>{
           const o=applySwing(d.S,d.W,signed(id));
-          const caption=discardPick?'REMOVE':o.snap?'SNAP':d.S!==0&&o.S===0?'ZERO BREAK':d.plays===0||o.swung?'POT +'+rank(id):d.W>0?'SWING −1':'DISCARD';
+          const royal=royalRank(id);
+          const caption=discardPick?'REMOVE':royal==='K'?'CROWN +'+(d.crownBonus||0)+'%':royal==='J'?'SCOUT':royal==='Q'?'±12':o.snap?'SNAP':d.S!==0&&o.S===0?'ZERO BREAK':d.plays===0||o.swung?'POT +'+rank(id):d.W>0?'SWING −1':'DISCARD';
           const allowed=discardPick?legal.some(a=>a.type==='bank'&&a.dropIndex===index):legal.some(a=>a.type==='steer'&&a.index===index);
           const highlighted=(tutorial||steerFocus)&&allowed;
           return <Card key={id} id={id} chosen={highlighted||(!tutorial&&discardPick)} onClick={allowed?()=>doSteer(index):null} caption={caption}/>;
@@ -240,6 +257,16 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fu
         <p>An empty hand refills automatically from the remaining deck, up to its capacity.</p>
       </details>
     </footer>
+    {queenPick!==null&&<div className="os8-queen-overlay" role="presentation">
+      <div className="os8-queen-modal" role="dialog" aria-modal="true" aria-label="Choose Queen direction">
+        <h3>Q · THE MIRROR</h3><p>Choose the pendulum direction. A safe crossing adds 12 Pot points.</p>
+        <div className="os8-queen-choices">
+          <button type="button" onClick={()=>playQueen(-1)}>← −12 <small>{d.S-12<-10?'SNAP':'SAFE'}</small></button>
+          <button type="button" onClick={()=>playQueen(1)}>+12 → <small>{d.S+12>10?'SNAP':'SAFE'}</small></button>
+        </div>
+        <button type="button" className="os8-queen-cancel" onClick={()=>setQueenPick(null)}>CANCEL</button>
+      </div>
+    </div>}
     {s.status==='over'&&<div className="os8-complete"><h3>GAME OVER</h3><b>{s.dealTotals.reduce((a,b)=>a+b,0).toLocaleString('en-US')} pts</b><button type="button" onClick={()=>restart(s.mode)}>PLAY AGAIN</button></div>}
   </div>;
 }
