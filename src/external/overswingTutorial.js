@@ -21,7 +21,7 @@ export const OVERSWING_TUTORIAL_STEPS=[
   {type:'flip',title:'FLIP serisi',instruction:'Tekrar FLIP yap: +2.',why:'İki FLIP üst üste: FLIP ×3.'},
   {type:'steer',card:27,title:'SWING',instruction:'Elinden 8♠ (−8) oyna: +5 → −3.',why:'Sıfırı geçtin: SWING ×2. Kart Pot’a girer.'},
   {type:'steer',card:0,title:'STEER bedeli',instruction:'A♥ (+1) oyna: −3 → −2.',why:'Geçiş yok: SWING ×1’e düşer. Kart iskartaya gider.'},
-  {type:'flip',title:'JACKPOT',instruction:'FLIP yap: +6 ile −2 → +4.',why:'FLIP ile geçiş: SWING ×2, JACKPOT ×2. FLIP ×3 korunur.'},
+  {type:'flip',title:'JACKPOT',instruction:'FLIP yap: +6 ile −2 → +4.',why:'FLIP ile geçiş: SWING ×2, JACKPOT ×2 olur; sonraki geçişte ×3 olur. FLIP ×3 korunur.'},
   {type:'bank',title:'BANK ve SKOR',instruction:'BANK yap ve puanları kasaya al.',why:'Pot × SWING × FLIP × JACKPOT skora eklenir.'},
   {type:'steer',card:3,title:'Yeni tur',instruction:'4♥ (+4) oyna.',why:'İlk STEER Pot’a gider.'},
   {type:'steer',card:23,title:'ZERO BREAK',instruction:'4♠ (−4) oyna: +4 → 0.',why:'Tam 0: çarpanlar ×1, Pot korunur.'},
