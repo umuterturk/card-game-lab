@@ -182,7 +182,7 @@ export function stepOverswing(s,a,rules={}){
       n.lastAction={type:a.type,card:c,from:previousS,to:d.S,
         snap:false,swung:outcome.swung,zeroBreak,
         resetFromMultiplier:zeroBreak?previousMultiplier:null,
-        gain:zeroBreak?0:outcome.gain,
+        gain:zeroBreak?0:outcome.gain+(a.type==='steer'&&outcome.swung?effective.steerCrossSwingBonus:0),
         swingPenalty:a.type==='steer'&&!outcome.swung&&!zeroBreak&&d.W<previousW,
         destination,
         openingSteer:opening&&a.type==='steer',addedToPot,
