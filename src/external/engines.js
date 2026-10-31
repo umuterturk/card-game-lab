@@ -34,100 +34,144 @@ export function applySwing(S,W,value){const next=S+value;if(Math.abs(next)>10)re
 // Overswing v7 experiment: A (start/cap 4), mild B (draw 1 on BANK), and
 // optional opening STEER. BANK needs two card actions per swing to discourage
 // open-steer -> immediate BANK -> refill farming.
+// Overswing v8: explicit multiplicative rewards and shrinking hand capacity.
+// All bonus factors last until BANK or SNAP. The active FLIP run itself resets on STEER.
 function dealSwing(rng,override){
   const deck=override?override.slice():shuffle(all40(),rng);
-  return {deck,pos:4,hand:deck.slice(0,4),pot:[],discard:[],S:0,W:0,T:0,swingNo:1,flips:0,plays:0};
+  return {deck,pos:8,hand:deck.slice(0,8),handCap:8,bankCount:0,
+    pot:[],discard:[],S:0,W:0,T:0,swingNo:1,flips:0,plays:0,
+    flipStreak:0,dryFlips:0,flipFactor:1,comboFactor:1,crossFactor:1,zeroFactor:1};
 }
 export function newOverswing({seed,mode='short',deckOverride}={}){
   const base=seed??Date.now();
-  return {game:'overswing',version:7,seed:base,mode,dealIndex:0,dealTotals:[],
+  return {game:'overswing',version:8,seed:base,mode,dealIndex:0,dealTotals:[],
     deal:dealSwing(seeded(base),deckOverride),history:[],status:'playing',
-    last:'4 kartın var. İstersen elinden bir kartla başla, istersen FLIP yap.'};
+    last:'8 kartın var. Kırmızı kart sağa (+), siyah kart sola (−). FLIP veya kart seç.'};
+}
+export function overswingMultiplier(d){
+  return (d.W+1)*d.flipFactor*d.comboFactor*d.crossFactor*d.zeroFactor;
 }
 export function overswingActions(s){
   if(s.status==='over')return [];
   const d=s.deal,a=[];
   if(d.pos<40)a.push({type:'flip'});
   d.hand.forEach((_,index)=>a.push({type:'steer',index}));
-  // No instant open-card BANK loop; when all cards are gone, allow the
-  // final Pot to be banked regardless of count, to prevent a soft lock.
-  if(d.pot.length&&(d.plays>=2||(d.pos>=40&&!d.hand.length)))a.push({type:'bank'});
+  if(d.pot.length&&(d.plays>=2||(d.pos>=40&&!d.hand.length))){
+    const newCap=Math.max(2,d.handCap-1);
+    if(d.hand.length>newCap)d.hand.forEach((_,dropIndex)=>a.push({type:'bank',dropIndex}));
+    else a.push({type:'bank'});
+  }
   return a;
 }
 export function overswingPayout(s){
-  return s.deal.pot.reduce((a,c)=>a+rank(c),0)*(1+s.deal.W);
+  return s.deal.pot.reduce((a,c)=>a+rank(c),0)*overswingMultiplier(s.deal);
+}
+function clearSwing(d){
+  d.S=0;d.W=0;d.pot=[];d.plays=0;
+  d.flipStreak=0;d.dryFlips=0;
+  d.flipFactor=1;d.comboFactor=1;d.crossFactor=1;d.zeroFactor=1;
+  d.swingNo++;
+}
+function refillEmptyHand(d){
+  const drawn=[];
+  if(d.hand.length===0){
+    while(d.hand.length<d.handCap&&d.pos<40){
+      const card=d.deck[d.pos++];
+      d.hand.push(card);drawn.push(card);
+    }
+  }
+  return drawn;
 }
 export function stepOverswing(s,a){
-  if(!overswingActions(s).some(x=>x.type===a.type&&(x.type!=='steer'||x.index===a.index)))return s;
+  if(!overswingActions(s).some(x=>x.type===a.type
+      &&(x.type!=='steer'||x.index===a.index)
+      &&(x.type!=='bank'||x.dropIndex===a.dropIndex)))return s;
   const d={...s.deal,hand:[...s.deal.hand],pot:[...s.deal.pot],discard:[...s.deal.discard]};
   let n={...s,deal:d,dealTotals:[...s.dealTotals],history:[...s.history]};
   let msg='',ended=false;
-  const previousS=d.S,previousW=d.W,previousPot=d.pot.reduce((sum,c)=>sum+rank(c),0);
+  const previousS=d.S,previousPot=d.pot.reduce((sum,c)=>sum+rank(c),0);
+  const previousMultiplier=overswingMultiplier(d);
   if(a.type==='bank'){
     const gain=overswingPayout(s);
-    d.T+=gain;
-    d.discard.push(...d.pot);
-    d.pot=[];
-    ended=true;
-    let refill=null;
-    if(d.hand.length<4&&d.pos<40){
-      refill=d.deck[d.pos++];
-      d.hand.push(refill);
+    d.T+=gain;d.discard.push(...d.pot);
+    const oldCap=d.handCap;
+    d.handCap=Math.max(2,d.handCap-1);d.bankCount++;
+    let dropped=null;
+    if(d.hand.length>d.handCap){
+      dropped=d.hand.splice(a.dropIndex,1)[0];
+      d.discard.push(dropped);
     }
-    n.lastAction={type:'bank',points:gain,pot:previousPot,multiplier:previousW+1,refill};
-    msg='BANK: '+gain+' puan güvenceye alındı.'+(refill===null?'':' Eline 1 kart çekildi.');
+    n.lastAction={type:'bank',points:gain,pot:previousPot,multiplier:previousMultiplier,
+      oldCap,newCap:d.handCap,dropped};
+    msg='BANK: '+gain+' puan. El kapasitesi '+oldCap+' → '+d.handCap+
+      (dropped===null?'':'; '+label(dropped)+' çıkarıldı')+'.';
+    ended=true;
   }else{
     const opening=d.plays===0;
-    let c;
-    if(a.type==='flip'){c=d.deck[d.pos++];d.flips++;}
-    else c=d.hand.splice(a.index,1)[0];
+    const c=a.type==='flip'?d.deck[d.pos++]:d.hand.splice(a.index,1)[0];
+    if(a.type==='flip')d.flips++;
     d.plays++;
     const outcome=applySwing(d.S,d.W,signed(c));
     if(outcome.snap){
       n.lastAction={type:a.type,card:c,from:previousS,to:previousS+signed(c),
-        snap:true,destination:'discard',lost:previousPot,
-        beforeMultiplier:previousW+1,afterMultiplier:previousW+1,swung:false};
+        snap:true,destination:'discard',lost:previousPot,prevMultiplier:previousMultiplier,
+        lostPayout:previousPot*previousMultiplier};
       if(a.type==='flip')n.lastFlip=n.lastAction;
       d.discard.push(...d.pot,c);
-      d.pot=[];
+      msg='SNAP! '+label(c)+' sınırı aştı. Pot kaybedildi.';
       ended=true;
-      msg='SNAP! '+label(c)+' sınırı aştı. '+previousPot+' Pot puanı kaybedildi.';
     }else{
       d.S=outcome.S;d.W=outcome.W;
       let destination;
       if(a.type==='flip'){
-        if(outcome.swung&&d.hand.length<4){d.hand.push(c);destination='hand';}
-        else{d.pot.push(c);destination='pot';}
-      }else if(opening||outcome.swung){
-        d.pot.push(c);
-        destination='pot';
+        // Every FLIP card enters the pot, including crossing cards.
+        d.pot.push(c);destination='pot';
+        d.flipStreak++;
+        if(outcome.swung){
+          d.crossFactor*=2; // bonus for any crossing FLIP
+          d.dryFlips=0;
+          if(d.flipStreak===3)d.comboFactor*=3; // extra 3rd-flip crossing bonus
+        }else{
+          d.dryFlips++;
+          d.flipFactor=Math.max(d.flipFactor,d.dryFlips+1); // 1st x2, 2nd x3 ...
+        }
+        if(d.flipStreak===2)d.comboFactor*=2; // separate consecutive-FLIP bonus
       }else{
-        d.discard.push(c);
-        destination='discard';
+        d.flipStreak=0;d.dryFlips=0;
+        if(opening||outcome.swung){
+          d.pot.push(c);destination='pot';
+        }else{d.discard.push(c);destination='discard';}
+        if(previousS!==0&&d.S===0)d.zeroFactor*=2; // intentional exact-zero STEER
       }
       const addedToPot=destination==='pot'?rank(c):0;
       n.lastAction={type:a.type,card:c,from:previousS,to:d.S,
         snap:false,swung:outcome.swung,gain:outcome.gain,destination,
-        beforeMultiplier:previousW+1,afterMultiplier:d.W+1,addedToPot,
-        openingSteer:opening&&a.type==='steer'};
+        openingSteer:opening&&a.type==='steer',addedToPot,
+        flipStreak:d.flipStreak,flipFactor:d.flipFactor,comboFactor:d.comboFactor,
+        crossFactor:d.crossFactor,zeroFactor:d.zeroFactor,
+        multiplier:overswingMultiplier(d)};
       if(a.type==='flip')n.lastFlip=n.lastAction;
       msg=(a.type==='flip'?'FLIP ':'STEER ')+label(c)+' → '+d.S+
-        '; '+(destination==='hand'?'eline':destination==='pot'?'Pot’a':'iskartaya')+
-        '. Çarpan ×'+(d.W+1)+'.';
+        ', '+(destination==='pot'?'Pot’a':'iskartaya')+
+        '. Toplam çarpan ×'+overswingMultiplier(d)+'.';
     }
   }
-  if(ended){
-    if(d.pos>=40){
-      n.dealTotals.push(d.T);
-      if(n.mode==='match'&&n.dealIndex<2){
-        n.dealIndex++;
-        n.deal=dealSwing(seeded(n.seed*3+n.dealIndex));
-        n.lastFlip=null;n.lastAction=null;
-        msg+=' Sonraki deste başladı.';
-      }else n.status='over';
-    }else{
-      d.S=0;d.W=0;d.pot=[];d.plays=0;d.swingNo++;
-    }
+  if(ended)clearSwing(d);
+  const refill=refillEmptyHand(d);
+  if(refill.length){
+    msg+=' El '+refill.length+' kartla '+d.handCap+' kapasiteye kadar dolduruldu.';
+    n.lastRefill=refill;
+    if(n.lastAction)n.lastAction={...n.lastAction,refilled:refill};
+  }else n.lastRefill=[];
+  // A deal is finished only after all 40 cards have been used (including hand cards).
+  if(d.pos>=40&&!d.hand.length&&!d.pot.length){
+    n.dealTotals.push(d.T);
+    if(n.mode==='match'&&n.dealIndex<2){
+      n.dealIndex++;
+      n.deal=dealSwing(seeded(n.seed*3+n.dealIndex));
+      n.lastFlip=null;n.lastAction=null;n.lastRefill=[];
+      msg+=' Sonraki deste başladı.';
+    }else n.status='over';
   }
   return mark(n,msg);
 }
