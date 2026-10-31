@@ -19,6 +19,17 @@ export const nextRoyal=gold=>ROYAL_NAMES.find((_,i)=>gold<ROYAL_THRESHOLDS[i])||
 export function pickRoyalCards(tier,seed,index){
   const available=ROYAL_NAMES.slice(0,Math.max(0,Math.min(3,tier)));
   if(available.length===0)return [];
+  // Ensure the newly unlocked King is seen in the first encounter.
+  // Over a complete journey, all three Royals have a guaranteed appearance.
+  if(tier>=3){
+    const pair=index===0?['K',seed%2?'J':'Q']:
+      index===1?['J','Q']:['K',seed%2?'Q':'J'];
+    let state=(seed+index*2654435761)>>>0;
+    return pair.map(name=>{
+      state=(Math.imul(state,1664525)+1013904223)>>>0;
+      return royalId(name,state%4);
+    });
+  }
   const shuffled=available.slice();
   let state=(seed+index*2654435761)>>>0;
   for(let i=shuffled.length-1;i>0;i--){
