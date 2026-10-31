@@ -91,7 +91,7 @@ export function stepOverswing(s,a){
   const d={...s.deal,hand:[...s.deal.hand],pot:[...s.deal.pot],discard:[...s.deal.discard]};
   let n={...s,deal:d,dealTotals:[...s.dealTotals],history:[...s.history]};
   let msg='',ended=false;
-  const previousS=d.S,previousPot=d.pot.reduce((sum,c)=>sum+rank(c),0);
+  const previousS=d.S,previousW=d.W,previousPot=d.pot.reduce((sum,c)=>sum+rank(c),0);
   const previousMultiplier=overswingMultiplier(d);
   if(a.type==='bank'){
     const gain=overswingPayout(s);
@@ -143,6 +143,8 @@ export function stepOverswing(s,a){
         }
       }else{
         d.flipStreak=0;d.dryFlips=0;
+        // Steering without a crossing spends one SWING tier; ZERO BREAK resets all tiers below.
+        if(!outcome.swung&&!zeroBreak)d.W=Math.max(0,d.W-1);
         // Exact zero still deposits a STEER card in the Pot, without any bonus.
         if(opening||outcome.swung||zeroBreak){
           d.pot.push(c);destination='pot';
@@ -153,7 +155,9 @@ export function stepOverswing(s,a){
       n.lastAction={type:a.type,card:c,from:previousS,to:d.S,
         snap:false,swung:outcome.swung,zeroBreak,
         resetFromMultiplier:zeroBreak?previousMultiplier:null,
-        gain:zeroBreak?0:outcome.gain,destination,
+        gain:zeroBreak?0:outcome.gain,
+        swingPenalty:a.type==='steer'&&!outcome.swung&&!zeroBreak&&d.W<previousW,
+        destination,
         openingSteer:opening&&a.type==='steer',addedToPot,
         flipStreak:d.flipStreak,flipFactor:d.flipFactor,comboFactor:d.comboFactor,
         crossFactor:d.crossFactor,multiplier:overswingMultiplier(d)};
