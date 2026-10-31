@@ -56,21 +56,22 @@ test('actual STEER crossing from +1 to -2 increases SWING factor',()=>{
  assert.equal(s.lastAction.destination,'pot');
  assert.equal(overswingMultiplier(s.deal),2);
 });
-test('actual FLIP crossing from -1 to +1 grants both SWING and CROSS',()=>{
+test('FLIP crossing from -1 to +1 grants SWING FLIP and JACKPOT',()=>{
  const deck=deckWith([32,2,6,29,12,15,34,16,1]);
  let s=newOverswing({deckOverride:deck});
  s={...s,deal:{...s.deal,S:-1,plays:1,pot:[30]}};
  s=go(s,{type:'flip'}); // 2♥ = +2
  assert.equal(s.deal.S,1);
  assert.equal(s.deal.W,1);
- assert.equal(s.deal.crossFactor,2);
+ assert.equal(s.deal.jackpotFactor,2);
  assert.equal(s.lastAction.gain,1);
  assert.equal(s.lastAction.swung,true);
- assert.equal(overswingMultiplier(s.deal),4);
+ assert.equal(s.deal.flipFactor,2);
+ assert.equal(overswingMultiplier(s.deal),8);
 });
-test('v10 starts with eight cards and correct suit signs',()=>{
+test('v12 starts with eight cards and correct suit signs',()=>{
  const s=newOverswing({deckOverride:O});
- assert.equal(s.version,11);assert.equal(s.deal.handCap,8);
+ assert.equal(s.version,12);assert.equal(s.deal.handCap,8);
  assert.deepEqual(s.deal.hand,O.slice(0,8));assert.equal(s.deal.pos,8);
  assert.equal(overswingActions(s).filter(a=>a.type==='steer').length,8);
  assert.ok(overswingActions(s).some(a=>a.type==='flip'));
@@ -85,34 +86,32 @@ test('all flipped cards enter Pot; exact zero is Zero Break, not a crossing',()=
  s=go(s,{type:'flip'}); // +2 -> 0
  assert.deepEqual(s.deal.pot,[31,1]);assert.equal(s.lastFlip.destination,'pot');
  assert.equal(s.deal.hand.length,8);
- assert.equal(s.deal.crossFactor,1);assert.equal(s.deal.comboFactor,1);
+ assert.equal(s.deal.jackpotFactor,1);
  assert.equal(s.deal.flipFactor,1);assert.equal(s.deal.flipStreak,0);
  assert.equal(s.deal.W,0);assert.equal(s.lastAction.zeroBreak,true);
  assert.equal(overswingMultiplier(s.deal),1);
 });
-test('non-crossing FLIP sequence grows base FLIP factor ×2 ×3 ×4',()=>{
+test('three successful FLIPs grow ×2 ×3 ×4 without SERI',()=>{
  const deck=deckWith([32,2,6,29,12,15,34,16,1,2,3]);
  let s=newOverswing({deckOverride:deck});
  s=go(s,{type:'flip'});assert.equal(s.deal.flipFactor,2);
  s=go(s,{type:'flip'});assert.equal(s.deal.flipFactor,3);
- assert.equal(s.deal.comboFactor,2);
  s=go(s,{type:'flip'});assert.equal(s.deal.flipFactor,4);
- assert.equal(s.deal.comboFactor,2);
- assert.equal(s.deal.crossFactor,1);
+ assert.equal(s.deal.jackpotFactor,1);
  assert.equal(s.deal.flipStreak,3);
- assert.equal(overswingPayout(s),(2+3+4)*4*2);
+ assert.equal(overswingPayout(s),(2+3+4)*4);
 });
-test('3rd consecutive FLIP crosses: separate ×2 series and ×3 third-cross plus ×2 crossing',()=>{
+test('crossing FLIP continues streak and JACKPOT adds its own ×2',()=>{
  const deck=deckWith([32,2,6,29,12,15,34,16,31,33,18]);
  let s=newOverswing({deckOverride:deck});
- s=go(s,{type:'flip'}); // -2: flip factor 2
- s=go(s,{type:'flip'}); // -6: flip factor 3, combo x2
- s=go(s,{type:'flip'}); // +3: W gain2 => W3, crossing x2, combo x3 more
+ s=go(s,{type:'flip'}); // -2, FLIP ×2
+ s=go(s,{type:'flip'}); // -6, FLIP ×3
+ s=go(s,{type:'flip'}); // +3: SWING ×3, FLIP ×4, JACKPOT ×2
  assert.equal(s.deal.S,3);assert.equal(s.deal.W,2);
- assert.equal(s.deal.flipFactor,3);assert.equal(s.deal.comboFactor,6);
- assert.equal(s.deal.crossFactor,2);
- assert.equal(overswingMultiplier(s.deal),108);
- assert.equal(overswingPayout(s),15*108);
+ assert.equal(s.deal.flipFactor,4);assert.equal(s.deal.flipStreak,3);
+ assert.equal(s.deal.jackpotFactor,2);
+ assert.equal(overswingMultiplier(s.deal),24);
+ assert.equal(overswingPayout(s),15*24);
  assert.deepEqual(s.deal.pot,[31,33,18]);
 });
 test('Zero Break with STEER reaches exact zero, preserves Pot and removes all bonuses',()=>{
@@ -132,46 +131,43 @@ test('Zero Break resets even accumulated crossing, streak and no-cross bonuses',
  const d=deckWith([36,1,2,3,4,5,6,7,8]);
  let s=newOverswing({deckOverride:d});
  s={...s,deal:{...s.deal,S:7,W:2,pot:[8],plays:3,
-   flipFactor:3,comboFactor:6,crossFactor:2,
-   flipStreak:3,dryFlips:2}};
- assert.equal(overswingMultiplier(s.deal),108);
+   flipFactor:3,jackpotFactor:4,
+   flipStreak:3}};
+ assert.equal(overswingMultiplier(s.deal),36);
  s=go(s,{type:'steer',index:0}); // 7♣ moves +7 -> 0
  assert.equal(s.lastAction.zeroBreak,true);
- assert.equal(s.lastAction.resetFromMultiplier,108);
+ assert.equal(s.lastAction.resetFromMultiplier,36);
  assert.equal(s.deal.S,0);
  assert.equal(s.deal.W,0);
  assert.equal(s.deal.flipFactor,1);
- assert.equal(s.deal.comboFactor,1);
- assert.equal(s.deal.crossFactor,1);
+ assert.equal(s.deal.jackpotFactor,1);
  assert.equal(s.deal.flipStreak,0);
- assert.equal(s.deal.dryFlips,0);
  assert.deepEqual(s.deal.pot,[8,36]);
  assert.equal(overswingMultiplier(s.deal),1);
  assert.equal(overswingPayout(s),16);
  s=go(s,{type:'bank'});
- assert.equal(s.deal.T,16,'BANK uses reset multiplier, not the old 108x');
+ assert.equal(s.deal.T,16,'BANK uses reset multiplier, not the old 36x');
 });
 test('third consecutive FLIP landing exactly zero loses every multiplier and streak',()=>{
  const deck=deckWith([32,2,6,29,12,15,34,16,31,33,15]);
  let s=newOverswing({deckOverride:deck});
  s=go(s,{type:'flip'}); // -2, FLIP ×2
- s=go(s,{type:'flip'}); // -6, FLIP ×3 and streak ×2
+ s=go(s,{type:'flip'}); // -6, FLIP ×3
  assert.equal(s.deal.flipFactor,3);
- assert.equal(s.deal.comboFactor,2);
+ assert.equal(s.deal.jackpotFactor,1);
  s=go(s,{type:'flip'}); // +6 -> exactly zero
  assert.equal(s.lastAction.zeroBreak,true);
  assert.equal(s.lastAction.swung,false);
  assert.equal(s.deal.S,0);
  assert.equal(s.deal.flipFactor,1);
- assert.equal(s.deal.comboFactor,1);
- assert.equal(s.deal.crossFactor,1);
+ assert.equal(s.deal.jackpotFactor,1);
  assert.equal(s.deal.flipStreak,0);
  assert.equal(overswingMultiplier(s.deal),1);
  assert.deepEqual(s.deal.pot,[31,33,15]);
  s=go(s,{type:'flip'}); // series restarts from zero
  assert.equal(s.deal.flipStreak,1);
  assert.equal(s.deal.flipFactor,2);
- assert.equal(s.deal.comboFactor,1);
+ assert.equal(s.deal.jackpotFactor,1);
 });
 test('strict crossing yields bonus but exact zero does not',()=>{
  assert.deepEqual(applySwing(7,0,-7),{snap:false,S:0,W:0,gain:0,swung:false});
@@ -184,7 +180,7 @@ test('STEER interrupts the consecutive FLIP run, but earned multipliers remain u
  assert.equal(s.deal.flipStreak,0);assert.equal(s.deal.flipFactor,2);
  s=go(s,{type:'flip'}); // +2 -> -3: new streak
  assert.equal(s.deal.flipStreak,1);assert.equal(s.deal.flipFactor,2);
- assert.equal(s.deal.comboFactor,1);
+ assert.equal(s.deal.jackpotFactor,1);
 });
 test('BANK decreases cap, player chooses card to discard when over capacity',()=>{
  let s=newOverswing({deckOverride:O});
@@ -238,9 +234,9 @@ test('bank pays total product and resets all factors',()=>{
  const deck=deckWith([32,2,6,29,12,15,34,16,31,33,18]);
  let s=newOverswing({deckOverride:deck});
  for(let i=0;i<3;i++)s=go(s,{type:'flip'});
- assert.equal(overswingPayout(s),1620);
+ assert.equal(overswingPayout(s),360);
  s=go(s,{type:'bank',dropIndex:0});
- assert.equal(s.deal.T,1620);assert.equal(s.lastAction.points,1620);
+ assert.equal(s.deal.T,360);assert.equal(s.lastAction.points,360);
  assert.equal(overswingMultiplier(s.deal),1);
  assert.equal(s.deal.flipStreak,0);assert.equal(s.deal.handCap,7);
 });
