@@ -20,13 +20,25 @@ function Outcome({e}){
   if(e.type==='bank')return <><b>+{e.points.toLocaleString('tr-TR')} BANK</b> · Kapasite {e.oldCap} → {e.newCap}. {e.dropped!=null?name(e.dropped)+' çıkarıldı. ':''}{e.refilled?.length?'Elin yeniden dolduruldu.':''}</>;
   if(e.snap)return <><b>SNAP!</b> <b>{name(e.card)}</b> ile {val(e.from)} → {val(e.to)}. {e.lostPayout.toLocaleString('tr-TR')} olası puan kaybedildi.</>;
   if(e.zeroBreak)return <><b>ZERO BREAK!</b> {name(e.card)} ile {val(e.from)} → 0. <b>Tüm çarpanlar ×1 oldu.</b> Pot korunuyor{e.refilled?.length?', elin yenilendi':''}.</>;
-  return <><b>{e.type==='flip'?'FLIP':'STEER'} {name(e.card)}</b> · {val(e.from)} → {val(e.to)} · <b>{target[e.destination]}</b> · toplam ×{e.multiplier.toLocaleString('tr-TR')}{e.refilled?.length?' · Elin '+e.refilled.length+' kartla yenilendi.':''}</>;
+  return <><b>{e.type==='flip'?'FLIP':'STEER'} {name(e.card)}</b> · {val(e.from)} → {val(e.to)} · <b>{target[e.destination]}</b>{e.swung?<b> · SWING {e.gain>0?'+'+e.gain:'MAX'}</b>:null} · toplam ×{e.multiplier.toLocaleString('tr-TR')}{e.refilled?.length?' · Elin '+e.refilled.length+' kartla yenilendi.':''}</>;
 }
-function Factor({label,value,detail}){
-  return <div className={'os8-factor '+(value>1?'os8-active':'')} title={detail}><span>{label}</span><b>×{value.toLocaleString('tr-TR')}</b></div>;
+const FACTOR_HELP={
+  swing:{title:'SWING',text:'Sarkaç sıfırın bir tarafından diğerine geçtiğinde artar. Önceki konumun sıfıra uzaklığı 1–5 ise +1, 6–8 ise +2, 9–10 ise +3 kademe kazanırsın. En fazla ×6 olabilir. Tam sıfır CROSS sayılmaz: ZERO BREAK bütün çarpanları ×1 yapar.'},
+  flip:{title:'FLIP',text:'Sıfırı geçmeden yapılan ardışık FLIP hamlelerinde çarpan ×2, ×3, ×4… büyür. STEER veya sıfır geçişi bu ardışık sayacı durdurur; önceden kazanılmış FLIP çarpanı BANK, SNAP veya ZERO BREAK’e kadar korunur.'},
+  combo:{title:'SERİ',text:'Üst üste iki FLIP yapınca ayrı bir ×2 bonus kazanırsın. Üçüncü ardışık FLIP sıfırı geçerse ayrıca ×3 daha kazanırsın. STEER art arda FLIP sayacını sıfırlar.'},
+  cross:{title:'CROSS',text:'FLIP ile tam sıfıra basmadan karşı tarafa geçtiğinde ayrıca ×2 kazanırsın. Tekrar başarılı FLIP CROSS yaparsan bu bonuslar çarpılarak büyür. STEER ile sıfırı geçmek CROSS bonusu değil, SWING bonusu verir.'}
+};
+function Factor({id,label,value,onClick,expanded}){
+  return <button type="button" className={'os8-factor '+(value>1?'os8-active':'')+(expanded?' os8-factor-open':'')}
+      onClick={onClick} aria-expanded={expanded} aria-controls="os8-factor-help"
+      aria-label={label+' çarpanı ×'+value+'. Açıklama için dokun'}>
+    <span>{label} <span className="os8-info-icon" aria-hidden="true">ⓘ</span></span>
+    <b>×{value.toLocaleString('tr-TR')}</b>
+  </button>;
 }
 export default function OverswingPlay({s,act,restart}){
   const [discardPick,setDiscardPick]=useState(false);
+  const [openFactor,setOpenFactor]=useState(null);
   const d=s.deal,legal=overswingActions(s),pot=d.pot.reduce((a,c)=>a+rank(c),0);
   const payout=overswingPayout(s),multiplier=overswingMultiplier(d);
   const total=s.dealTotals.reduce((a,b)=>a+b,0)+(s.status==='over'?0:d.T);
@@ -53,13 +65,16 @@ export default function OverswingPlay({s,act,restart}){
       <div className="os8-ticks"><span>−10</span><span>−5</span><span>0</span><span>+5</span><span>+10</span></div>
       <div className="os8-zero-warning">Tam 0: tüm çarpanlar ×1 · Sıfırı geçmek: bonus</div>
     </section>
-    <div className="os8-factors" aria-label="Çarpan ayrıntıları">
-      <Factor label="SWING" value={d.W+1} detail="Sıfırı geçince artan normal çarpan"/>
-      <Factor label="FLIP" value={d.flipFactor} detail="Sıfırı geçmeyen FLIP: ilki ×2, ikincisi ×3, ..."/>
-      <Factor label="SERİ" value={d.comboFactor} detail="Arka arkaya 2 FLIP ×2; üçüncü FLIP sıfırı geçerse ayrıca ×3"/>
-      <Factor label="CROSS" value={d.crossFactor} detail="Her başarılı FLIP ile sıfırı geçiş ×2"/>
-
+    <div className="os8-factors" aria-label="Çarpan ayrıntıları; bilgi almak için çarpana dokun">
+      <Factor id="swing" label="SWING" value={d.W+1} onClick={()=>setOpenFactor(openFactor==='swing'?null:'swing')} expanded={openFactor==='swing'}/>
+      <Factor id="flip" label="FLIP" value={d.flipFactor} onClick={()=>setOpenFactor(openFactor==='flip'?null:'flip')} expanded={openFactor==='flip'}/>
+      <Factor id="combo" label="SERİ" value={d.comboFactor} onClick={()=>setOpenFactor(openFactor==='combo'?null:'combo')} expanded={openFactor==='combo'}/>
+      <Factor id="cross" label="CROSS" value={d.crossFactor} onClick={()=>setOpenFactor(openFactor==='cross'?null:'cross')} expanded={openFactor==='cross'}/>
     </div>
+    {openFactor&&<div id="os8-factor-help" className="os8-factor-tooltip" role="region" aria-label={FACTOR_HELP[openFactor].title+' açıklaması'}>
+      <div className="os8-tooltip-header"><strong>{FACTOR_HELP[openFactor].title} nasıl çalışır?</strong><button type="button" aria-label="Açıklamayı kapat" onClick={()=>setOpenFactor(null)}>×</button></div>
+      <p>{FACTOR_HELP[openFactor].text}</p>
+    </div>}
     <div className={'os8-event '+(s.lastAction?.snap?'os8-snap':s.lastAction?.zeroBreak?'os8-zero-break':'')} role="status" aria-live="polite">
       {s.lastAction?.card!=null&&<Card id={s.lastAction.card} mini/>}
       <p><Outcome e={s.lastAction}/></p>
