@@ -38,13 +38,13 @@
     "status": "pass",
     "score": 8,
     "sourceExperiment": "CGL-20261029-23",
-    "description": "Overswing v8: start with 8 cards, control the pendulum, and stack separate FLIP streak, crossing, and Perfect Zero multipliers. Hand capacity drops after each BANK.",
+    "description": "Overswing v9: start with 8 cards, build FLIP streak and crossing multipliers, and avoid landing exactly on zero (Zero Break resets all multipliers to ×1 while preserving the Pot). Hand capacity shrinks after BANK.",
     "mechanic": "Pendulum control",
     "components": "40 suited A–10 cards; opening hand and capacity 8; automatic refill to current capacity when hand empties; pendulum −10…+10.",
-    "loop": "Play a hand card (STEER) or reveal a random card directly into the Pot (FLIP). Consecutive no-cross FLIPs grow ×2, ×3…; two consecutive FLIPs also give ×2, and a third crossing FLIP adds ×3. Crossing FLIPs ×2, exact-zero STEER ×2. BANK scores the product and reduces hand capacity to a minimum of 2.",
-    "risk": "Going beyond ±10 Snaps and discards Pot; BANK protects points but reduces maximum hand capacity by one. When the hand exceeds the new cap, choose a card to discard.",
-    "caveat": "v8 experimental redesign (8-card auto-refill, separate multiplicative FLIP bonuses, Perfect Zero, declining hand capacity). Historical 8.00 rating and Python simulation statistics apply ONLY to v6; v8 gameplay balance and point targets have not been calibrated.",
-    "evidence": "Historical v6 report: 604.8 strategic mean over 2,000 deals (not comparable with v8). V8 implemented with automated rule and randomized-game tests.",
+    "loop": "Choose a card (STEER) or reveal a card into Pot (FLIP). Strictly crossing zero grows the Swing multiplier and a crossing FLIP adds ×2. No-cross FLIPs grow ×2, ×3… and consecutive FLIPs add a separate streak bonus. Exact zero resets all factors and streaks; BANK scores the remaining Pot × multiplier and reduces hand cap toward 2.",
+    "risk": "ZERO BREAK on exact zero resets every multiplier and FLIP streak but keeps the Pot; SNAP beyond ±10 loses the Pot. BANK protects points while reducing hand capacity by one.",
+    "caveat": "v9 experimental rules: Zero Break replaces Perfect Zero; no-cross FLIP streaks and full crossing still provide bonuses. Historical 8.00 rating and v6 Python stats do not measure v9, which needs balance testing.",
+    "evidence": "Historical v6 source report: strategic mean 604.8 across 2,000 short deals (not comparable to v9). V9 has automated Zero Break, crossing and termination tests.",
     "tags": [
       "Push your luck",
       "Multiplier",
@@ -61,7 +61,7 @@
       "senseOfLoss": 8,
       "replayability": 8
     },
-    "scoreBasis": "Historical provisional v6 design rating, not a measured or re-evaluated v8 score."
+    "scoreBasis": "Historical provisional v6 score, not a re-evaluation of Zero Break v9."
   },
   {
     "id": "021",
