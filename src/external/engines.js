@@ -35,25 +35,25 @@ export const signed=c=>(suit(c)<2?1:-1)*rank(c);
 // Every strict zero-crossing adds SWING tiers without a multiplier cap.
 // The distance determines the gain (+1/+2/+3), and exact zero still triggers Zero Break.
 export function applySwing(S,W,value){const next=S+value;if(Math.abs(next)>10)return {snap:true};const swung=S!==0&&next!==0&&Math.sign(next)!==Math.sign(S);const gain=swung?Math.max(1,Math.floor(Math.abs(S)/3)):0;return {snap:false,S:next,W:W+gain,gain,swung};}
-// Overswing v9: exact zero is a trap, not a crossing.
+// Overswing v12: exact zero is a trap, not a crossing.
 // Zero Break resets all multipliers (not the Pot); only a strict sign change grants crossing bonuses.
 function dealSwing(rng,override){
   const deck=override?override.slice():shuffle(all40(),rng);
   return {deck,pos:8,hand:deck.slice(0,8),handCap:8,bankCount:0,
     pot:[],discard:[],S:0,W:0,T:0,swingNo:1,flips:0,plays:0,
-    flipStreak:0,dryFlips:0,flipFactor:1,comboFactor:1,crossFactor:1};
+    flipStreak:0,flipFactor:1,jackpotFactor:1};
 }
 export function newOverswing({seed,mode='short',deckOverride}={}){
   const base=seed??Date.now();
   const tutorial=mode==='tutorial';
-  return {game:'overswing',version:11,seed:base,mode,dealIndex:0,dealTotals:[],
+  return {game:'overswing',version:12,seed:base,mode,dealIndex:0,dealTotals:[],
     deal:dealSwing(seeded(base),tutorial?OVERSWING_TUTORIAL_DECK:deckOverride),
     tutorialStep:tutorial?0:null,tutorialIntroDone:!tutorial,history:[],status:'playing',
     last:tutorial?'Önce FLIP, STEER, Pot ve Skor kavramlarını öğren.':
       '8 kartın var. Kırmızı kart sağa (+), siyah kart sola (−). FLIP veya kart seç.'};
 }
 export function overswingMultiplier(d){
-  return (d.W+1)*d.flipFactor*d.comboFactor*d.crossFactor;
+  return (d.W+1)*d.flipFactor*d.jackpotFactor;
 }
 export function overswingActions(s){
   if(s.status!=='playing'||(s.mode==='tutorial'&&!s.tutorialIntroDone))return [];
@@ -77,8 +77,8 @@ export function overswingPayout(s){
   return s.deal.pot.reduce((a,c)=>a+rank(c),0)*overswingMultiplier(s.deal);
 }
 function resetMultipliers(d){
-  d.W=0;d.flipStreak=0;d.dryFlips=0;
-  d.flipFactor=1;d.comboFactor=1;d.crossFactor=1;
+  d.W=0;d.flipStreak=0;
+  d.flipFactor=1;d.jackpotFactor=1;
 }
 function clearSwing(d){
   d.S=0;d.pot=[];d.plays=0;
@@ -144,19 +144,14 @@ export function stepOverswing(s,a){
         // Every successful FLIP enters the Pot, including exact-zero cards.
         d.pot.push(c);destination='pot';
         if(!zeroBreak){
+          // Every safe FLIP continues its current streak, including zero crossings.
+          // Earned FLIP tiers persist across STEER; only the streak counter restarts.
           d.flipStreak++;
-          if(outcome.swung){
-            d.crossFactor*=2;
-            d.dryFlips=0;
-            if(d.flipStreak===3)d.comboFactor*=3;
-          }else{
-            d.dryFlips++;
-            d.flipFactor=Math.max(d.flipFactor,d.dryFlips+1);
-          }
-          if(d.flipStreak===2)d.comboFactor*=2;
+          d.flipFactor=Math.max(d.flipFactor,d.flipStreak+1);
+          if(outcome.swung)d.jackpotFactor*=2;
         }
       }else{
-        d.flipStreak=0;d.dryFlips=0;
+        d.flipStreak=0;
         // Steering without a crossing spends one SWING tier; ZERO BREAK resets all tiers below.
         if(!outcome.swung&&!zeroBreak)d.W=Math.max(0,d.W-1);
         // Exact zero still deposits a STEER card in the Pot, without any bonus.
@@ -173,8 +168,8 @@ export function stepOverswing(s,a){
         swingPenalty:a.type==='steer'&&!outcome.swung&&!zeroBreak&&d.W<previousW,
         destination,
         openingSteer:opening&&a.type==='steer',addedToPot,
-        flipStreak:d.flipStreak,flipFactor:d.flipFactor,comboFactor:d.comboFactor,
-        crossFactor:d.crossFactor,multiplier:overswingMultiplier(d)};
+        flipStreak:d.flipStreak,flipFactor:d.flipFactor,
+        jackpotFactor:d.jackpotFactor,multiplier:overswingMultiplier(d)};
       if(a.type==='flip')n.lastFlip=n.lastAction;
       msg=zeroBreak
         ?'ZERO BREAK! '+label(c)+' sarkacı tam sıfıra getirdi. Pot korundu, tüm çarpanlar ×1 oldu.'
