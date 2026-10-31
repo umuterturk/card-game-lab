@@ -46,17 +46,17 @@ function dealSwing(rng,override){
 export function newOverswing({seed,mode='short',deckOverride}={}){
   const base=seed??Date.now();
   const tutorial=mode==='tutorial';
-  return {game:'overswing',version:10,seed:base,mode,dealIndex:0,dealTotals:[],
+  return {game:'overswing',version:11,seed:base,mode,dealIndex:0,dealTotals:[],
     deal:dealSwing(seeded(base),tutorial?OVERSWING_TUTORIAL_DECK:deckOverride),
-    tutorialStep:tutorial?0:null,history:[],status:'playing',
-    last:tutorial?'Eğitim başladı. Sadece işaretli hamleyi yapabilirsin.':
+    tutorialStep:tutorial?0:null,tutorialIntroDone:!tutorial,history:[],status:'playing',
+    last:tutorial?'Önce FLIP, STEER, Pot ve Skor kavramlarını öğren.':
       '8 kartın var. Kırmızı kart sağa (+), siyah kart sola (−). FLIP veya kart seç.'};
 }
 export function overswingMultiplier(d){
   return (d.W+1)*d.flipFactor*d.comboFactor*d.crossFactor;
 }
 export function overswingActions(s){
-  if(s.status!=='playing')return [];
+  if(s.status!=='playing'||(s.mode==='tutorial'&&!s.tutorialIntroDone))return [];
   const d=s.deal,a=[];
   if(d.pos<40)a.push({type:'flip'});
   d.hand.forEach((_,index)=>a.push({type:'steer',index}));
@@ -96,7 +96,10 @@ function refillEmptyHand(d){
   return drawn;
 }
 export function stepOverswing(s,a){
-  if(!overswingActions(s).some(x=>x.type===a.type
+  if(s.mode==='tutorial'&&!s.tutorialIntroDone&&s.status==='playing'&&a?.type==='tutorial-start'){
+    return mark({...s,tutorialIntroDone:true},'Kavramları öğrendin. Şimdi işaretli FLIP ile başla.');
+  }
+  if(!a||!overswingActions(s).some(x=>x.type===a.type
       &&(x.type!=='steer'||x.index===a.index)
       &&(x.type!=='bank'||x.dropIndex===a.dropIndex)))return s;
   const d={...s.deal,hand:[...s.deal.hand],pot:[...s.deal.pot],discard:[...s.deal.discard]};
