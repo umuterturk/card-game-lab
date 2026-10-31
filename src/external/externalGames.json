@@ -38,13 +38,13 @@
     "status": "pass",
     "score": 8,
     "sourceExperiment": "CGL-20261029-23",
-    "description": "Overswing v12: three multipliers (SWING, FLIP and JACKPOT), STEER momentum cost and a compact 10-move fixed-deck tutorial.",
+    "description": "Overswing v13: SWING, FLIP and linear uncapped JACKPOT, with a short forced 10-step tutorial and risk-versus-BANK decisions.",
     "mechanic": "Pendulum control",
     "components": "40 suited A–10 cards; opening hand and capacity 8; automatic refill to current capacity when hand empties; pendulum −10…+10.",
-    "loop": "FLIP opens a random card to Pot and builds an uncapped streak multiplier, including strict zero crossings. Each strict FLIP crossing doubles JACKPOT while noncrossing FLIPs preserve it. STEER crosses to grow SWING or costs one SWING tier on a noncrossing move (minimum ×1), resetting the current FLIP streak but preserving earned factors. ZERO BREAK resets all factors and keeps Pot; SNAP loses Pot. BANK scores Pot × SWING × FLIP × JACKPOT, reducing hand capacity toward 2. A forced 10-step fixed-deck tutorial teaches these mechanics.",
-    "risk": "Non-crossing STEER costs a SWING tier. Landing exactly zero resets all three factors; going outside ±10 loses Pot. BANK reduces maximum hand capacity while spent hands automatically refill.",
-    "caveat": "Rules revised in v12; historic v6 simulation-based ratings are not calibrated to this version.",
-    "evidence": "Automated regression tests cover the three multiplier rules, 10-step fixed-deck guided replay, randomized game termination, and scoring.",
+    "loop": "Red (+) and black (-) cards move the pendulum. Successful consecutive FLIPs build FLIP ×2, ×3, ×4…; strict FLIP zero-crossings also increase JACKPOT by exactly +1 tier, uncapped. STEER can cross for SWING or costs a SWING tier when it does not cross. ZERO BREAK resets factors, SNAP loses Pot, BANK saves points and reduces hand capacity. A fixed-deck 10-step tutorial introduces the mechanics.",
+    "risk": "SNAP outside ±10 loses the Pot; landing exactly zero resets all three multipliers. STEER noncrossings cost SWING tiers, but current earned FLIP/JACKPOT factors persist until BANK, SNAP or ZERO BREAK.",
+    "caveat": "v13 moved JACKPOT from exponential doubling to linear +1 tiers. A 3,000-seed × 9-strategy simulation confirms a much smaller extreme-score tail; no human engagement/retention has been measured.",
+    "evidence": "42,000 complete games across v12/v13 matched seeds; see /experiments/overswing-v13-study.md. Hand-coded policy results are not human playtest ratings.",
     "tags": [
       "Push your luck",
       "Multiplier",
@@ -61,7 +61,7 @@
       "senseOfLoss": 8,
       "replayability": 8
     },
-    "scoreBasis": "Historical provisional v6 score only, not a tested v12 ranking."
+    "scoreBasis": "Prior provisional score based on v6; not recalibrated for v13. See matched-seed v13 benchmark for updated mechanics."
   },
   {
     "id": "021",
