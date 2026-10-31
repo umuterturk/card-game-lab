@@ -98,7 +98,7 @@ test('tutorial start requires glossary; every scripted action is forced and comp
 });
 test('normal mode remains playable and does not accept tutorial-start',()=>{
   const s=newOverswing({mode:'short',seed:11});
-  assert.equal(s.version,12);
+  assert.equal(s.version,13);
   assert.ok(overswingActions(s).some(a=>a.type==='flip'));
   assert.strictEqual(stepOverswing(s,{type:'tutorial-start'}),s);
 });
