@@ -89,10 +89,10 @@ These are observable mechanical events, **not** measurements of player enjoyment
 
 From the GitHub repository root with Node.js:
 
-\`\`\`bash
+```bash
 node --input-type=module -e "import('./experiments/overswing-v12-benchmark.mjs').then(m=>{const rows=m.runBenchmark(1000,710000); const keys=Object.keys(rows[0]); console.log([keys.join(','),...rows.map(r=>keys.map(k=>r[k]).join(','))].join('\n'))})" > overswing-v12-results.csv
-\`\`\`
+```
 
-The output should be 5,000 records (plus header) with strategy and seed per row. Exactly the original engine is imported. Results are for **v12 only**; engine or policy edits invalidate numeric comparisons. The source files used for this run were GitHub blob SHA engine \`d3cbd9bc1d5a6896460ac77ea367ac668820b1db\`, tutorial \`78d38eb7f1e84930a54eddbcf652acb2623aa2cc\`, benchmark \`65b9ca1656cbac3e839d3854a0b0e0e805991bfb\`.
+The output should be 5,000 records (plus header) with strategy and seed per row. Exactly the original engine is imported. Results are for **v12 only**; engine or policy edits invalidate numeric comparisons. The source files used for this run were GitHub blob SHA engine `d3cbd9bc1d5a6896460ac77ea367ac668820b1db`, tutorial `78d38eb7f1e84930a54eddbcf652acb2623aa2cc`, benchmark `65b9ca1656cbac3e839d3854a0b0e0e805991bfb`.
 
 No human emotional experience or retention is measured in these simulations.
