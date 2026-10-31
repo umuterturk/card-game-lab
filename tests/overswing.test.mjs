@@ -10,12 +10,35 @@ test('strict SWING from ±1 or ±2 always raises multiplier by +1',()=>{
  assert.deepEqual(applySwing(2,1,-5),{snap:false,S:-3,W:2,gain:1,swung:true});
  assert.deepEqual(applySwing(-2,0,4),{snap:false,S:2,W:1,gain:1,swung:true});
 });
-test('SWING still scales with distance and respects the ×6 cap',()=>{
+test('SWING scales with distance and has no multiplier ceiling',()=>{
  assert.deepEqual(applySwing(5,0,-8),{snap:false,S:-3,W:1,gain:1,swung:true});
  assert.deepEqual(applySwing(7,0,-9),{snap:false,S:-2,W:2,gain:2,swung:true});
  assert.deepEqual(applySwing(-10,0,10),{snap:false,S:0,W:0,gain:0,swung:false});
- assert.deepEqual(applySwing(9,3,-10),{snap:false,S:-1,W:5,gain:2,swung:true});
- assert.deepEqual(applySwing(1,5,-3),{snap:false,S:-2,W:5,gain:0,swung:true});
+ assert.deepEqual(applySwing(9,3,-10),{snap:false,S:-1,W:6,gain:3,swung:true});
+ assert.deepEqual(applySwing(1,5,-3),{snap:false,S:-2,W:6,gain:1,swung:true});
+ assert.deepEqual(applySwing(9,30,-10),{snap:false,S:-1,W:33,gain:3,swung:true});
+});
+test('repeated strict crossings continue raising SWING beyond ×6',()=>{
+ let S=2,W=0;
+ for(let i=0;i<10;i++){
+  const result=applySwing(S,W,S>0?-4:4);
+  assert.equal(result.swung,true);
+  assert.equal(result.gain,1);
+  ({S,W}=result);
+ }
+ assert.equal(W,10); // SWING ×11, not ×6
+});
+test('uncapped STEER crossing increases payout and BANK settles full multiplier',()=>{
+ const base=newOverswing({deckOverride:O});
+ let s={...base,deal:{...base.deal,S:1,W:6,plays:1,pot:[0]}};
+ s=go(s,{type:'steer',index:0}); // 3♣: +1 -> −2; SWING ×7 -> ×8
+ assert.equal(s.deal.W,7);
+ assert.equal(s.lastAction.gain,1);
+ assert.equal(overswingMultiplier(s.deal),8);
+ assert.equal(overswingPayout(s),32);
+ s=go(s,overswingActions(s).find(a=>a.type==='bank'));
+ assert.equal(s.lastAction.points,32);
+ assert.equal(s.deal.T,32);
 });
 test('neither starting at zero nor landing on zero is a SWING reward',()=>{
  assert.deepEqual(applySwing(0,0,2),{snap:false,S:2,W:0,gain:0,swung:false});
