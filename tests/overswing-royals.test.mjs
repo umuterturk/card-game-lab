@@ -45,6 +45,17 @@ test('J is worth 11, crosses and reveals exactly the next FLIP card',()=>{
   s=stepOverswing(s,{type:'flip'});
   assert.equal(s.deal.scoutNext,null);
 });
+test('Scout preview follows automatic hand refill rather than revealing a card moved to the hand',()=>{
+  const j=royalId('J',0);
+  let s=newOverswing({seed:13,royals:[j]});
+  s={...s,deal:{...s.deal,hand:[j],S:-5}};
+  const before=s.deal.pos;
+  s=stepOverswing(s,{type:'steer',index:0});
+  assert.ok(s.lastRefill.length>0);
+  assert.ok(s.deal.pos>before);
+  assert.equal(s.deal.scoutNext,s.deal.deck[s.deal.pos]);
+  assert.equal(s.lastAction.scouted,s.deal.scoutNext);
+});
 test('Q requires direction, adds 12 Pot on safe crossing and can SNAP',()=>{
   let s=newOverswing({seed:222,royals:[royalId('Q',0)]});
   const directions=overswingActions(s).filter(a=>a.type==='steer'&&a.index===7);
