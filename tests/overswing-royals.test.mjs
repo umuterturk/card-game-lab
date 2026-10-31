@@ -13,6 +13,14 @@ test('lifetime Gold unlock thresholds and journey targets are immutable during t
   assert.equal(startJourney(7,100000).encounter.effectiveTarget,880);
   assert.equal(startJourney(7,180000).encounter.effectiveTarget,920);
 });
+test('fully unlocked King is guaranteed on the first gate and all three ranks appear across the journey',()=>{
+  for(let seed=1;seed<=50;seed++){
+    const gates=[0,1,2].map(i=>pickRoyalCards(3,seed,i).map(royalRank));
+    assert.ok(gates[0].includes('K'));
+    assert.deepEqual([...new Set(gates.flat())].sort(),['J','K','Q']);
+    assert.ok(gates.every(ids=>ids.length===2));
+  }
+});
 test('Royal hand replaces ordinary cards but FLIP is exclusively A–10',()=>{
   for(const tier of [0,1,2,3]){
     const royals=pickRoyalCards(tier,321,0),s=newOverswing({seed:123,royals}),d=s.deal;
