@@ -63,7 +63,7 @@ function Route({run,compact=false,tier=0}){
       {index>0&&<div className="oj-route-line" aria-hidden="true"/>}
       <div className={'oj-route-node '+(index===current?'oj-route-current':'')+(index<current?' oj-route-done':'')}>
         <span className="oj-route-icon">{e.symbol}</span>
-        {!compact&&<><strong>{e.title}</strong><small>{fmt(Math.round(e.target*targetScale(run?.royalTier??tier)))}+ GOLD</small></>}
+        {!compact&&<><strong>{e.title}</strong><small>{fmt(Math.round(e.target*targetScale(run?.royalTier??tier)*campaignLevel(run?.levelNumber||1).targetScale))}+ GOLD</small></>}
       </div>
     </React.Fragment>)}
   </div>;
