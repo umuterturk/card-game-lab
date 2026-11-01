@@ -15,7 +15,7 @@ export default function OverswingCampaignMap({progress,selected,onSelect,onStart
   if(clearSet.has('last_flame_v1'))clearSet.add(CAMPAIGN_LEVELS[0].id);
   return <section className="ocm" aria-label="Overswing campaign level map">
     <div className="ocm-heading">
-      <span>THE FLAME TRAIL</span><strong>{clearSet.size} / {CAMPAIGN_LEVELS.length} CLEARED</strong>
+      <span>THE FLAME TRAIL</span><strong>{CAMPAIGN_LEVELS.filter(level=>clearSet.has(level.id)).length} / {CAMPAIGN_LEVELS.length} CLEARED</strong>
     </div>
     <div className="ocm-map" role="group" aria-label={'Chapter '+(page+1)+' of 2'}>
       <svg aria-hidden="true" className="ocm-path" preserveAspectRatio="none" viewBox="0 0 100 100">
