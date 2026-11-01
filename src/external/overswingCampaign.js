@@ -22,6 +22,7 @@ export const CAMPAIGN_LEVELS=Object.freeze(stages.map(([id,title,subtitle,rules]
 export const campaignLevel=number=>CAMPAIGN_LEVELS[number-1]||null;
 export const campaignNextLevel=cleared=>{
   const clearedSet=new Set(cleared||[]);
+  if(clearedSet.has('last_flame_v1'))clearedSet.add(CAMPAIGN_LEVELS[0].id);
   return CAMPAIGN_LEVELS.find(level=>!clearedSet.has(level.id))?.number||CAMPAIGN_LEVELS.length;
 };
 export function campaignRuleLabels(level){
