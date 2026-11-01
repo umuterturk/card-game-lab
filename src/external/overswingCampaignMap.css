@@ -1,0 +1,42 @@
+/* Compact portrait campaign route. Pages avoid scrolling on narrow phones. */
+.ocm{width:100%;max-width:440px;margin:4px auto 0;position:relative}
+.ocm-heading,.ocm-pages{display:flex;align-items:center;justify-content:space-between;gap:7px;color:#ffcf80;font:11px 'VT323',monospace;letter-spacing:.06em}
+.ocm-heading strong{color:#e5b873}
+.ocm-map{width:100%;height:clamp(220px,37vh,325px);position:relative;overflow:hidden;margin:5px auto;
+ background:radial-gradient(ellipse at 45% 55%,#b85b201a,transparent 62%),
+ linear-gradient(180deg,#200e18a3,#1e131f88);border:1px solid #64402b}
+.ocm-map:before{content:'';position:absolute;inset:0;opacity:.3;pointer-events:none;
+ background-image:radial-gradient(#ffa54c 1px,transparent 1px);background-size:22px 22px}
+.ocm-path{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.ocm-node{position:absolute;transform:translate(-50%,-50%);width:43px;height:43px;display:grid;place-items:center;
+ background:radial-gradient(circle at 30% 25%,#a95a2f,#3b1c1d 75%);border:3px solid #b37b46;box-shadow:0 4px 0 #100a13,0 0 14px #e7763a22;
+ border-radius:50%;color:#ffe19d;font:15px var(--oj-pixel);cursor:pointer;transition:filter .12s}
+.ocm-node span{line-height:1}
+.ocm-node:disabled{filter:grayscale(1);opacity:.52;cursor:not-allowed;background:#24191f;border-color:#786c66}
+.ocm-cleared{background:radial-gradient(circle at 30% 25%,#e1b35b,#704126 80%);border-color:#ffc969;color:#24100c}
+.ocm-next{box-shadow:0 4px 0 #100a13,0 0 0 4px #ed983522,0 0 20px #e48a45b0}
+.ocm-selected{outline:3px solid #fff0b0;outline-offset:2px}
+.ocm-pages{justify-content:center;font:11px var(--oj-pixel);color:#e6be82}
+.ocm-pages button{border:1px solid #98663c;background:#372226;color:#ffe3ad;padding:8px 10px;font:10px 'VT323',monospace}
+.ocm-pages button:disabled{opacity:.3}
+.ocm-detail{border:2px solid #85502c;background:#241720db;margin:8px auto;padding:9px 10px;min-height:83px}
+.ocm-level-head{display:flex;gap:8px;align-items:baseline}
+.ocm-level-head small{font:11px 'VT323',monospace;color:#e6ae63}
+.ocm-level-head strong{font:10px/1.4 var(--oj-pixel);color:#ffe4a7}
+.ocm-detail p{font:16px 'VT323',monospace;margin:5px 0;color:#dcc2af}
+.ocm-rules{display:flex;flex-wrap:wrap;gap:5px}
+.ocm-rules span{padding:3px 6px;border:1px solid #ae683b;background:#4d281d;font:12px 'VT323',monospace;color:#ffdea5}
+.ocm-actions{margin:9px auto!important;gap:6px!important}
+.ocm-actions button{min-height:42px!important}
+.overswing-fullscreen .ocm-map{height:clamp(195px,34vh,290px)}
+.overswing-fullscreen .ocm-node{width:40px;height:40px}
+.overswing-fullscreen .ocm-detail{padding:6px 9px;margin:5px auto;min-height:69px}
+.overswing-fullscreen .ocm-detail p{margin:2px 0}
+.overswing-fullscreen .ocm-actions{margin:6px auto!important}
+.overswing-fullscreen .ocm-actions button{min-height:36px!important}
+@media(max-height:660px){
+  .ocm-map{height:205px}
+  .ocm-node{width:34px;height:34px;font-size:12px}
+  .ocm-detail{min-height:0}
+  .ocm-actions button{min-height:34px!important}
+}
