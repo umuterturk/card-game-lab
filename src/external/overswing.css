@@ -449,3 +449,10 @@
 .os8-queen-choices button small{display:block;font-size:14px;color:#fff0c5}
 .os8-queen-cancel{font:16px 'VT323',monospace;color:#e6caad;padding:7px 14px;border:1px solid #84502d;background:#21171b}
 .os8-full .os8-scout-preview{font-size:13px;padding:3px 6px;margin:2px 0}
+
+/* Encounter-specific modifiers: one compact row under the three-gate objective. */
+.os8-campaign-rules{display:flex;justify-content:center;flex-wrap:wrap;gap:4px;margin:4px 0 1px}
+.os8-campaign-rules span{border:1px solid #ad6934;background:#341b1b;color:#ffe2a7;
+  font:12px/1.2 'VT323',monospace;padding:2px 5px;white-space:nowrap}
+.os8-full .os8-campaign-rules{gap:3px;margin:2px 0}
+.os8-full .os8-campaign-rules span{font-size:11px;padding:1px 4px}
