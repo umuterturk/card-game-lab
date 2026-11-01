@@ -1,6 +1,8 @@
 import React,{useEffect,useState} from 'react';
 import {createPortal} from 'react-dom';
 import OverswingPlay from './OverswingPlay.jsx';
+import OverswingCampaignMap from './OverswingCampaignMap.jsx';
+import {campaignNextLevel,campaignLevel} from './overswingCampaign.js';
 import {LAST_FLAME,LAST_FLAME_RELICS} from './overswingJourneyContent.js';
 import {
   startJourney,stepJourney,isValidJourney,recordJourneyProgress,
@@ -72,7 +74,7 @@ function Recap({run,onNew,onMenu,progress}){
     <div className="oj-rune">{won?'♛':'✕'}</div>
     <p className="oj-eyebrow">{won?'THE FLAME ENDURES':'THE FLAME FADES'}</p>
     <h2>{won?'RUN COMPLETE':'RUN ENDED'}</h2>
-    <p>{won?'The Ember Keeper has fallen. The furnace burns again.':
+    <p>{won?'Level '+(run.levelNumber||1)+' cleared! The next path is open.':
       run.phase==='abandoned'?'You left the furnace. Your collected knowledge remains.':
       'The gate demanded more fire than you could bank.'}</p>
     <div className="oj-recap-total"><small>RUN GOLD · AFTER PURCHASES</small><strong>{fmt(journeyRunScore(run))}</strong></div>
@@ -83,7 +85,7 @@ function Recap({run,onNew,onMenu,progress}){
     {run.relicIds.length>0&&<><p className="oj-eyebrow">YOUR RELICS</p>
       <div className="oj-owned-relics">{run.relicIds.map(id=><Relic id={id} key={id}/>)}</div></>}
     <p className="oj-record">Your record · {progress.wins} victories · Best {fmt(Math.max(progress.bestRunScore,journeyRunScore(run)))}</p>
-    <div className="oj-choices"><button className="oj-primary" onClick={onNew}>TRY AGAIN</button>
+    <div className="oj-choices"><button className="oj-primary" onClick={onNew}>{won?'NEXT LEVEL · MAP':'RETRY · MAP'}</button>
       <button className="oj-secondary" onClick={onMenu}>MENU</button></div>
   </div>;
 }
@@ -96,6 +98,10 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
     const data=readSaved(PROFILE_KEY);
     return validJourneyProgress(data)?data:EMPTY_JOURNEY_PROGRESS;
   });
+  const [selectedLevel,setSelectedLevel]=useState(()=>
+    campaignNextLevel(readSaved(PROFILE_KEY)?.clearedChapterIds));
+  useEffect(()=>setSelectedLevel(campaignNextLevel(progress.clearedChapterIds)),
+    [progress.clearedChapterIds]);
   useEffect(()=>{try{
     if(run)localStorage.setItem(RUN_KEY,JSON.stringify(run));
     else localStorage.removeItem(RUN_KEY);
@@ -110,7 +116,12 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
       setProgress(current=>recordJourneyProgress(current,run));
     }
   },[run?.phase,run?.runId]);
-  const begin=()=>{setRun(startJourney(Date.now(),progress.lifetimeGold||0));setView('journey');};
+  const begin=(level=selectedLevel)=>{
+    const next=campaignNextLevel(progress.clearedChapterIds);
+    if(level>next||!campaignLevel(level))return;
+    setRun(startJourney(Date.now(),progress.lifetimeGold||0,level));
+    setView('journey');
+  };
   const play=action=>setRun(current=>current?stepJourney(current,{type:'PLAY',action}):current);
   const buy=relicId=>setRun(current=>current?stepJourney(current,{type:'BUY_RELIC',relicId}):current);
   const skip=()=>setRun(current=>current?stepJourney(current,{type:'SKIP_RELIC'}):current);
@@ -124,34 +135,15 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
     <button type="button" className="oj-back" onClick={()=>setView('journey')}>‹ JOURNEY MENU</button>
     <OverswingPlay s={quickState} act={quickAct} restart={quickRestart} fullView={fullView}/>
   </div>;
-  if(!run)return <main className="oj-shell oj-home">
+  if(!run||view==='menu'||view==='map')return <main className="oj-shell oj-home oj-map-home">
     <header className="oj-title"><span className="oj-flame" aria-hidden="true">♨</span>
-      <p className="oj-eyebrow">A FLAMEBOUND CARD ROGUELITE</p><h1>OVER<span>SWING</span></h1>
-      <p className="oj-subtitle">THE LAST FLAME</p></header>
-    <div className="oj-home-illustration" aria-hidden="true"><span>♨</span><i/><i/><i/></div>
-    <Route tier={unlockedRoyals(progress.lifetimeGold||0).length}/>
+      <p className="oj-eyebrow">THE LAST FLAME · CAMPAIGN</p><h1>OVER<span>SWING</span></h1>
+      <p className="oj-subtitle">FOLLOW THE FLAME TRAIL</p></header>
     <GoldProgress progress={progress}/>
-    <p className="oj-home-copy">Three gates. Two relic slots. Spend Gold wisely.<br/>Risk your Pot, master the swing, and survive the Keeper.</p>
-    <div className="oj-choices"><button className="oj-primary" onClick={begin}>IGNITE THE JOURNEY</button>
-      <button className="oj-secondary" onClick={()=>setView('quick')}>QUICK PLAY · TUTORIAL</button></div>
-    <p className="oj-record">Runs {progress.totalRuns} · Victories {progress.wins} · Best {fmt(progress.bestRunScore)}</p>
-  </main>;
-  if(view==='menu')return <main className="oj-shell oj-home">
-    <header className="oj-title"><span className="oj-flame" aria-hidden="true">♨</span>
-      <p className="oj-eyebrow">THE LAST FLAME</p><h1>OVER<span>SWING</span></h1>
-      <p className="oj-subtitle">YOUR JOURNEY</p></header>
-    <Route run={run}/>
-    <GoldProgress progress={progress}/>
-    <div className="oj-choices">
-      {!['won','lost','abandoned'].includes(run.phase)&&
-        <button className="oj-primary" onClick={()=>setView('journey')}>RESUME JOURNEY</button>}
-      <button className="oj-secondary" onClick={begin}>NEW JOURNEY</button>
-      <button className="oj-secondary" onClick={()=>setView('quick')}>QUICK PLAY · TUTORIAL</button>
-      {(run.phase==='playing'||run.phase==='choosing_relic')&&
-        <button className="oj-secondary oj-abandon" onClick={abandon}>ABANDON CURRENT RUN</button>}
-      {['won','lost','abandoned'].includes(run.phase)&&
-        <button className="oj-secondary" onClick={()=>setView('journey')}>VIEW LAST RESULT</button>}
-    </div>
+    <OverswingCampaignMap progress={progress} selected={selectedLevel}
+      onSelect={setSelectedLevel} onStart={()=>begin(selectedLevel)}
+      onQuick={()=>setView('quick')}
+      activeRun={run&&!['won','lost','abandoned'].includes(run.phase)?()=>setView('journey'):null}/>
     <p className="oj-record">Runs {progress.totalRuns} · Victories {progress.wins} · Best {fmt(progress.bestRunScore)}</p>
   </main>;
   if(run.phase==='playing')return <div className="oj-shell oj-playing">
@@ -161,7 +153,7 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
   </div>;
   if(run.phase==='choosing_relic')return <main className="oj-shell oj-reward">
     <div className="oj-panel">
-      <p className="oj-eyebrow">GATE {run.encounterIndex+1} OF 3 CLEARED</p>
+      <p className="oj-eyebrow">LEVEL {run.levelNumber||1} · GATE {run.encounterIndex+1} OF 3 CLEARED</p>
       <h2>FLAME RESTORED</h2>
       <p className="oj-gate-score">{fmt(run.completedEncounters.at(-1).finalScore)} <small>/ {fmt(run.completedEncounters.at(-1).target)} REQUIRED</small></p>
       <Route run={run}/>
@@ -182,7 +174,7 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
     </div>
   </main>;
   if(['won','lost','abandoned'].includes(run.phase))return <main className="oj-shell">
-    <Recap run={run} progress={progress} onNew={begin} onMenu={()=>setView('menu')}/>
+    <Recap run={run} progress={progress} onNew={()=>setView('map')} onMenu={()=>setView('map')}/>
   </main>;
   return null;
   })();
