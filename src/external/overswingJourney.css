@@ -173,3 +173,23 @@ button.oj-relic:hover,button.oj-relic:focus-visible{border-color:#ffe088;backgro
 .overswing-fullscreen .oj-gold-progress{margin:7px auto;padding:5px 8px}
 .overswing-fullscreen .oj-gold-progress>div:first-child{font-size:13px}
 .overswing-fullscreen .oj-gold-track{margin:4px 0}
+
+/* Paid between-gate relic shop. Available Gold is the run's earned BANK Gold
+   minus purchases; lifetime Royal discoveries remain based on gross earnings. */
+.oj-shop-wallet{display:flex;justify-content:space-between;gap:10px;margin:8px 0 9px;padding:9px 10px;
+  border:2px solid #a06b30;background:#241918;color:#ddbb8b}
+.oj-shop-wallet span{display:flex;flex-direction:column;gap:6px;font:14px 'VT323',monospace;line-height:1.1}
+.oj-shop-wallet strong{color:#ffdc88;font:22px 'VT323',monospace;white-space:nowrap}
+.oj-relic-pick{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:65px;white-space:nowrap}
+.oj-relic-pick strong{font:19px 'VT323',monospace;color:#ffe29a}
+button.oj-relic:disabled{opacity:.48;filter:grayscale(.55);cursor:not-allowed}
+button.oj-relic:disabled .oj-relic-pick{color:#b09e8a}
+.oj-shop-skip{display:block;width:100%;min-height:42px;margin:6px 0 10px;padding:9px;
+  border:2px solid #94643a;background:#301c23;color:#f4d7a5;font:10px/1.4 var(--oj-pixel)}
+.oj-shop-skip:hover,.oj-shop-skip:focus-visible{border-color:#ffde8a;background:#4b2b23}
+.oj-gold-accounting{text-align:center;color:#d6b58f!important;margin:8px auto;font:16px 'VT323',monospace!important}
+.overswing-fullscreen .oj-shop-wallet{padding:6px 8px;margin:5px 0}
+.overswing-fullscreen .oj-shop-wallet span{font-size:12px}
+.overswing-fullscreen .oj-shop-wallet strong{font-size:18px}
+.overswing-fullscreen .oj-shop-skip{min-height:34px;padding:5px;font-size:9px;margin:5px 0}
+.overswing-fullscreen .oj-relic-pick strong{font-size:17px}
