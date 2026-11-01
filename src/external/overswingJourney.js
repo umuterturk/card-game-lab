@@ -1,6 +1,7 @@
 import {newOverswing,overswingActions,stepOverswing,overswingFinal} from './engines.js';
 import {LAST_FLAME,LAST_FLAME_RELICS} from './overswingJourneyContent.js';
 import {royalTier,targetScale,pickRoyalCards} from './overswingRoyals.js';
+import {campaignLevel,campaignNextLevel,CAMPAIGN_LEVELS} from './overswingCampaign.js';
 
 export const JOURNEY_SCHEMA=1;
 export const JOURNEY_PHASES=['playing','choosing_relic','won','lost','abandoned'];
@@ -27,12 +28,14 @@ function drawRandom(seed){
     return ((t^(t>>>14))>>>0)/4294967296;
   };
 }
-function dealFor(runSeed,index,tier=0){
-  const config=LAST_FLAME.encounters[index];
+function dealFor(runSeed,index,tier=0,levelNumber=1){
+  const config=LAST_FLAME.encounters[index],level=campaignLevel(levelNumber);
   const royals=pickRoyalCards(tier,journeySeed(runSeed,index,'royals'),index);
   return {encounterId:config.id,engineState:newOverswing({
-    seed:journeySeed(runSeed,index,'deck'),mode:'short',royals
-  }),effectiveTarget:Math.round(config.target*targetScale(tier)),snapCount:0,relicUses:{}};
+    seed:journeySeed(runSeed,index,'deck'),mode:'short',royals,
+    initialHandSize:level.rules.maxHandSize||8
+  }),effectiveTarget:Math.round(config.target*targetScale(tier)*level.targetScale),
+  snapCount:0,relicUses:{}};
 }
 export function offerJourneyRelics(run){
   const choices=LAST_FLAME.relics.filter(r=>!run.relicIds.includes(r.id)).map(r=>r.id);
@@ -43,19 +46,21 @@ export function offerJourneyRelics(run){
   }
   return choices.slice(0,LAST_FLAME.rewards.offerCount);
 }
-export function startJourney(runSeed=Date.now(),lifetimeGold=0){
+export function startJourney(runSeed=Date.now(),lifetimeGold=0,levelNumber=1){
   if(!Number.isSafeInteger(runSeed)||runSeed<0)throw new TypeError('Invalid run seed');
+  if(!campaignLevel(levelNumber))throw new RangeError('Invalid campaign level');
   const seed=runSeed,tier=royalTier(Math.max(0,lifetimeGold));
   return {schemaVersion:JOURNEY_SCHEMA,contentPackId:LAST_FLAME.id,
     contentVersion:LAST_FLAME.version,runId:'last-flame-'+seed.toString(36),
-    runSeed:seed,royalTier:tier,goldSpent:0,phase:'playing',encounterIndex:0,relicIds:[],
-    offeredRelicIds:[],encounter:dealFor(seed,0,tier),completedEncounters:[]};
+    runSeed:seed,royalTier:tier,levelNumber,goldSpent:0,phase:'playing',encounterIndex:0,relicIds:[],
+    offeredRelicIds:[],encounter:dealFor(seed,0,tier,levelNumber),completedEncounters:[]};
 }
 export function isValidJourney(run){
   return !!run&&run.schemaVersion===JOURNEY_SCHEMA&&
     run.contentPackId===LAST_FLAME.id&&run.contentVersion===LAST_FLAME.version&&
     JOURNEY_PHASES.includes(run.phase)&&
     Number.isSafeInteger(run.runSeed)&&run.runSeed>=0&&
+    !!campaignLevel(run.levelNumber??1)&&
     Number.isInteger(run.encounterIndex)&&run.encounterIndex>=0&&
     run.encounterIndex<LAST_FLAME.encounters.length&&
     Array.isArray(run.relicIds)&&Array.isArray(run.offeredRelicIds)&&
@@ -65,7 +70,8 @@ export function isValidJourney(run){
     run.encounter.engineState?.version===13;
 }
 export function journeyRules(run){
-  const rules={...BASE_RELIC_RULES};
+  const stage=campaignLevel(run.levelNumber||1);
+  const rules={...BASE_RELIC_RULES,...(stage?.rules||{})};
   const available=new Set(run.relicIds.filter(id=>!(run.encounter.relicUses[id]>0)));
   if(available.has('steady_hand'))rules.steerNoncrossPenalty=0;
   if(available.has('jackpot_spark'))rules.flipCrossJackpotGain=2;
@@ -93,7 +99,7 @@ export function journeyRunScore(run){
 export function journeyRelicPrice(run){
   const next=LAST_FLAME.encounters[run.encounterIndex+1];
   if(!next)return 0;
-  const target=Math.round(next.target*targetScale(run.royalTier||0));
+  const target=Math.round(next.target*targetScale(run.royalTier||0)*campaignLevel(run.levelNumber||1).targetScale);
   return Math.max(10,Math.round(target*RELIC_PRICE_RATE/10)*10);
 }
 export function stepJourney(run,command){
@@ -117,7 +123,7 @@ export function stepJourney(run,command){
       goldSpent:(run.goldSpent||0)+(buying?price:0),
       relicIds:buying?[...run.relicIds,command.relicId]:run.relicIds,
       offeredRelicIds:[],
-      encounter:dealFor(run.runSeed,nextIndex,run.royalTier||0)};
+      encounter:dealFor(run.runSeed,nextIndex,run.royalTier||0,run.levelNumber||1)};
   }
   if(run.phase!=='playing'||command.type!=='PLAY'||!command.action)return run;
   const old=run.encounter,engine=stepOverswing(old.engineState,command.action,journeyRules(run));
@@ -128,7 +134,8 @@ export function stepJourney(run,command){
   const snapCount=old.snapCount+(engine.lastAction?.snap?1:0);
   const content=LAST_FLAME.encounters[run.encounterIndex];
   const objective=content.objective;
-  const effectiveTarget=Math.round(content.target*targetScale(run.royalTier||0))+
+  const effectiveTarget=Math.round(content.target*targetScale(run.royalTier||0)*
+    campaignLevel(run.levelNumber||1).targetScale)+
     (objective?.type==='snap_target_tax'?snapCount*objective.pointsPerSnap:0);
   const encounter={...old,engineState:engine,relicUses:uses,snapCount,effectiveTarget};
   if(engine.status!=='over')return {...run,encounter};
@@ -176,5 +183,6 @@ export function recordJourneyProgress(progress,run){
     recordedRunIds:[...old.recordedRunIds,run.runId],
     discoveredRelicIds:[...new Set([...old.discoveredRelicIds,...run.relicIds])],
     clearedChapterIds:run.phase==='won'?
-      [...new Set([...old.clearedChapterIds,LAST_FLAME.id])]:old.clearedChapterIds};
+      [...new Set([...old.clearedChapterIds,LAST_FLAME.id,
+        campaignLevel(run.levelNumber||1).id])]:old.clearedChapterIds};
 }
