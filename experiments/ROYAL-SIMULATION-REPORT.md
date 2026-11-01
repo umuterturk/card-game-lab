@@ -28,27 +28,35 @@ Each cell shows **average Gold per encounter / pass rate**. Pass thresholds rise
 
 | Unlock stage | Ash Gate | The Furnace | Ember Keeper |
 |---|---:|---:|---:|
-| Baseline | 2,180 / 98.40% | 2,158 / 65.05% | 2,183 / 7.10% |
-| J | 2,286 / 99.20% | 2,227 / 66.70% | 2,245 / 6.00% |
-| J + Q | 2,392 / 98.80% | 2,364 / 68.00% | 2,376 / 6.10% |
-| J + Q + K | 2,293 / 98.35% | 2,372 / 63.30% | 2,219 / 3.15% |
+| Baseline | 2,067 / 97.80% | 2,035 / 59.80% | 2,078 / 5.20% |
+| J | 2,162 / 98.45% | 2,102 / 60.25% | 2,122 / 4.65% |
+| J + Q | 2,259 / 98.05% | 2,229 / 61.55% | 2,253 / 4.35% |
+| J + Q + K | 2,178 / 97.20% | 2,235 / 57.00% | 2,107 / 2.25% |
 
 Additional Royal-aware signals:
 
 | Unlock stage | Ash Gate average SNAPs | Ash Gate K played per game | Ash Gate Crown BANK frequency |
 |---|---:|---:|---:|
-| Baseline | 2.85 | 0 | 0% |
-| J | 2.74 | 0 | 0% |
+| Baseline | 2.84 | 0 | 0% |
+| J | 2.71 | 0 | 0% |
 | J + Q | 2.67 | 0 | 0% |
-| J + Q + K | 2.70 | 0.34 | 66.50% |
+| J + Q + K | 2.73 | 0.34 | 66.35% |
 
 ### Interpretation
 
 1. **J improves average Gold.** Its preview is useful with the tested policy and does not cause large systemic risk.
 2. **Q adds measurable control.** J+Q has the highest average Gold in the first gate under `royal_aware`, but this also depends on how the bot values crossing.
-3. **K is not yet proven balanced.** With at most two Royals, K replaces J or Q in gates 1 and 3; its decaying BANK bonus did not compensate for that opportunity cost under `royal_aware`. Average first-gate Gold drops from 2392 (J+Q) to 2293 (full pool). The boss pass rate also drops when the tier target rises. This does **not** establish that K is intrinsically weak: the card-selection mix and higher target are confounders, and the agent is not an optimal King strategist.
+3. **K is not yet proven balanced.** With at most two Royals, K replaces J or Q in gates 1 and 3; its decaying BANK bonus did not compensate for that opportunity cost under `royal_aware`. Average first-gate Gold drops from 2259 (J+Q) to 2178 (full pool). The boss pass rate also drops when the tier target rises. This does **not** establish that K is intrinsically weak: the card-selection mix and higher target are confounders, and the agent is not an optimal King strategist.
 4. **The boss remains tough.** The low pass rates indicate the current 3000+ base and SNAP tax deserve separate balancing. Do not solve this by simply buffing J/Q/K.
-5. **Policy matters.** For example, the baseline `cross_control` policy obtains only about 538 Gold on Ash Gate, versus 2180 for `royal_aware`; a simplistic STEER-heavy strategy is not a reasonable reference player.
+5. **Policy matters.** For example, the baseline `cross_control` policy is much weaker than the `royal_aware` policy; a simplistic STEER-heavy strategy is not a reasonable reference player.
+
+## Rule update: noncrossing FLIP now loses one SWING tier
+
+The latest production engine removes one SWING tier (down to a minimum multiplier of ×1) after **every safe FLIP that does not cross zero**. An exact-zero FLIP still causes ZERO BREAK. Strict crossing FLIPs still gain SWING as before. This change also affects the ordinary A–10 baseline and all Royal unlock stages.
+
+The main results table above was rerun after this change using 96,000 encounters and the same seeds/policies. The earlier +50%, +80% and +100% King measurements below are **historical pre-penalty results**, retained only for isolating the original Crown buff.
+
+**New map:** There are 12 campaign levels, each containing the three-gate journey. The map progressively introduces starting-hand limits (7/6), SNAP limits (±9/±8), FLIP caps (18/14/12), BANK taxes (5/10/15%), and mildly scaled gate targets. Those campaign variants and the paid-relic economy are **not** simulated in the original 96,000 single-encounter Royal benchmark; they require their own full-journey balancing experiment.
 
 ## K Crown rebalance: +50% → +80% → +100%
 
