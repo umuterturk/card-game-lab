@@ -5,6 +5,7 @@ import './overswing.css';
 import {OVERSWING_TUTORIAL_STEPS,OVERSWING_TUTORIAL_INTRO} from './overswingTutorial.js';
 import {LAST_FLAME,LAST_FLAME_RELICS} from './overswingJourneyContent.js';
 import {journeyRules,journeyActions} from './overswingJourney.js';
+import {campaignLevel,campaignRuleLabels} from './overswingCampaign.js';
 
 const SUITS=['♥','♦','♠','♣'];
 const name=id=>label(id);
@@ -21,18 +22,18 @@ function Card({id,onClick,caption,chosen=false,mini=false}){
 }
 function Outcome({e}){
   if(!e)return <>Choose a card to <b>STEER</b>, or <b>FLIP</b> a random card.</>;
-  if(e.type==='bank')return <><b>+{e.points.toLocaleString('en-US')} BANKED</b>{e.crownBonus?' · CROWN +'+e.crownBonus+'%':''} · Hand limit {e.oldCap} → {e.newCap}. {e.dropped!=null?name(e.dropped)+' discarded. ':''}{e.refilled?.length?'Hand refilled.':''}</>;
+  if(e.type==='bank')return <><b>+{e.points.toLocaleString('en-US')} BANKED</b>{e.taxPaid>0?' · TAX −'+e.taxPaid+' G':''}{e.crownBonus?' · CROWN +'+e.crownBonus+'%':''} · Hand limit {e.oldCap} → {e.newCap}. {e.dropped!=null?name(e.dropped)+' discarded. ':''}{e.refilled?.length?'Hand refilled.':''}</>;
   if(e.snap)return <><b>SNAP!</b> <b>{name(e.card)}</b>: {val(e.from)} → {val(e.to)}. Lost {e.lostPayout.toLocaleString('en-US')} potential points.</>;
   if(e.zeroBreak)return <><b>ZERO BREAK!</b> {name(e.card)}: {val(e.from)} → 0. <b>All multipliers reset to ×1.</b> Pot kept{e.refilled?.length?', hand refilled':''}.</>;
   return <><b>{e.type==='flip'?'FLIP':'STEER'} {name(e.card)}</b> · {val(e.from)} → {val(e.to)} · <b>{target[e.destination]}</b>{e.scouted!=null?<b> · NEXT FLIP: {name(e.scouted)}</b>:null}{e.swung?<b> · SWING +{e.gain}</b>:null}{e.swingPenalty?<b> · SWING −1</b>:null} · total ×{e.multiplier.toLocaleString('en-US')}{e.refilled?.length?' · '+e.refilled.length+' cards refilled':''}</>;
 }
 
-function FlameMeter({position}){
-  const t=Math.PI-(position+10)/20*Math.PI;
+function FlameMeter({position,limit=10}){
+  const t=Math.PI-(position+limit)/(2*limit)*Math.PI;
   const x=200+147*Math.cos(t),y=184-147*Math.sin(t);
   const n=position>0?'+'+position:String(position);
   return <div className="os8-flame-meter">
-    <svg viewBox="0 0 400 205" role="img" aria-label={'Pendulum '+n+' on a scale from minus ten to plus ten'}>
+    <svg viewBox="0 0 400 205" role="img" aria-label={'Pendulum '+n+' on a scale from minus '+limit+' to plus '+limit}>
       <defs>
         <linearGradient id="os8-rim" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#776c6a"/><stop offset=".48" stopColor="#322c36"/>
@@ -58,8 +59,8 @@ function FlameMeter({position}){
           x2={200+r2*Math.cos(theta)} y2={184-r2*Math.sin(theta)}
           stroke={value>0?'#ff8b42':'#d3d2d7'} strokeWidth={value%5===0?3:1.5}/>;
       })}
-      <text x="24" y="197" fill="#fff5df" fontSize="19" fontWeight="900">−10</text>
-      <text x="375" y="197" textAnchor="end" fill="#ffb36a" fontSize="19" fontWeight="900">+10</text>
+      <text x="24" y="197" fill="#fff5df" fontSize="19" fontWeight="900">−{limit}</text>
+      <text x="375" y="197" textAnchor="end" fill="#ffb36a" fontSize="19" fontWeight="900">+{limit}</text>
       <text x="200" y="22" textAnchor="middle" fill="#f5dfb1" fontSize="20" fontWeight="900">0</text>
       <line x1="200" y1="184" x2={x} y2={y} stroke="#51220f" strokeWidth="12" strokeLinecap="square"/>
       <line x1="200" y1="184" x2={x} y2={y} stroke="url(#os8-needle)" strokeWidth="8" strokeLinecap="square"/>
@@ -75,7 +76,7 @@ function FlameMeter({position}){
 }
 
 const FACTOR_HELP={
-  swing:{title:'SWING',text:'Cross zero to gain SWING. A noncrossing STEER costs 1 SWING tier (minimum ×1).'},
+  swing:{title:'SWING',text:'Cross zero to gain SWING. Any safe noncrossing FLIP or STEER loses 1 SWING tier (minimum ×1).'},
   flip:{title:'FLIP',text:'Each consecutive safe FLIP builds ×2, ×3, ×4… even when it crosses zero. STEER ends the streak but preserves earned FLIP.'},
   jackpot:{title:'JACKPOT',text:'Every zero crossing made by FLIP adds one tier: ×2, ×3, ×4… A noncrossing FLIP does not reduce it. Exact zero resets all multipliers.'}
 };
@@ -98,7 +99,9 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fu
   const isJourney=!!journey;
   const tutorialStep=tutorial?OVERSWING_TUTORIAL_STEPS[s.tutorialStep]:null;
   const d=s.deal,legal=isJourney?journeyActions(journey):overswingActions(s),pot=d.pot.reduce((a,c)=>a+rank(c),0);
-  const payout=overswingPayout(s),multiplier=overswingMultiplier(d);
+  const rules=isJourney?journeyRules(journey):{};
+  const limit=rules.snapLimit||10;
+  const payout=overswingPayout(s,rules),multiplier=overswingMultiplier(d);
   const total=s.dealTotals.reduce((a,b)=>a+b,0)+(s.status==='over'?0:d.T);
   const canFlip=legal.some(a=>a.type==='flip'),canBank=legal.some(a=>a.type==='bank');
   const nextCap=Math.max(2,d.handCap-(isJourney?journeyRules(journey).bankCapacityLoss:1)),mustDiscard=d.hand.filter(id=>royalRank(id)!=='K').length>nextCap;
@@ -124,7 +127,7 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fu
       <button type="button" disabled={!canFlip||discardPick}
         className={'os8-flip '+(tutorial&&canFlip?'os8-guide-action':'')}
         onClick={()=>act({type:'flip'})}>
-        <span className="os8-action-icon">▣?</span><b>FLIP</b><small>RANDOM CARD</small>
+        <span className="os8-action-icon">▣?</span><b>FLIP</b><small>{rules.maxFlips?'USED '+d.flips+'/'+rules.maxFlips:'RANDOM CARD'}</small>
       </button>
       <button type="button" disabled={discardPick||!legal.some(a=>a.type==='steer')}
         className={'os8-steer '+(steerFocus?'os8-steer-focus':'')}
@@ -160,9 +163,9 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fu
     <h3>THE PENDULUM</h3>
     <p>Red cards move right (+), black cards left (−). Keep the meter between −10 and +10. Crossing zero grows SWING. Landing exactly on zero resets all multipliers.</p>
     <h3>MULTIPLIERS</h3>
-    <p>Consecutive safe FLIPs build FLIP ×2, ×3, ×4… Crossing zero with a FLIP adds a JACKPOT tier. A noncrossing STEER costs one SWING tier. SNAP loses your Pot.</p>
+    <p>Consecutive safe FLIPs build FLIP ×2, ×3, ×4… Crossing zero with a FLIP adds a JACKPOT tier. A noncrossing FLIP or STEER costs one SWING tier. SNAP loses your Pot.</p>
     <h3>THE JOURNEY</h3>
-    <p>Meet each gate's target with a 40-card deck. Choose a relic between gates. Boss SNAPs increase the required score.</p>
+    <p>Follow the level map. Each level changes visible rules: hand size, SNAP limit, FLIP cap or BANK tax. Buy relics between gates or skip. Boss SNAPs increase the target.</p>
     <button type="button" className="os8-help-return" onClick={()=>setHelpOpen(false)}>BACK TO GAME</button>
   </section>;
   return <div className={'os8'+(fullView?' os8-full':'')}>
@@ -179,7 +182,7 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fu
       </div>
     </header>
     {isJourney&&<section className="os8-journey-strip" aria-label="Current journey objective">
-      <div className="os8-journey-top"><span>GATE {journey.encounterIndex+1} / 3 · {LAST_FLAME.encounters[journey.encounterIndex].title}</span>
+      <div className="os8-journey-top"><span>LEVEL {journey.levelNumber||1} · GATE {journey.encounterIndex+1}/3 · {LAST_FLAME.encounters[journey.encounterIndex].title}</span>
         <strong>{d.T.toLocaleString('en-US')} / {journey.encounter.effectiveTarget.toLocaleString('en-US')}</strong></div>
       <div className="os8-journey-track"><span style={{width:Math.min(100,d.T/journey.encounter.effectiveTarget*100)+'%'}}/></div>
       <div className="os8-journey-bottom"><span>{journey.encounterIndex===2?'♛ BOSS · SNAP +200 GOAL':'♨ REACH THE GATE TARGET'}</span>
@@ -188,9 +191,10 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fu
           className={'os8-relic-charge '+(journey.encounter.relicUses[id]?'os8-relic-spent':'')}
           onClick={()=>setOpenFactor(openFactor===id?null:id)}>{LAST_FLAME_RELICS[id].symbol}</button>)}</div>
       </div>
+      <div className="os8-campaign-rules">{campaignRuleLabels(campaignLevel(journey.levelNumber||1)).map(x=><span key={x}>{x}</span>)}</div>
       {journey.relicIds.includes(openFactor)&&<p className="os8-journey-relic-help">{LAST_FLAME_RELICS[openFactor]?.title}: {LAST_FLAME_RELICS[openFactor]?.description} {journey.encounter.relicUses[openFactor]?'(Used this gate)':'(Ready)'}</p>}
     </section>}
-    <div className="os8-legend"><span className="os8-redtext">♥ ♦ POSITIVE</span><span>♠ ♣ NEGATIVE</span><span>0 = RESET</span><span>±10 = SNAP</span></div>
+    <div className="os8-legend"><span className="os8-redtext">♥ ♦ POSITIVE</span><span>♠ ♣ NEGATIVE</span><span>0 = RESET</span><span>±{limit} = SNAP</span></div>
     <div className="os8-scoreline">
       <div><small>✦ GOLD</small><b>{total.toLocaleString('en-US')}</b></div>
       <div><small>♨ POT</small><b>{pot}</b></div>
@@ -199,7 +203,7 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fu
     </div>
     {d.scoutNext!=null&&<div className="os8-scout-preview" role="status">✦ SCOUT · NEXT FLIP: <b>{name(d.scoutNext)} ({val(signed(d.scoutNext))})</b></div>}
     <section className="os8-meter" aria-label={'Swing '+val(d.S)}>
-      <FlameMeter position={d.S}/>
+      <FlameMeter position={d.S} limit={limit}/>
       <div className="os8-zero-warning">ZERO BREAK = RESET MULTIPLIERS · CROSS ZERO = SWING</div>
     </section>
     {tutorial&&<section className="os8-tutorial" aria-live="polite" aria-label="Required tutorial step">
@@ -233,7 +237,7 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fu
       {discardPick&&<p className="os8-attention">Hand limit {d.handCap} → {nextCap}. {tutorial?'Remove only the highlighted card.':'Tap the card to discard.'} <button type="button" onClick={()=>setDiscardPick(false)}>CANCEL</button></p>}
       <div className="os8-handcards">
         {d.hand.map((id,index)=>{
-          const o=applySwing(d.S,d.W,signed(id));
+          const o=applySwing(d.S,d.W,signed(id),limit);
           const royal=royalRank(id);
           const caption=discardPick?'REMOVE':royal==='K'?'CROWN +'+(d.crownBonus||0)+'%':royal==='J'?'SCOUT':royal==='Q'?'±12':o.snap?'SNAP':d.S!==0&&o.S===0?'ZERO BREAK':d.plays===0||o.swung?'POT +'+rank(id):d.W>0?'SWING −1':'DISCARD';
           const allowed=discardPick?legal.some(a=>a.type==='bank'&&a.dropIndex===index):legal.some(a=>a.type==='steer'&&a.index===index);
@@ -245,13 +249,13 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fu
     </section>
     {!guidedActionFirst&&actionButtons}
     <footer className="os8-footer">
-      <span>{s.mode==='match'?'Deck '+(s.dealIndex+1)+'/3 · ':''}{d.pos}/40 drawn</span>
+      <span>{s.mode==='match'?'Deck '+(s.dealIndex+1)+'/3 · ':''}{d.pos}/{d.deck.length} drawn</span>
       <details><summary>Rules & multipliers</summary>
-        <p>Start with 8 cards. Hearts and diamonds move right (+); spades and clubs move left (−). Exceed ±10 and you lose the Pot.</p>
+        <p>Start with up to 8 cards. Hearts and diamonds move right (+); spades and clubs move left (−). Exceed the level's SNAP limit and lose the Pot.</p>
         <p>FLIP draws a random card into the Pot. Consecutive safe FLIPs grow FLIP: ×2, ×3, ×4… Crossing zero counts.</p>
-        <p>Crossing zero with FLIP raises SWING and adds +1 JACKPOT tier. A noncrossing FLIP leaves JACKPOT unchanged.</p>
+        <p>Crossing zero with FLIP raises SWING and adds +1 JACKPOT tier. A noncrossing FLIP lowers SWING by 1 and keeps JACKPOT unchanged.</p>
         <p>ZERO BREAK: Land exactly on zero to reset all multipliers to ×1, but keep the Pot. SNAP: Go outside ±10 and lose the Pot.</p>
-        <p>STEER ends the current FLIP streak but preserves earned FLIP and JACKPOT tiers. STEER without crossing costs 1 SWING tier (minimum ×1).</p>
+        <p>STEER ends the current FLIP streak but preserves FLIP and JACKPOT tiers. Every noncrossing FLIP or STEER costs 1 SWING tier (minimum ×1).</p>
         <p>The first STEER of a Pot, crossing STEER, and ZERO BREAK STEER enter the Pot; other STEER cards are discarded.</p>
         <p>BANK becomes available after at least 2 card actions. Each BANK reduces hand capacity from 8 toward 2 (unless a relic prevents it). Choose which card to discard if necessary.</p>
         <p>An empty hand refills automatically from the remaining deck, up to its capacity.</p>
@@ -261,8 +265,8 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fu
       <div className="os8-queen-modal" role="dialog" aria-modal="true" aria-label="Choose Queen direction">
         <h3>Q · THE MIRROR</h3><p>Choose the pendulum direction. A safe crossing adds 12 Pot points.</p>
         <div className="os8-queen-choices">
-          <button type="button" onClick={()=>playQueen(-1)}>← −12 <small>{d.S-12<-10?'SNAP':'SAFE'}</small></button>
-          <button type="button" onClick={()=>playQueen(1)}>+12 → <small>{d.S+12>10?'SNAP':'SAFE'}</small></button>
+          <button type="button" onClick={()=>playQueen(-1)}>← −12 <small>{d.S-12<-limit?'SNAP':'SAFE'}</small></button>
+          <button type="button" onClick={()=>playQueen(1)}>+12 → <small>{d.S+12>limit?'SNAP':'SAFE'}</small></button>
         </div>
         <button type="button" className="os8-queen-cancel" onClick={()=>setQueenPick(null)}>CANCEL</button>
       </div>
