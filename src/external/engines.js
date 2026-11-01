@@ -35,27 +35,28 @@ export function stepBondstone(s,a){if(!bondActions(s).some(x=>x.type===a.type&&(
 export const signed=c=>(suit(c)<2?1:-1)*rank(c);
 // Every strict zero-crossing adds SWING tiers without a multiplier cap.
 // The distance determines the gain (+1/+2/+3), and exact zero still triggers Zero Break.
-export function applySwing(S,W,value){const next=S+value;if(Math.abs(next)>10)return {snap:true};const swung=S!==0&&next!==0&&Math.sign(next)!==Math.sign(S);const gain=swung?Math.max(1,Math.floor(Math.abs(S)/3)):0;return {snap:false,S:next,W:W+gain,gain,swung};}
+export function applySwing(S,W,value,limit=10){const next=S+value;if(Math.abs(next)>limit)return {snap:true};const swung=S!==0&&next!==0&&Math.sign(next)!==Math.sign(S);const gain=swung?Math.max(1,Math.floor(Math.abs(S)/3)):0;return {snap:false,S:next,W:W+gain,gain,swung};}
 // Overswing v12: exact zero is a trap, not a crossing.
 // Zero Break resets all multipliers (not the Pot); only a strict sign change grants crossing bonuses.
-function dealSwing(rng,override,royals=[]){
+function dealSwing(rng,override,royals=[],handSize=8){
   const ordinary=override?override.slice():shuffle(all40(),rng);
   if(!Array.isArray(royals)||royals.length>2||new Set(royals).size!==royals.length||
      royals.some(id=>!isRoyal(id)))throw new TypeError('Invalid royal hand');
   // Replace ordinary cards, without modifying the order of remaining FLIPs.
   const deck=royals.length?ordinary.slice(royals.length):ordinary;
-  const count=8-royals.length;
-  return {deck,pos:count,hand:[...ordinary.slice(royals.length,8),...royals],
-    handCap:8,bankCount:0,scoutNext:null,
+  const count=handSize-royals.length;
+  return {deck,pos:count,hand:[...ordinary.slice(royals.length,handSize),...royals],
+    handCap:handSize,bankCount:0,scoutNext:null,
     crownBonus:royals.some(id=>royalRank(id)==='K')?KING_INITIAL_BANK_BONUS:0,
     pot:[],discard:[],S:0,W:0,T:0,swingNo:1,flips:0,plays:0,
     flipStreak:0,flipFactor:1,jackpotFactor:1};
 }
-export function newOverswing({seed,mode='short',deckOverride,royals=[]}={}){
+export function newOverswing({seed,mode='short',deckOverride,royals=[],initialHandSize=8}={}){
   const base=seed??Date.now();
   const tutorial=mode==='tutorial';
+  if(!Number.isInteger(initialHandSize)||initialHandSize<2||initialHandSize>8)throw new RangeError('Invalid initial hand size');
   return {game:'overswing',version:13,seed:base,mode,dealIndex:0,dealTotals:[],
-    deal:dealSwing(seeded(base),tutorial?OVERSWING_TUTORIAL_DECK:deckOverride,tutorial?[]:royals),
+    deal:dealSwing(seeded(base),tutorial?OVERSWING_TUTORIAL_DECK:deckOverride,tutorial?[]:royals,tutorial?8:initialHandSize),
     tutorialStep:tutorial?0:null,tutorialIntroDone:!tutorial,history:[],status:'playing',
     last:tutorial?'Learn FLIP, STEER, Pot, and Score before you begin.':
       'You have 8 cards. Red moves right (+), black moves left (−). FLIP or play a card.'};
@@ -67,21 +68,26 @@ export function overswingMultiplier(d){
 // retain the exact v13 defaults; never mutate rules or the hidden deck.
 const OVERSWING_BASE_RULES=Object.freeze({
   steerNoncrossPenalty:1,flipCrossJackpotGain:1,bankCapacityLoss:1,
-  steerCrossSwingBonus:0
+  steerCrossSwingBonus:0,flipNoncrossPenalty:1,snapLimit:10,
+  maxFlips:null,bankTax:0
 });
 function overswingEffectiveRules(input={}){
   const rules={...OVERSWING_BASE_RULES,...input};
   for(const [name,allowed] of Object.entries({
     steerNoncrossPenalty:[0,1],flipCrossJackpotGain:[1,2],
-    bankCapacityLoss:[0,1],steerCrossSwingBonus:[0,1]
+    bankCapacityLoss:[0,1],steerCrossSwingBonus:[0,1],
+    flipNoncrossPenalty:[0,1],snapLimit:[8,9,10],
+    bankTax:[0,5,10,15]
   }))if(!allowed.includes(rules[name]))throw new RangeError('Invalid Overswing rule: '+name);
+  if(rules.maxFlips!==null&&(!Number.isInteger(rules.maxFlips)||rules.maxFlips<1||rules.maxFlips>40))
+    throw new RangeError('Invalid Overswing rule: maxFlips');
   return rules;
 }
 export function overswingActions(s,rules={}){
   if(s.status!=='playing'||(s.mode==='tutorial'&&!s.tutorialIntroDone))return [];
   const effective=overswingEffectiveRules(rules);
   const d=s.deal,a=[];
-  if(d.pos<d.deck.length)a.push({type:'flip'});
+  if(d.pos<d.deck.length&&(effective.maxFlips===null||d.flips<effective.maxFlips))a.push({type:'flip'});
   d.hand.forEach((id,index)=>{
     if(royalRank(id)==='Q'){
       a.push({type:'steer',index,direction:1},{type:'steer',index,direction:-1});
@@ -103,10 +109,11 @@ export function overswingActions(s,rules={}){
   }
   return a;
 }
-export function overswingPayout(s){
+export function overswingPayout(s,rules={}){
   const d=s.deal,base=d.pot.reduce((a,c)=>a+rank(c),0)*overswingMultiplier(d);
   const crown=d.hand.some(id=>royalRank(id)==='K')?(d.crownBonus||0):0;
-  return Math.floor(base*(100+crown)/100);
+  const gross=Math.floor(base*(100+crown)/100);
+  return Math.floor(gross*(100-overswingEffectiveRules(rules).bankTax)/100);
 }
 function resetMultipliers(d){
   d.W=0;d.flipStreak=0;
@@ -141,7 +148,8 @@ export function stepOverswing(s,a,rules={}){
   const previousS=d.S,previousW=d.W,previousPot=d.pot.reduce((sum,c)=>sum+rank(c),0);
   const previousMultiplier=overswingMultiplier(d);
   if(a.type==='bank'){
-    const gain=overswingPayout(s);
+    const gross=overswingPayout(s,{...effective,bankTax:0});
+    const gain=overswingPayout(s,effective);
     const crownBonus=d.hand.some(id=>royalRank(id)==='K')?(d.crownBonus||0):0;
     d.T+=gain;d.discard.push(...d.pot);
     const requestedDrop=a.dropIndex==null?null:d.hand[a.dropIndex];
@@ -156,7 +164,7 @@ export function stepOverswing(s,a,rules={}){
       dropped=d.hand.splice(d.hand.indexOf(requestedDrop),1)[0];
       d.discard.push(dropped);
     }
-    n.lastAction={type:'bank',points:gain,pot:previousPot,multiplier:previousMultiplier,
+    n.lastAction={type:'bank',points:gain,gross,taxPaid:gross-gain,bankTax:effective.bankTax,pot:previousPot,multiplier:previousMultiplier,
       crownBonus,crowned:crowned.length>0,oldCap,newCap:d.handCap,dropped,
       modifiersApplied:effective.bankCapacityLoss===0?['vault_seal']:[]};
     msg='BANK: +'+gain+' points'+(crownBonus?' (Crown +'+crownBonus+'%)':'')+'. Hand capacity '+oldCap+' → '+d.handCap+
@@ -176,7 +184,7 @@ export function stepOverswing(s,a,rules={}){
       }
     }else d.crownBonus=0;
     const movement=royalRank(c)==='Q'?a.direction*12:signed(c);
-    const outcome=applySwing(d.S,d.W,movement);
+    const outcome=applySwing(d.S,d.W,movement,effective.snapLimit);
     if(outcome.snap){
       n.lastAction={type:a.type,card:c,from:previousS,to:previousS+movement,
         snap:true,destination:'discard',lost:previousPot,prevMultiplier:previousMultiplier,
@@ -191,8 +199,10 @@ export function stepOverswing(s,a,rules={}){
       const zeroBreak=previousS!==0&&d.S===0;
       let destination;
       if(a.type==='flip'){
-        // Every successful FLIP enters the Pot, including exact-zero cards.
+        // A safe FLIP always enters the Pot. A noncrossing FLIP
+        // spends one SWING tier, just like STEER; exact zero resets all.
         d.pot.push(c);destination='pot';
+        if(!outcome.swung&&!zeroBreak)d.W=Math.max(0,d.W-effective.flipNoncrossPenalty);
         if(!zeroBreak){
           // Every safe FLIP continues its current streak, including zero crossings.
           // Earned FLIP tiers persist across STEER; only the streak counter restarts.
@@ -216,7 +226,7 @@ export function stepOverswing(s,a,rules={}){
         snap:false,swung:outcome.swung,zeroBreak,
         resetFromMultiplier:zeroBreak?previousMultiplier:null,
         gain:zeroBreak?0:outcome.gain+(a.type==='steer'&&outcome.swung?effective.steerCrossSwingBonus:0),
-        swingPenalty:a.type==='steer'&&!outcome.swung&&!zeroBreak&&d.W<previousW,
+        swingPenalty:!outcome.swung&&!zeroBreak&&d.W<previousW,
         destination,
         openingSteer:opening&&a.type==='steer',addedToPot,scouted:royalRank(c)==='J'?d.scoutNext:null,
         flipStreak:d.flipStreak,flipFactor:d.flipFactor,
@@ -249,7 +259,7 @@ export function stepOverswing(s,a,rules={}){
     n.lastRefill=refill;
     if(n.lastAction)n.lastAction={...n.lastAction,refilled:refill};
   }else n.lastRefill=[];
-  // A deal is finished only after all 40 cards have been used (including hand cards).
+  // A deal is finished only after every card has been used (including hand cards).
   if(d.pos>=d.deck.length&&!d.hand.length&&!d.pot.length){
     n.dealTotals.push(d.T);
     if(n.mode==='match'&&n.dealIndex<2){
