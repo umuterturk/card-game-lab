@@ -4,7 +4,7 @@ import {newOverswing,overswingActions,overswingMultiplier,overswingFinal,stepOve
 import {LAST_FLAME} from '../src/external/overswingJourneyContent.js';
 import {startJourney,stepJourney,journeyActions,journeyRules,journeySeed,
   offerJourneyRelics,recordJourneyProgress,EMPTY_JOURNEY_PROGRESS,isValidJourney,
-  journeyRunScore} from '../src/external/overswingJourney.js';
+  journeyRunScore,journeyEarnedGold,journeyGoldBalance,journeyRelicPrice,RELIC_PRICE_RATE} from '../src/external/overswingJourney.js';
 
 function withDeal(run,changes){
   return {...run,encounter:{...run.encounter,
@@ -47,9 +47,16 @@ test('journey creates three distinct deterministic decks with independent reward
   assert.equal(new Set(first.offeredRelicIds).size,3);
   assert.deepEqual(first.offeredRelicIds,offerJourneyRelics(first));
   assert.deepEqual(finish(b,800),first);
-  const next=stepJourney(first,{type:'CHOOSE_RELIC',relicId:first.offeredRelicIds[0]});
-  const alt=stepJourney(first,{type:'CHOOSE_RELIC',relicId:first.offeredRelicIds[1]});
+  const next=stepJourney(first,{type:'BUY_RELIC',relicId:first.offeredRelicIds[0]});
+  const alt=stepJourney(first,{type:'BUY_RELIC',relicId:first.offeredRelicIds[1]});
+  assert.equal(RELIC_PRICE_RATE,0.20);
+  assert.equal(journeyRelicPrice(first),360);
+  assert.equal(journeyEarnedGold(first),800);
+  assert.equal(journeyGoldBalance(first),800);
   assert.equal(next.encounter.encounterId,'the_furnace');
+  assert.equal(next.goldSpent,360);
+  assert.equal(journeyGoldBalance(next),440);
+  assert.equal(journeyRunScore(next),440);
   assert.deepEqual(next.encounter.engineState.deal.deck,alt.encounter.engineState.deal.deck,
     'relic selection must not alter subsequent deck');
   assert.equal(next.encounter.relicUses[first.offeredRelicIds[0]],undefined);
@@ -65,9 +72,53 @@ test('goal check waits for full deal, threshold equality wins and below fails',(
   assert.equal(passed.completedEncounters[0].finalScore,800);
   assert.equal(passed.completedEncounters[0].target,800);
   assert.strictEqual(stepJourney(passed,{type:'PLAY',action:{type:'flip'}}),passed);
-  assert.strictEqual(stepJourney(passed,{type:'CHOOSE_RELIC',relicId:'unknown'}),passed);
-  const chosen=stepJourney(passed,{type:'CHOOSE_RELIC',relicId:passed.offeredRelicIds[0]});
-  assert.strictEqual(stepJourney(chosen,{type:'CHOOSE_RELIC',relicId:passed.offeredRelicIds[1]}),chosen);
+  assert.strictEqual(stepJourney(passed,{type:'BUY_RELIC',relicId:'unknown'}),passed);
+  assert.strictEqual(stepJourney(passed,{type:'CHOOSE_RELIC',relicId:passed.offeredRelicIds[0]}),passed,'legacy free-choice command cannot bypass the price');
+  const chosen=stepJourney(passed,{type:'BUY_RELIC',relicId:passed.offeredRelicIds[0]});
+  assert.strictEqual(stepJourney(chosen,{type:'BUY_RELIC',relicId:passed.offeredRelicIds[1]}),chosen);
+});
+test('shop never grants unpaid relics and SKIP advances without spending',()=>{
+  const poor={...finish(startJourney(24),800),goldSpent:800};
+  assert.equal(poor.phase,'choosing_relic');
+  assert.equal(journeyGoldBalance(poor),0);
+  const refused=stepJourney(poor,{type:'BUY_RELIC',relicId:poor.offeredRelicIds[0]});
+  assert.strictEqual(refused,poor);
+  const skip=stepJourney(poor,{type:'SKIP_RELIC'});
+  assert.equal(skip.phase,'playing');
+  assert.equal(skip.encounter.encounterId,'the_furnace');
+  assert.deepEqual(skip.relicIds,[]);
+  assert.equal(skip.goldSpent,800);
+  assert.strictEqual(stepJourney(skip,{type:'BUY_RELIC',relicId:poor.offeredRelicIds[0]}),skip);
+  assert.strictEqual(stepJourney(skip,{type:'SKIP_RELIC'}),skip);
+});
+test('shop prices scale with next gate targets, including lifetime Gold tiers',()=>{
+  for(const [lifetimeGold,first,second] of [
+    [0,360,600],[40000,380,630],[100000,400,660],[180000,410,690]]){
+    let run=finish(startJourney(71,lifetimeGold),Math.ceil(first*3));
+    assert.equal(journeyRelicPrice(run),first);
+    run=stepJourney(run,{type:'SKIP_RELIC'});
+    run=finish(run,Math.ceil(second*3));
+    assert.equal(journeyRelicPrice(run),second);
+    const buy=stepJourney(run,{type:'BUY_RELIC',relicId:run.offeredRelicIds[0]});
+    assert.equal(buy.goldSpent,second);
+    assert.equal(journeyRunScore(buy),journeyEarnedGold(buy)-second);
+    assert.equal(journeyGoldBalance(buy),journeyEarnedGold(buy)-second);
+    assert.equal(buy.relicIds.length,1);
+    const stored=JSON.parse(JSON.stringify(buy));
+    assert.ok(isValidJourney(stored));
+    assert.deepEqual(stored,buy);
+  }
+});
+test('purchases never reduce cleared gate score or lifetime banked Gold',()=>{
+  let run=finish(startJourney(91),800);
+  const before=run.completedEncounters[0];
+  const bought=stepJourney(run,{type:'BUY_RELIC',relicId:run.offeredRelicIds[0]});
+  assert.deepEqual(bought.completedEncounters[0],before);
+  assert.equal(bought.completedEncounters[0].passed,true);
+  assert.equal(journeyRunScore(bought),journeyRunScore(run)-360);
+  assert.equal(bought.goldSpent,360);
+  assert.strictEqual(stepJourney(bought,{type:'BUY_RELIC',relicId:run.offeredRelicIds[0]}),bought);
+  assert.equal(recordJourneyProgress(EMPTY_JOURNEY_PROGRESS,stepJourney(bought,{type:'ABANDON'})).bestRunScore,440);
 });
 test('steady hand consumes once only on noncrossing STEER; ordinary quick play unchanged',()=>{
   let run=forceRelic(startJourney(22),'steady_hand');
@@ -124,9 +175,12 @@ test('vault seal preserves capacity and changes legal BANK action shape',()=>{
 test('boss SNAP increases target 200, while earlier stages stay unchanged',()=>{
   let run=startJourney(777);
   run=finish(run,800);
-  run=stepJourney(run,{type:'CHOOSE_RELIC',relicId:run.offeredRelicIds[0]});
+  run=stepJourney(run,{type:'BUY_RELIC',relicId:run.offeredRelicIds[0]});
   run=finish(run,1800);
-  run=stepJourney(run,{type:'CHOOSE_RELIC',relicId:run.offeredRelicIds[0]});
+  assert.equal(journeyRelicPrice(run),600);
+  assert.equal(journeyGoldBalance(run),2240);
+  run=stepJourney(run,{type:'BUY_RELIC',relicId:run.offeredRelicIds[0]});
+  assert.equal(run.goldSpent,960);
   assert.equal(run.encounter.encounterId,'ember_keeper');
   assert.equal(run.encounter.effectiveTarget,3000);
   const d=run.encounter.engineState.deal;
@@ -152,7 +206,7 @@ test('run progress and terminal commands are idempotent; persisted JSON is resum
   assert.equal(profile.totalRuns,1);
   assert.strictEqual(recordJourneyProgress(profile,run),profile);
   assert.strictEqual(stepJourney(run,{type:'PLAY',action:{type:'flip'}}),run);
-  assert.strictEqual(stepJourney(run,{type:'CHOOSE_RELIC',relicId:'steady_hand'}),run);
+  assert.strictEqual(stepJourney(run,{type:'BUY_RELIC',relicId:'steady_hand'}),run);
   assert.equal(profile.wins,0);
   assert.equal(profile.bestRunScore,800);
 });
