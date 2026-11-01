@@ -4,7 +4,8 @@ import OverswingPlay from './OverswingPlay.jsx';
 import {LAST_FLAME,LAST_FLAME_RELICS} from './overswingJourneyContent.js';
 import {
   startJourney,stepJourney,isValidJourney,recordJourneyProgress,
-  EMPTY_JOURNEY_PROGRESS,validJourneyProgress,journeyRunScore,recordJourneyGold
+  EMPTY_JOURNEY_PROGRESS,validJourneyProgress,journeyRunScore,recordJourneyGold,
+  journeyGoldBalance,journeyRelicPrice,journeyEarnedGold
 } from './overswingJourney.js';
 import {ROYAL_RULES,ROYAL_THRESHOLDS,unlockedRoyals,nextRoyal,targetScale} from './overswingRoyals.js';
 import './overswingJourney.css';
@@ -42,15 +43,15 @@ function RoyalReveal({id,onContinue}){
 function readSaved(key){
   try{return JSON.parse(localStorage.getItem(key)||'null');}catch{return null;}
 }
-function Relic({id,selected=false,used=false,onClick}){
+function Relic({id,selected=false,used=false,onClick,price=0,affordable=true}){
   const r=LAST_FLAME_RELICS[id];
   if(!r)return null;
   const content=<><span className="oj-relic-symbol" aria-hidden="true">{r.symbol}</span>
     <span className="oj-relic-copy"><strong>{r.title}</strong>
       <small>{r.description}</small>{used&&<em>USED THIS GATE</em>}</span>
-    {onClick&&<span className="oj-relic-pick">TAKE</span>}</>;
+    {onClick&&<span className="oj-relic-pick">{affordable?'BUY':'NEED'}<strong>{fmt(price)} G</strong></span>}</>;
   return onClick?
-    <button className={'oj-relic '+(selected?'oj-relic-selected':'')} type="button" onClick={onClick}>{content}</button>:
+    <button className={'oj-relic '+(selected?'oj-relic-selected':'')} type="button" onClick={onClick} disabled={!affordable} aria-label={'Buy '+r.title+' for '+fmt(price)+' Gold'}>{content}</button>:
     <div className={'oj-relic '+(used?'oj-relic-used':'')}>{content}</div>;
 }
 function Route({run,compact=false,tier=0}){
@@ -74,7 +75,8 @@ function Recap({run,onNew,onMenu,progress}){
     <p>{won?'The Ember Keeper has fallen. The furnace burns again.':
       run.phase==='abandoned'?'You left the furnace. Your collected knowledge remains.':
       'The gate demanded more fire than you could bank.'}</p>
-    <div className="oj-recap-total"><small>RUN GOLD</small><strong>{fmt(journeyRunScore(run))}</strong></div>
+    <div className="oj-recap-total"><small>RUN GOLD · AFTER PURCHASES</small><strong>{fmt(journeyRunScore(run))}</strong></div>
+    <p className="oj-gold-accounting">Earned {fmt(journeyEarnedGold(run))} G · Relics {fmt(run.goldSpent||0)} G</p>
     <div className="oj-recap-rows">{run.completedEncounters.map(row=>
       <div key={row.id}><span>{LAST_FLAME.encounters.find(e=>e.id===row.id)?.title}</span>
         <strong className={row.passed?'oj-passed':'oj-failed'}>{fmt(row.finalScore)} / {fmt(row.target)}</strong></div>)}</div>
@@ -110,7 +112,8 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
   },[run?.phase,run?.runId]);
   const begin=()=>{setRun(startJourney(Date.now(),progress.lifetimeGold||0));setView('journey');};
   const play=action=>setRun(current=>current?stepJourney(current,{type:'PLAY',action}):current);
-  const choose=relicId=>setRun(current=>current?stepJourney(current,{type:'CHOOSE_RELIC',relicId}):current);
+  const buy=relicId=>setRun(current=>current?stepJourney(current,{type:'BUY_RELIC',relicId}):current);
+  const skip=()=>setRun(current=>current?stepJourney(current,{type:'SKIP_RELIC'}):current);
   const abandon=()=>setRun(current=>current?stepJourney(current,{type:'ABANDON'}):current);
   const newRoyal=unlockedRoyals(progress.lifetimeGold||0).find(id=>!(progress.seenRoyalIds||[]).includes(id));
   const reveal=newRoyal?<RoyalReveal id={newRoyal} onContinue={()=>setProgress(old=>({
@@ -128,7 +131,7 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
     <div className="oj-home-illustration" aria-hidden="true"><span>♨</span><i/><i/><i/></div>
     <Route tier={unlockedRoyals(progress.lifetimeGold||0).length}/>
     <GoldProgress progress={progress}/>
-    <p className="oj-home-copy">Three gates. Two relics. One last flame.<br/>Risk your Pot, master the swing, and survive the Keeper.</p>
+    <p className="oj-home-copy">Three gates. Two relic slots. Spend Gold wisely.<br/>Risk your Pot, master the swing, and survive the Keeper.</p>
     <div className="oj-choices"><button className="oj-primary" onClick={begin}>IGNITE THE JOURNEY</button>
       <button className="oj-secondary" onClick={()=>setView('quick')}>QUICK PLAY · TUTORIAL</button></div>
     <p className="oj-record">Runs {progress.totalRuns} · Victories {progress.wins} · Best {fmt(progress.bestRunScore)}</p>
@@ -162,10 +165,20 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
       <h2>FLAME RESTORED</h2>
       <p className="oj-gate-score">{fmt(run.completedEncounters.at(-1).finalScore)} <small>/ {fmt(run.completedEncounters.at(-1).target)} REQUIRED</small></p>
       <Route run={run}/>
-      <h3>CHOOSE YOUR RELIC</h3>
-      <p>Carry one power into the remaining gates. This choice lasts for this run.</p>
-      <div className="oj-relic-options">{run.offeredRelicIds.map(id=><Relic id={id} key={id} onClick={()=>choose(id)}/>)}</div>
-      <p className="oj-hint">One choice. No reroll. Relics recharge at the start of each gate.</p>
+      <h3>RELIC SHOP</h3>
+      <div className="oj-shop-wallet">
+        <span>AVAILABLE GOLD <strong>{fmt(journeyGoldBalance(run))} G</strong></span>
+        <span>RELIC PRICE <strong>{fmt(journeyRelicPrice(run))} G</strong></span>
+      </div>
+      <p>Each relic costs 20% of the next gate's target. Buy one or save your Gold.</p>
+      <div className="oj-relic-options">{run.offeredRelicIds.map(id=>
+        <Relic id={id} key={id} price={journeyRelicPrice(run)}
+          affordable={journeyGoldBalance(run)>=journeyRelicPrice(run)}
+          onClick={()=>buy(id)}/>)}</div>
+      <button className="oj-shop-skip oj-secondary" type="button" onClick={skip}>
+        SKIP · SAVE GOLD
+      </button>
+      <p className="oj-hint">Purchases lower your final run Gold, but never undo a cleared gate or reduce lifetime Royal progress. Relics last until this journey ends.</p>
     </div>
   </main>;
   if(['won','lost','abandoned'].includes(run.phase))return <main className="oj-shell">
