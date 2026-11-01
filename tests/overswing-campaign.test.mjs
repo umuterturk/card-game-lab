@@ -16,8 +16,7 @@ test('safe noncrossing FLIP consumes one SWING tier, never below x1',()=>{
   const source=newOverswing({seed:11});
   // The next ordinary FLIP is positive: start positive to avoid crossing.
   const next=source.deal.deck[source.deal.pos];
-  const positive=Math.floor(next/10)<2;
-  const S=positive?2:-2;
+  const S=0; // always safe and never a strict crossing, regardless of suit
   const state={...source,deal:{...source.deal,S,W:3,plays:2,pot:[30]}};
   const after=stepOverswing(state,{type:'flip'});
   assert.equal(after.lastAction.snap,false);
