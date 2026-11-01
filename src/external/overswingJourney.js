@@ -4,6 +4,7 @@ import {royalTier,targetScale,pickRoyalCards} from './overswingRoyals.js';
 
 export const JOURNEY_SCHEMA=1;
 export const JOURNEY_PHASES=['playing','choosing_relic','won','lost','abandoned'];
+export const RELIC_PRICE_RATE=0.20; // price is 20% of the next gate's scaled target
 const BASE_RELIC_RULES={steerNoncrossPenalty:1,flipCrossJackpotGain:1,
   bankCapacityLoss:1,steerCrossSwingBonus:0};
 
@@ -47,7 +48,7 @@ export function startJourney(runSeed=Date.now(),lifetimeGold=0){
   const seed=runSeed,tier=royalTier(Math.max(0,lifetimeGold));
   return {schemaVersion:JOURNEY_SCHEMA,contentPackId:LAST_FLAME.id,
     contentVersion:LAST_FLAME.version,runId:'last-flame-'+seed.toString(36),
-    runSeed:seed,royalTier:tier,phase:'playing',encounterIndex:0,relicIds:[],
+    runSeed:seed,royalTier:tier,goldSpent:0,phase:'playing',encounterIndex:0,relicIds:[],
     offeredRelicIds:[],encounter:dealFor(seed,0,tier),completedEncounters:[]};
 }
 export function isValidJourney(run){
@@ -58,7 +59,8 @@ export function isValidJourney(run){
     Number.isInteger(run.encounterIndex)&&run.encounterIndex>=0&&
     run.encounterIndex<LAST_FLAME.encounters.length&&
     Array.isArray(run.relicIds)&&Array.isArray(run.offeredRelicIds)&&
-    Array.isArray(run.completedEncounters)&&!!run.encounter&&
+    Array.isArray(run.completedEncounters)&&
+    (run.goldSpent===undefined||(Number.isSafeInteger(run.goldSpent)&&run.goldSpent>=0))&&!!run.encounter&&
     run.encounter.encounterId===LAST_FLAME.encounters[run.encounterIndex].id&&
     run.encounter.engineState?.version===13;
 }
@@ -75,8 +77,24 @@ export function journeyActions(run){
   if(run?.phase!=='playing')return [];
   return overswingActions(run.encounter.engineState,journeyRules(run));
 }
+// All BANKed Gold contributes to Royal discovery. Purchasing a relic does not
+// undo a cleared gate, but reduces spendable Gold and the final run record.
+export function journeyEarnedGold(run){
+  const completed=run.completedEncounters.reduce((sum,e)=>sum+e.finalScore,0);
+  const currentAlreadyCounted=run.completedEncounters.some(e=>e.id===run.encounter.encounterId);
+  return completed+(currentAlreadyCounted?0:(run.encounter.engineState.deal.T||0));
+}
+export function journeyGoldBalance(run){
+  return Math.max(0,journeyEarnedGold(run)-(run.goldSpent||0));
+}
 export function journeyRunScore(run){
-  return run.completedEncounters.reduce((v,e)=>v+e.finalScore,0);
+  return journeyEarnedGold(run)-(run.goldSpent||0);
+}
+export function journeyRelicPrice(run){
+  const next=LAST_FLAME.encounters[run.encounterIndex+1];
+  if(!next)return 0;
+  const target=Math.round(next.target*targetScale(run.royalTier||0));
+  return Math.max(10,Math.round(target*RELIC_PRICE_RATE/10)*10);
 }
 export function stepJourney(run,command){
   if(!isValidJourney(run)||!command||typeof command!=='object')return run;
@@ -84,15 +102,21 @@ export function stepJourney(run,command){
     if(run.phase==='won'||run.phase==='lost'||run.phase==='abandoned')return run;
     return {...run,phase:'abandoned',offeredRelicIds:[]};
   }
-  if(run.phase==='choosing_relic'&&command.type==='CHOOSE_RELIC'){
-    if(!run.offeredRelicIds.includes(command.relicId)||
-       run.relicIds.includes(command.relicId)||
-       run.relicIds.length>=LAST_FLAME.rewards.maxOwnedRelics||
-       !LAST_FLAME_RELICS[command.relicId])return run;
+  if(run.phase==='choosing_relic'&&
+     (command.type==='BUY_RELIC'||command.type==='SKIP_RELIC')){
     const nextIndex=run.encounterIndex+1;
     if(nextIndex>=LAST_FLAME.encounters.length)return run;
+    const buying=command.type==='BUY_RELIC';
+    const price=journeyRelicPrice(run);
+    if(buying&&(!run.offeredRelicIds.includes(command.relicId)||
+       run.relicIds.includes(command.relicId)||
+       run.relicIds.length>=LAST_FLAME.rewards.maxOwnedRelics||
+       !LAST_FLAME_RELICS[command.relicId]||
+       journeyGoldBalance(run)<price))return run;
     return {...run,phase:'playing',encounterIndex:nextIndex,
-      relicIds:[...run.relicIds,command.relicId],offeredRelicIds:[],
+      goldSpent:(run.goldSpent||0)+(buying?price:0),
+      relicIds:buying?[...run.relicIds,command.relicId]:run.relicIds,
+      offeredRelicIds:[],
       encounter:dealFor(run.runSeed,nextIndex,run.royalTier||0)};
   }
   if(run.phase!=='playing'||command.type!=='PLAY'||!command.action)return run;
