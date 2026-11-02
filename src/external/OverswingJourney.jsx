@@ -266,7 +266,7 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
   if(view==='market')return <OverswingMarket progress={progress}
     disabled={activeJourney} onRoyal={purchaseRoyal} onWild={purchaseWild}
     onBack={()=>setView('map')}/>;
-  if(!run||view==='menu'||view==='map')return <main className="oj-shell oj-home oj-map-home">
+  if(!run||view==='menu'||view==='map')return <main className="oj-shell oj-home oj-map-home" onPointerDown={sound.unlock}>
     <header className="oj-title">
       <OverswingSoundControls sound={sound} className="oj-main-audio"/>
       <DoomFire className="oj-title-doom-fire" width={62} height={34}/>
