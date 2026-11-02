@@ -503,7 +503,12 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,j
           className={'os8-relic-charge '+(journey.encounter.relicUses[id]?'os8-relic-spent':'')}
           onClick={()=>setOpenFactor(openFactor===id?null:id)}>{LAST_FLAME_RELICS[id].symbol}</button>)}</div>
       </div>
-      <div className="os8-campaign-rules">{campaignRuleLabels(campaignLevel(journey.levelNumber||1)).map(x=><span key={x}>{x}</span>)}</div>
+      <div className="os8-campaign-rules">
+        <strong className="os8-campaign-snap">SNAP ±{limit}</strong>
+        {campaignRuleLabels(campaignLevel(journey.levelNumber||1))
+          .filter(x=>!x.startsWith('SNAP ')&&x!=='STANDARD RULES')
+          .map(x=><span key={x}>{x}</span>)}
+      </div>
       {journey.relicIds.includes(openFactor)&&<p className="os8-journey-relic-help">{LAST_FLAME_RELICS[openFactor]?.title}: {LAST_FLAME_RELICS[openFactor]?.description} {journey.encounter.relicUses[openFactor]?'(Used this gate)':'(Ready)'}</p>}
     </section>}
     <div className="os8-legend"><span className="os8-redtext">♥ ♦ POSITIVE</span><span>♠ ♣ NEGATIVE</span><span>0 = RESET</span><span>±{limit} = SNAP</span></div>
