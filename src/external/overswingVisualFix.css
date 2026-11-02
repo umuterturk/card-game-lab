@@ -230,3 +230,36 @@
 @media(max-height:590px){
   .os8-full .os8-hand .os8-hand-slot{min-height:48px}
 }
+
+/* Gameplay affordances are quiet until five seconds without a move.
+   A double heartbeat and soft highlight signal only actionable controls.
+   Compositor transforms keep the rest of the board in place. */
+.os8:not(.os8-idle) .os8-actions button:not(:disabled),
+.os8:not(.os8-idle) .os8-hand .os8-card:not(:disabled){
+  animation:none;
+}
+.os8.os8-idle .os8-actions button:not(:disabled),
+.os8.os8-idle .os8-hand .os8-card:not(:disabled),
+.os8.os8-idle .os8-abilities button:not(:disabled){
+  animation:os8-action-heartbeat 2s ease-in-out infinite;
+  transform-origin:center;
+  will-change:transform,filter;
+}
+.os8.os8-idle .os8-hand .os8-card:not(:disabled){animation-delay:.14s}
+.os8.os8-idle .os8-abilities button:not(:disabled){animation-delay:.28s}
+@keyframes os8-action-heartbeat{
+  0%,55%,100%{transform:scale(1);filter:brightness(1)}
+  12%{transform:scale(1.035);filter:brightness(1.24) drop-shadow(0 0 6px #ffd18a99)}
+  22%{transform:scale(1.008);filter:brightness(1.07)}
+  34%{transform:scale(1.025);filter:brightness(1.20) drop-shadow(0 0 5px #ffd18a85)}
+  44%{transform:scale(1);filter:brightness(1)}
+}
+@media(prefers-reduced-motion:reduce){
+  .os8.os8-idle .os8-actions button:not(:disabled),
+  .os8.os8-idle .os8-hand .os8-card:not(:disabled),
+  .os8.os8-idle .os8-abilities button:not(:disabled){
+    animation:none!important;will-change:auto;
+    filter:brightness(1.12);
+    outline:2px solid #d6a86d;outline-offset:1px;
+  }
+}
