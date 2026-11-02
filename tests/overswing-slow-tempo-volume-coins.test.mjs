@@ -8,24 +8,35 @@ import {GROOVE_TEMPOS,tempoForGroove,approachTempo}
 
 const read=file=>readFileSync(new URL('../src/external/'+file,import.meta.url),'utf8');
 
-test('OFF -> ON -> LOUD -> OFF is the only music-button cycle',()=>{
-  assert.deepEqual([0,1,2,0].map(nextMusicLevel),[1,2,0,1]);
-  assert.throws(()=>nextMusicLevel(-1),RangeError);
-  assert.throws(()=>nextMusicLevel(3),RangeError);
+test('Settings replace two toggles with 0-100 volume controls and 16-track selector',()=>{
+  assert.deepEqual([0,1,2,0].map(nextMusicLevel),[1,2,0,1],
+    'legacy audio API remains compatible');
   assert.deepEqual(MUSIC_VOLUMES,[0,.80,3.20]);
-  assert.ok(MUSIC_VOLUMES[1]>.70,'normal music retains its prior level');
-  assert.ok(MUSIC_VOLUMES[2]/MUSIC_VOLUMES[1]>=4,
-    'LOUD is at least 12 dB higher at the music bus before limiting');
   const controls=read('OverswingSoundControls.jsx');
-  assert.match(controls,/sound\.musicLevel===2\?'LOUD'/);
-  assert.match(controls,/Increase music volume/);
-  assert.match(controls,/Turn music off/);
+  assert.match(controls,/Music and sound settings/);
+  assert.match(controls,/MUSIC TRACK/);
+  assert.match(controls,/MUSIC VOLUME/);
+  assert.match(controls,/SOUND EFFECTS/);
+  assert.match(controls,/MUSIC_TRACKS\.map/);
+  assert.match(controls,/value="auto"/);
+  assert.match(controls,/value=\{sound\.trackChoice===null\?'auto'/);
+  assert.match(controls,/onChange=\{sound\.setMusicVolume\}/);
+  assert.match(controls,/onChange=\{sound\.setSfxVolume\}/);
+  assert.match(controls,/createPortal\(/);
+  assert.match(controls,/aria-modal="true"/);
+  assert.doesNotMatch(controls,/toggleMusic|toggleSfx/);
   const hook=read('useOverswingSound.js');
-  assert.match(hook,/const \[musicLevel,setMusicLevel\]=useState\(0\)/);
-  assert.match(hook,/setMusicLevel\(nextMusicLevel\(musicLevel\)\)/);
-  assert.match(read('overswingSoundControls.css'),/\.os8-audio-toggle\.loud/);
+  assert.match(hook,/setMusicVolumeState/);
+  assert.match(hook,/setSfxVolumeState/);
+  assert.match(hook,/setTrackChoiceState/);
+  assert.match(hook,/musicRef\.current/);
+  assert.match(hook,/sfxRef\.current/);
+  assert.match(hook,/trackChoice:choiceRef\.current/);
+  const css=read('overswingSoundControls.css');
+  assert.match(css,/\.os-audio-modal-backdrop/);
+  assert.match(css,/\.os-audio-gear-icon/);
+  assert.match(css,/input\[type=range\]/);
 });
-
 test('Real tempo is slow at zero tension and smoothly rises across four grooves',()=>{
   assert.deepEqual(GROOVE_TEMPOS,[60,82,108,132]);
   assert.equal(tempoForGroove(0),60);

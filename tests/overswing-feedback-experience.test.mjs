@@ -138,25 +138,38 @@ test('main menu and gameplay share sound controls, with explicit opt-in and pers
   assert.match(map,/sound=\{sound\}/);
   assert.match(play,/OverswingSoundControls sound=\{sound\}/);
   assert.match(play,/sound\?\.play\(s\.lastAction\)/);
-  assert.match(hook,/const \[musicLevel,setMusicLevel\]=useState\(0\)/);
-  assert.match(hook,/const musicOn=musicLevel>0/);
-  assert.match(hook,/setMusicLevel\(nextMusicLevel\(musicLevel\)\)/);
-  assert.match(component,/sound\.musicLevel===2\?'LOUD'/);
+  assert.match(hook,/const \[musicVolume,setMusicVolumeState\]/);
+  assert.match(hook,/const \[sfxVolume,setSfxVolumeState\]/);
+  assert.match(hook,/const \[trackChoice,setTrackChoiceState\]/);
+  assert.match(hook,/audioRef\.current\?\.setSfxVolume/);
+  assert.match(component,/aria-label="Music and sound settings"/);
+  assert.match(component,/sound\.setTrackChoice/);
+  assert.match(component,/onChange=\{sound\.setMusicVolume\}/);
+  assert.match(component,/onChange=\{sound\.setSfxVolume\}/);
+  assert.match(component,/role="dialog"/);
   assert.match(hook,/readSoundPreferences\(window\.localStorage\)/);
   assert.match(hook,/audioRef\.current\?\.dispose/);
-  assert.match(component,/onClick=\{sound\.toggleMusic\}/);
-  assert.match(component,/onClick=\{sound\.toggleSfx\}/);
   const css=read('overswingSoundControls.css');
-  assert.match(css,/\.oj-home \.oj-main-audio/);
-  assert.deepEqual(DEFAULT_SOUND_PREFS,{music:false,sfx:true});
+  assert.match(css,/\.oj-home \.oj-title \.oj-main-audio/);
+  assert.match(css,/\.os-audio-modal-backdrop/);
+  assert.deepEqual(DEFAULT_SOUND_PREFS,{
+    musicVolume:0,sfxVolume:100,trackChoice:null
+  });
   const stored=new Map();
   const storage={getItem:key=>stored.get(key)||null,
     setItem:(key,value)=>stored.set(key,value)};
-  assert.deepEqual(readSoundPreferences(storage),{music:false,sfx:true});
-  assert.equal(persistSoundPreferences(storage,{music:true,sfx:false}),true);
-  assert.equal(JSON.parse(stored.get(OVERSWING_SOUND_KEY)).music,true);
-  assert.deepEqual(readSoundPreferences(storage),{music:true,sfx:false});
-  assert.deepEqual(readSoundPreferences({getItem:()=>'{broken'}),{music:false,sfx:true});
+  assert.deepEqual(readSoundPreferences(storage),DEFAULT_SOUND_PREFS);
+  assert.equal(persistSoundPreferences(storage,{
+    musicVolume:73,sfxVolume:21,trackChoice:9
+  }),true);
+  assert.deepEqual(JSON.parse(stored.get(OVERSWING_SOUND_KEY)),{
+    musicVolume:73,sfxVolume:21,trackChoice:9
+  });
+  assert.deepEqual(readSoundPreferences(storage),{
+    musicVolume:73,sfxVolume:21,trackChoice:9
+  });
+  assert.deepEqual(readSoundPreferences({getItem:()=>'{broken'}),
+    DEFAULT_SOUND_PREFS);
   assert.equal(persistSoundPreferences({setItem:()=>{throw new Error('denied');}},
-    {music:true,sfx:false}),false);
+    {musicVolume:80,sfxVolume:0,trackChoice:3}),false);
 });

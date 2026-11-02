@@ -1,64 +1,92 @@
 import {useEffect,useRef,useState} from 'react';
-import {createOverswingAudio,nextMusicLevel} from './overswingAudio.js';
-import {readSoundPreferences,persistSoundPreferences} from './overswingSoundPreferences.js';
+import {createOverswingAudio,clampAudioVolume} from './overswingAudio.js';
+import {MUSIC_TRACKS} from './overswingTracks.js';
+import {readSoundPreferences,persistSoundPreferences}
+  from './overswingSoundPreferences.js';
 
-// One Web Audio context shared across map, preparation, quick play and journey.
-// Music never starts on a page load; only an explicit click enables playback.
+// One audio engine shared by the main page, preparation, quick game and journey.
+// A saved volume never autoplays: music begins only after a user gesture.
 export default function useOverswingSound(){
-  // Music is always OFF on page load. Autoplay is never inferred from storage.
-  const [musicLevel,setMusicLevel]=useState(0);
-  const musicOn=musicLevel>0;
-  const [sfxOn,setSfxOn]=useState(()=>{
-    if(typeof window==='undefined')return true;
-    return readSoundPreferences(window.localStorage).sfx;
-  });
-  const audioRef=useRef(null);
-  const tensionRef=useRef(.06);
-  const trackRef=useRef(0);
+  const [initial]=useState(()=>typeof window==='undefined'?
+    readSoundPreferences(null):readSoundPreferences(window.localStorage));
+  const [musicVolume,setMusicVolumeState]=useState(initial.musicVolume);
+  const [sfxVolume,setSfxVolumeState]=useState(initial.sfxVolume);
+  const [trackChoice,setTrackChoiceState]=useState(initial.trackChoice);
+  const [gateTrack,setGateTrack]=useState(0);
+  const [musicOn,setMusicOn]=useState(false);
+  const audioRef=useRef(null),tensionRef=useRef(.06);
+  const musicRef=useRef(initial.musicVolume),sfxRef=useRef(initial.sfxVolume);
+  const choiceRef=useRef(initial.trackChoice),gateRef=useRef(0);
+
+  const effectiveTrack=trackChoice??gateTrack;
+  const persist=()=>persistSoundPreferences(
+    typeof window==='undefined'?null:window.localStorage,{
+      musicVolume:musicRef.current,sfxVolume:sfxRef.current,
+      trackChoice:choiceRef.current
+    });
   const ensure=()=>{
     if(!audioRef.current){
       audioRef.current=createOverswingAudio();
-      audioRef.current.setTrack(trackRef.current);
+      audioRef.current.setTrack(choiceRef.current??gateRef.current);
+      audioRef.current.setSfxVolume(sfxRef.current);
       audioRef.current.setTension(tensionRef.current);
     }
     return audioRef.current;
   };
-  const toggleMusic=()=>{
-    const audio=ensure();
-    audio.setSfx(sfxOn);
-    // OFF -> NORMAL -> LOUD -> OFF. Volume updates never restart playback.
-    const next=audio.setMusicLevel(nextMusicLevel(musicLevel));
-    setMusicLevel(next);
-    persistSoundPreferences(typeof window==='undefined'?null:window.localStorage,{
-      music:next>0,sfx:sfxOn
-    });
-  };
-  const toggleSfx=()=>{
-    const enabled=!sfxOn,audio=ensure();
-    if(enabled)audio.unlock();
-    audio.setSfx(enabled);
-    setSfxOn(enabled);
-    persistSoundPreferences(typeof window==='undefined'?null:window.localStorage,{
-      music:musicOn,sfx:enabled
-    });
-  };
   const unlock=()=>{
     const audio=ensure();
-    audio.setSfx(sfxOn);
-    audio.unlock();
+    if(!audio.unlock())return false;
+    if(musicRef.current>0&&audio.musicVolume!==musicRef.current){
+      audio.setMusicVolume(musicRef.current);
+    }
+    setMusicOn(audio.musicOn);
+    return true;
+  };
+  const setMusicVolume=value=>{
+    const normalized=clampAudioVolume(Number(value));
+    musicRef.current=normalized;
+    setMusicVolumeState(normalized);
+    if(normalized===0){
+      audioRef.current?.setMusicVolume(0);
+      setMusicOn(false);
+    }else{
+      // Slider interaction is itself a user gesture; begin or adjust playback.
+      const audio=ensure();
+      setMusicOn(audio.setMusicVolume(normalized)>0);
+    }
+    persist();
+  };
+  const setSfxVolume=value=>{
+    const normalized=clampAudioVolume(Number(value));
+    sfxRef.current=normalized;
+    setSfxVolumeState(normalized);
+    audioRef.current?.setSfxVolume(normalized);
+    persist();
+  };
+  const setTrackChoice=value=>{
+    const next=value===null?null:Number(value);
+    if(next!==null&&(!Number.isInteger(next)||next<0||next>=MUSIC_TRACKS.length))
+      throw new RangeError('Unknown track selection');
+    choiceRef.current=next;
+    setTrackChoiceState(next);
+    const index=next??gateRef.current;
+    audioRef.current?.setTrack(index);
+    // Choosing a track while a saved music volume is >0 can start playback
+    // on this direct user interaction, with the same 1.8-second crossfade.
+    if(musicRef.current>0)unlock();
+    persist();
+  };
+  const setTrack=index=>{
+    gateRef.current=index;
+    setGateTrack(index);
+    if(choiceRef.current===null)audioRef.current?.setTrack(index);
   };
   const play=action=>audioRef.current?.play(action);
-  // Store the current danger without creating a new AudioContext or autoplay.
   const setTension=(value,options={})=>{
-    const normalized=Number.isFinite(value)?Math.max(0,Math.min(1,value)):.06;
+    const normalized=Number.isFinite(value)?
+      Math.max(0,Math.min(1,value)):.06;
     tensionRef.current=options.goalMet?.06:normalized;
     audioRef.current?.setTension(tensionRef.current,options);
-  };
-  // Gate selection is stored even when music is OFF. A playing track
-  // crossfades; a muted player starts the selected track on their next tap.
-  const setTrack=index=>{
-    trackRef.current=index;
-    audioRef.current?.setTrack(index);
   };
   useEffect(()=>{
     const visibility=()=>{
@@ -72,5 +100,7 @@ export default function useOverswingSound(){
       audioRef.current=null;
     };
   },[]);
-  return {musicOn,musicLevel,sfxOn,toggleMusic,toggleSfx,unlock,play,setTension,setTrack};
+  return {musicVolume,sfxVolume,musicOn,sfxOn:sfxVolume>0,
+    trackChoice,gateTrack,effectiveTrack,setMusicVolume,setSfxVolume,
+    setTrackChoice,setTrack,unlock,play,setTension};
 }

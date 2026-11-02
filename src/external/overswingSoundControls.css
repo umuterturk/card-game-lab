@@ -1,51 +1,181 @@
-/* Shared audio controls keep the main page minimalist and remain accessible. */
+/* One shared pixel-art settings button on the map and game board. */
 .os-sound-controls{
-  display:inline-flex;align-items:center;justify-content:center;gap:4px;
+  display:inline-flex;align-items:center;justify-content:center;
+  flex:0 0 auto
 }
-.os-sound-controls button.os8-audio-toggle{
-  min-width:34px;min-height:30px;padding:3px 5px;display:inline-flex;
-  flex-direction:column;align-items:center;justify-content:center;gap:2px;
-  color:#d0a997;background:#1d141a;border:1px solid #70412f;border-radius:2px;
-  box-shadow:2px 2px 0 #120c11;
-  font:19px/1 'VT323',monospace;cursor:pointer;touch-action:manipulation;
+.os-sound-controls button.os-audio-settings-trigger,
+.os8-head .os8-settings .os-sound-controls button.os-audio-settings-trigger,
+.os8-full .os8-settings .os-sound-controls button.os-audio-settings-trigger{
+  min-width:34px;min-height:33px;
+  padding:3px 4px!important;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:1px;
+  background:linear-gradient(150deg,#553522,#24171c);
+  border:2px solid #bb874a;border-radius:0;
+  box-shadow:inset 0 0 0 1px #191018,2px 2px 0 #10090d;
+  color:#ffe0a0;cursor:pointer;touch-action:manipulation
 }
-.os-sound-controls button.os8-audio-toggle span{font:10px/1 'VT323',monospace}
-.os-sound-controls button.os8-audio-toggle.on{
-  border-color:#d89f4e;color:#ffe0a2;background:#58321e;
-  text-shadow:0 0 8px #f4a94c80;
+.os-audio-gear-icon{
+  width:18px;height:18px;color:#ffd488;
+  filter:drop-shadow(1px 1px 0 #1b1015);
 }
-.os-sound-controls button.os8-audio-toggle.off{opacity:.72}
-.os-sound-controls button.os8-audio-toggle:focus-visible{
-  outline:2px solid #ffe0a2;outline-offset:2px
+.os-sound-controls button.os-audio-settings-trigger span{
+  font:9px/1 'VT323',monospace;letter-spacing:.08em;color:#ffe2ac
 }
-.oj-home .oj-main-audio{
-  position:absolute;right:6px;top:3px;z-index:8;
+.os-sound-controls button.os-audio-settings-trigger:hover,
+.os-sound-controls button.os-audio-settings-trigger[aria-expanded="true"]{
+  border-color:#f4c06f;background:#6b411f
 }
-.oj-home .oj-main-audio button.os8-audio-toggle{
-  min-width:31px;min-height:29px;background:#170f16d9
+.os-sound-controls button.os-audio-settings-trigger:focus-visible{
+  outline:3px solid #ffe4a1;outline-offset:3px
 }
-@media(max-width:370px){
- .oj-home .oj-main-audio{right:2px;top:2px;gap:2px}
- .oj-home .oj-main-audio button.os8-audio-toggle{min-width:28px;min-height:26px;padding:2px 3px}
+.os-sound-controls button.os-audio-settings-trigger:active{
+  transform:translate(1px,1px);box-shadow:inset 0 0 0 1px #191018
 }
-
-/* Homepage title styles assign position to all direct children; win specificity
-   so the audio toggles remain tucked away at top-right. */
 .oj-home .oj-title .oj-main-audio{
   position:absolute;right:6px;top:3px;z-index:8
 }
-@media(max-width:370px){
+.oj-home .oj-main-audio button.os-audio-settings-trigger{
+  min-width:32px;min-height:31px
+}
+@media(max-width:390px){
   .oj-home .oj-title .oj-main-audio{right:2px;top:2px}
+  .os8-head .os8-settings .os-sound-controls button.os-audio-settings-trigger,
+  .os8-full .os8-settings .os-sound-controls button.os-audio-settings-trigger{
+    min-width:27px;min-height:27px;padding:1px 2px!important
+  }
+  .os-audio-gear-icon{width:16px;height:16px}
+  .os-sound-controls button.os-audio-settings-trigger span{font-size:8px}
 }
 
-/* Third music-button state: LOUD is distinct and still fits compact phones. */
-.os-sound-controls button.os8-audio-toggle.loud{
-  border-color:#ffd078;color:#fff3c1;background:#764221;
-  box-shadow:2px 2px 0 #120c11,0 0 9px #f6ac4d77
+/* Portal sits above flying cards, impact overlays and all other feedback. */
+.os-audio-modal-backdrop{
+  position:fixed;inset:0;z-index:5000;
+  display:flex;align-items:center;justify-content:center;
+  padding:calc(12px + env(safe-area-inset-top)) 12px
+    calc(12px + env(safe-area-inset-bottom));
+  background:#09050ddc;backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px)
 }
-.os-sound-controls button.os8-audio-toggle.loud span{
-  font-size:9px;font-weight:bold;letter-spacing:-.25px
+.os-audio-modal-backdrop *{box-sizing:border-box}
+.os-audio-modal{
+  width:min(390px,100%);max-height:calc(100dvh - 24px);
+  overflow-y:auto;overscroll-behavior:contain;
+  padding:16px 14px 12px;
+  background:
+    repeating-linear-gradient(0deg,transparent 0 15px,#f6af3210 15px 16px),
+    linear-gradient(145deg,#432b2b,#221720 55%,#130e17);
+  border:4px solid #c18a4d;
+  box-shadow:inset 0 0 0 2px #1d121b,inset 0 0 0 4px #765032,
+    5px 6px 0 #09060b,0 0 26px #ef8b2d35;
+  color:#ffe6b5;font-family:'VT323',monospace
 }
-.oj-home .oj-main-audio button.os8-audio-toggle.loud{
-  background:#633a24dd
+.os-audio-modal-title{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:10px;padding-bottom:13px;margin-bottom:13px;
+  border-bottom:2px solid #7e4f35
+}
+.os-audio-kicker{
+  display:block;margin-bottom:8px;
+  font:8px/1.5 var(--pixel,'VT323',monospace);
+  letter-spacing:.03em;color:#db9e68
+}
+.os-audio-modal-title h2{
+  margin:0;font:clamp(13px,4vw,17px)/1.5 var(--pixel,'VT323',monospace);
+  color:#ffe39d;text-shadow:2px 2px #7d3425
+}
+.os-audio-modal button.os-audio-close{
+  flex:none;width:36px;height:34px;padding:0;
+  border:2px solid #9e643a;border-radius:0;
+  background:#2a1a20;color:#ffd8b6;
+  font:24px/1 'VT323',monospace;cursor:pointer
+}
+.os-audio-select-section{margin-bottom:16px}
+.os-audio-select-section>label,.os-audio-volume label{
+  display:block;font:11px/1.4 var(--pixel,'VT323',monospace);
+  color:#f2c889
+}
+.os-audio-select-section select{
+  width:100%;min-height:46px;margin-top:7px;
+  padding:9px 10px;
+  background:#1b151d;color:#ffe5b5;
+  border:2px solid #b57c43;border-radius:0;
+  font:19px/1 'VT323',monospace;cursor:pointer
+}
+.os-audio-select-section option{background:#251721;color:#ffe3ae}
+.os-audio-current-track{
+  margin:9px 0 0;color:#c9a48a;
+  font:15px/1.2 'VT323',monospace
+}
+.os-audio-current-track strong{color:#ffdf8e;font-weight:normal}
+.os-audio-hint{
+  margin:6px 0 0;color:#c9a18d;
+  font:14px/1.1 'VT323',monospace
+}
+.os-audio-volume{margin:17px 0}
+.os-audio-volume-head{
+  display:flex;align-items:baseline;justify-content:space-between;gap:10px
+}
+.os-audio-volume-head output{
+  color:#ffcf77;font:23px/1 'VT323',monospace;
+  font-variant-numeric:tabular-nums
+}
+.os-audio-volume input[type=range]{
+  width:100%;height:36px;margin:7px 0 0;
+  padding:0;appearance:none;-webkit-appearance:none;
+  border:0;outline:none;cursor:pointer;
+  background:transparent
+}
+.os-audio-volume input[type=range]::-webkit-slider-runnable-track{
+  height:9px;
+  background:linear-gradient(to right,#ffcc74 0 var(--audio-progress),
+    #4a3439 var(--audio-progress) 100%);
+  border:1px solid #a37446;box-shadow:2px 2px 0 #0e0a10
+}
+.os-audio-volume input[type=range]::-moz-range-track{
+  height:9px;
+  background:linear-gradient(to right,#ffcc74 0 var(--audio-progress),
+    #4a3439 var(--audio-progress) 100%);
+  border:1px solid #a37446;box-shadow:2px 2px 0 #0e0a10
+}
+.os-audio-volume input[type=range]::-webkit-slider-thumb{
+  appearance:none;-webkit-appearance:none;
+  width:23px;height:25px;margin-top:-9px;
+  border:3px solid #ffe1a3;border-radius:0;
+  background:#a56831;box-shadow:2px 2px 0 #130b10
+}
+.os-audio-volume input[type=range]::-moz-range-thumb{
+  width:23px;height:25px;border:3px solid #ffe1a3;
+  border-radius:0;background:#a56831;box-shadow:2px 2px 0 #130b10
+}
+.os-audio-volume input[type=range]:focus-visible{
+  outline:2px solid #ffe7b3;outline-offset:2px
+}
+.os-audio-range-labels{
+  display:flex;justify-content:space-between;color:#ac8b7a;
+  font:13px/1 'VT323',monospace
+}
+.os-audio-note{
+  margin:14px 0;color:#d3a993;
+  font:15px/1.15 'VT323',monospace
+}
+.os-audio-modal button.os-audio-done{
+  width:100%;min-height:45px;padding:8px;
+  color:#23121b;background:linear-gradient(180deg,#ffda8e,#c89148);
+  border:3px solid #f6d18f;border-radius:0;
+  box-shadow:inset 0 -3px #7e4826,3px 3px 0 #0a050b;
+  font:11px/1.4 var(--pixel,'VT323',monospace);
+  cursor:pointer
+}
+.os-audio-modal button:focus-visible,
+.os-audio-modal select:focus-visible{
+  outline:3px solid #ffe1a3;outline-offset:2px
+}
+@media(max-height:600px){
+  .os-audio-modal{padding:10px 12px}
+  .os-audio-select-section{margin-bottom:8px}
+  .os-audio-volume{margin:10px 0}
+  .os-audio-modal-title{margin-bottom:8px;padding-bottom:8px}
+}
+@media(prefers-reduced-motion:reduce){
+  .os-audio-modal-backdrop{backdrop-filter:none;-webkit-backdrop-filter:none}
 }

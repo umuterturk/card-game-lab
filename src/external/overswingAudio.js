@@ -42,6 +42,18 @@ export function nextMusicLevel(level){
   if(!Number.isInteger(level)||level<0||level>2)throw new RangeError('Invalid music level');
   return (level+1)%3;
 }
+// User-facing 0–100 sliders. A quadratic music curve keeps quiet levels useful,
+// while 100 retains the previous LOUD setting and dynamics protection.
+export function clampAudioVolume(value){
+  if(!Number.isFinite(value))throw new RangeError('Invalid audio volume');
+  return Math.min(100,Math.max(0,Math.round(value)));
+}
+export function musicGainForVolume(value){
+  return +(MUSIC_VOLUMES[2]*(clampAudioVolume(value)/100)**2).toFixed(6);
+}
+export function sfxGainForVolume(value){
+  return +(.85*(clampAudioVolume(value)/100)**1.6).toFixed(6);
+}
 export function scoreNoteAt(step,trackId=0){
   const symbol=trackNoteAt(step,trackId);
   return symbol?PITCH[symbol]:null;
@@ -50,6 +62,7 @@ export function scoreNoteAt(step,trackId=0){
 export function createOverswingAudio(host=typeof window!=='undefined'?window:null){
   let context=null,master=null,musicBus=null,sfxBus=null,timer=null,trackBuses=null;
   let nextStep=0,nextAt=0,musicOn=false,sfxOn=true,noise=null;
+  let musicVolume=0,sfxVolume=100;
   let targetTension=.12,smoothedTension=.12,activeGroove=0;
   let currentTempo=60,musicLevel=0;
   let selectedTrack=0,requestedTrack=0,crossfade=null,goalResolved=false;
@@ -61,7 +74,7 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     context=new AudioContext();
     master=context.createGain();master.gain.value=.32;
     musicBus=context.createGain();musicBus.gain.value=0;
-    sfxBus=context.createGain();sfxBus.gain.value=.85;
+    sfxBus=context.createGain();sfxBus.gain.value=sfxGainForVolume(sfxVolume);
     // Each track has its own channel under the music bus. The outgoing and
     // incoming themes are rendered simultaneously only during a crossfade.
     // The limiter continues protecting the combined music + SFX output.
@@ -264,7 +277,7 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     }
   }
   function stopMusic(){
-    musicOn=false;musicLevel=0;
+    musicOn=false;musicLevel=0;musicVolume=0;
     if(timer!==null){host?.clearInterval(timer);timer=null;}
     // OFF cancels any pending fade; next ON starts cleanly on the requested
     // theme without leaving muted channels running in the background.
@@ -281,15 +294,17 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
       musicBus.gain.setTargetAtTime(0,context.currentTime,.025);
     }
   }
-  function setMusicLevel(level){
-    if(!Number.isInteger(level)||level<0||level>2)
-      throw new RangeError('Music volume must be OFF, ON or LOUD');
-    if(level===0){stopMusic();return 0;}
+  function setMusicVolume(value){
+    const normalized=clampAudioVolume(value);
+    if(normalized===0){stopMusic();return 0;}
     if(!unlock())return 0;
-    musicOn=true;musicLevel=level;
+    musicOn=true;musicVolume=normalized;
+    musicLevel=normalized<=50?1:2;
     musicBus.gain.cancelScheduledValues(context.currentTime);
-    // Smooth gain only; switching ON -> LOUD does not restart the riff.
-    musicBus.gain.setTargetAtTime(MUSIC_VOLUMES[level],context.currentTime,.08);
+    // No restarting the melody: move just the gain while the same scheduler
+    // continues. 50% equals the former ON gain; 100% equals former LOUD.
+    musicBus.gain.setTargetAtTime(musicGainForVolume(normalized),
+      context.currentTime,.06);
     if(timer===null){
       nextStep=0;nextAt=context.currentTime+.05;
       activeGroove=grooveForTension(targetTension);
@@ -306,11 +321,27 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
       schedule();
       timer=host.setInterval(schedule,80);
     }
+    return musicVolume;
+  }
+  // Preserve API compatibility for older callers and existing game tests.
+  function setMusicLevel(level){
+    if(!Number.isInteger(level)||level<0||level>2)
+      throw new RangeError('Music volume must be OFF, ON or LOUD');
+    setMusicVolume([0,50,100][level]);
     return musicLevel;
   }
-  // Keep existing callers/tests working: setMusic(true) is normal volume.
   function setMusic(enabled){return setMusicLevel(enabled?1:0)>0;}
-  function setSfx(enabled){sfxOn=!!enabled;}
+  function setSfxVolume(value){
+    sfxVolume=clampAudioVolume(value);
+    sfxOn=sfxVolume>0;
+    if(context&&sfxBus){
+      sfxBus.gain.cancelScheduledValues(context.currentTime);
+      sfxBus.gain.setTargetAtTime(sfxGainForVolume(sfxVolume),
+        context.currentTime,.035);
+    }
+    return sfxVolume;
+  }
+  function setSfx(enabled){return setSfxVolume(enabled?100:0)>0;}
   function setTension(value,options={}){
     targetTension=Math.max(0,Math.min(1,Number.isFinite(value)?value:.12));
     if(options?.goalMet){
@@ -427,13 +458,15 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     context=null;master=null;musicBus=null;sfxBus=null;noise=null;
     trackBuses=null;crossfade=null;
   }
-  return {unlock,play,setMusic,setMusicLevel,setSfx,setTension,
-    setTrack,suspend,resume,dispose,
+  return {unlock,play,setMusic,setMusicLevel,setMusicVolume,
+    setSfx,setSfxVolume,setTension,setTrack,suspend,resume,dispose,
     get tension(){return targetTension;},
     get trackId(){return requestedTrack;},
     get trackName(){return MUSIC_TRACKS[requestedTrack].name;},
     get crossfading(){return !!crossfade;},
     get musicLevel(){return musicLevel;},
+    get musicVolume(){return musicVolume;},
+    get sfxVolume(){return sfxVolume;},
     get currentTempo(){return currentTempo;},
     get grooveLevel(){return activeGroove;},
     get grooveName(){return MUSIC_GROOVES[activeGroove].name;},

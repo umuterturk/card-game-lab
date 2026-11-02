@@ -175,10 +175,12 @@ test('STEER source, retro SFX controls, Bank fountain and gate-clear timing are 
   const controls=read('OverswingSoundControls.jsx');
   const hook=read('useOverswingSound.js');
   assert.match(jsx,/OverswingSoundControls sound=\{sound\}/);
-  assert.match(controls,/onClick=\{sound\.toggleMusic\}/);
-  assert.match(controls,/onClick=\{sound\.toggleSfx\}/);
-  assert.match(controls,/aria-pressed=\{sound\.musicLevel>0\}/);
-  assert.match(controls,/aria-pressed=\{sound\.sfxOn\}/);
+  assert.match(controls,/aria-label="Music and sound settings"/);
+  assert.match(controls,/role="dialog"/);
+  assert.match(controls,/sound\.setTrackChoice/);
+  assert.match(controls,/onChange=\{sound\.setMusicVolume\}/);
+  assert.match(controls,/onChange=\{sound\.setSfxVolume\}/);
+  assert.doesNotMatch(controls,/sound\.toggleMusic|sound\.toggleSfx/);
   assert.match(hook,/createOverswingAudio\(/);
   assert.match(hook,/audioRef\.current\?\.dispose\(\)/);
   assert.match(journey,/setBankTransition\(true\)/);
@@ -189,6 +191,6 @@ test('STEER source, retro SFX controls, Bank fountain and gate-clear timing are 
   assert.match(css,/os8-steer-to-snap/);
   assert.match(css,/os8-bank-coin-flight 910ms steps\(13,end\)/);
   assert.match(css,/os8-bank-burst-lifetime 1400ms/);
-  assert.match(css,/os8-audio-toggle/);
+  assert.match(read('overswingSoundControls.css'),/os-audio-settings-trigger/);
   assert.match(css,/prefers-reduced-motion:reduce/);
 });
