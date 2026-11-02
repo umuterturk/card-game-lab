@@ -55,3 +55,13 @@
    animation:none!important;will-change:auto!important
  }
 }
+
+
+/* Volumetric-looking but inexpensive low-resolution flame/smoke behind the route. */
+.ocm-map{isolation:isolate}
+.ocm-map-doom-fire{position:absolute;left:0;right:0;bottom:0;
+  width:100%;height:68%;opacity:.42;z-index:0;pointer-events:none;
+  mask-image:linear-gradient(to top,#000 40%,transparent 100%)}
+.ocm-map .ocm-path{z-index:1}
+.ocm-map .ocm-node{z-index:2}
+@media(prefers-reduced-motion:reduce){.ocm-map-doom-fire{opacity:.25}}

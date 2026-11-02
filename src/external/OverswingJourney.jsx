@@ -2,6 +2,7 @@ import React,{useEffect,useState} from 'react';
 import {createPortal} from 'react-dom';
 import OverswingPlay from './OverswingPlay.jsx';
 import OverswingCampaignMap from './OverswingCampaignMap.jsx';
+import DoomFire from './DoomFire.jsx';
 import {campaignNextLevel,campaignLevel} from './overswingCampaign.js';
 import {LAST_FLAME,LAST_FLAME_RELICS} from './overswingJourneyContent.js';
 import {
@@ -223,7 +224,9 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
     <OverswingPlay s={quickState} act={quickAct} restart={quickRestart} fullView={fullView}/>
   </div>;
   if(!run||view==='menu'||view==='map')return <main className="oj-shell oj-home oj-map-home">
-    <header className="oj-title"><span className="oj-flame" aria-hidden="true">♨</span>
+    <header className="oj-title">
+      <DoomFire className="oj-title-doom-fire" width={62} height={34}/>
+      <span className="oj-flame" aria-hidden="true">♨</span>
       <p className="oj-eyebrow">THE LAST FLAME · CAMPAIGN</p><h1>OVER<span>SWING</span></h1>
       <p className="oj-subtitle">FOLLOW THE FLAME TRAIL</p></header>
     <GoldProgress progress={progress}/>

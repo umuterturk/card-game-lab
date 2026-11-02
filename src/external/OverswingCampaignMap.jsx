@@ -1,6 +1,7 @@
 import React,{useEffect,useState} from 'react';
 import {CAMPAIGN_LEVELS,campaignNextLevel,campaignRuleLabels} from './overswingCampaign.js';
 import './overswingCampaignMap.css';
+import DoomFire from './DoomFire.jsx';
 
 // Six visible stops per page: a compact portrait winding path, not a scrolling list.
 const PAGE_SIZE=6;
@@ -18,6 +19,7 @@ export default function OverswingCampaignMap({progress,selected,onSelect,onStart
       <span>THE FLAME TRAIL</span><strong>{CAMPAIGN_LEVELS.filter(level=>clearSet.has(level.id)).length} / {CAMPAIGN_LEVELS.length} CLEARED</strong>
     </div>
     <div className="ocm-map" role="group" aria-label={'Chapter '+(page+1)+' of 2'}>
+      <DoomFire className="ocm-map-doom-fire" width={88} height={38}/>
       <svg aria-hidden="true" className="ocm-path" preserveAspectRatio="none" viewBox="0 0 100 100">
         <path d="M22 88 L78 73 L22 58 L78 43 L22 28 L78 13" fill="none" stroke="#5b4431" strokeWidth="2" strokeLinecap="round" strokeDasharray="2 3"/>
         <path d="M22 88 L78 73 L22 58 L78 43 L22 28 L78 13" fill="none" stroke="#d28d3d" strokeWidth=".7" strokeLinecap="round"/>

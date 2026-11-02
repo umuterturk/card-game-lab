@@ -289,3 +289,13 @@ button.oj-relic:disabled .oj-relic-pick{color:#b09e8a}
   .oj-home .oj-flame,.oj-home .oj-title h1,.oj-home .oj-royal-symbol,
   .oj-home .oj-wild-stock strong{animation:none!important;will-change:auto!important}
 }
+
+
+/* Algorithmic Doom fire behind the homepage flame icon: no layout cost. */
+.oj-title{position:relative;isolation:isolate}
+.oj-title-doom-fire{position:absolute;top:-12px;left:50%;transform:translateX(-50%);
+  width:clamp(145px,38vw,210px);height:138px;z-index:0;opacity:.67;
+  mask-image:linear-gradient(to top,#000 50%,transparent 100%)}
+.oj-title>*:not(.os8-doom-fire){position:relative;z-index:1}
+@media(max-height:690px){.oj-title-doom-fire{height:105px;top:-10px}}
+@media(prefers-reduced-motion:reduce){.oj-title-doom-fire{opacity:.42}}
