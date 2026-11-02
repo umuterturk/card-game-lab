@@ -3,6 +3,20 @@
 // Patterns express half-time, driving, double-time and frantic rhythms.
 export const STEPS_PER_BAR=16;
 export const GROOVE_NAMES=Object.freeze(['DREAD','PULSE','PURSUIT','PANIC']);
+/* Actual quarter-note tempos. Low tension is an ominous 60 BPM, not merely
+   half-time drums played over a fast 132 BPM riff. */
+export const GROOVE_TEMPOS=Object.freeze([60,82,108,132]);
+export function tempoForGroove(level){
+  if(!Number.isInteger(level)||level<0||level>=GROOVE_TEMPOS.length)
+    throw new RangeError('Invalid groove tempo');
+  return GROOVE_TEMPOS[level];
+}
+export function approachTempo(current,target,maxDelta=2){
+  if(!Number.isFinite(current)||!Number.isFinite(target)||
+     !Number.isFinite(maxDelta)||maxDelta<=0)throw new RangeError('Invalid tempo ramp');
+  return current+Math.max(-maxDelta,Math.min(maxDelta,target-current));
+}
+
 const freezePattern=arr=>Object.freeze([...arr]);
 const pattern=(name,drums)=>Object.freeze({
   name,

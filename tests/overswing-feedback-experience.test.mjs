@@ -138,7 +138,10 @@ test('main menu and gameplay share sound controls, with explicit opt-in and pers
   assert.match(map,/sound=\{sound\}/);
   assert.match(play,/OverswingSoundControls sound=\{sound\}/);
   assert.match(play,/sound\?\.play\(s\.lastAction\)/);
-  assert.match(hook,/const \[musicOn,setMusicOn\]=useState\(false\)/);
+  assert.match(hook,/const \[musicLevel,setMusicLevel\]=useState\(0\)/);
+  assert.match(hook,/const musicOn=musicLevel>0/);
+  assert.match(hook,/setMusicLevel\(nextMusicLevel\(musicLevel\)\)/);
+  assert.match(component,/sound\.musicLevel===2\?'LOUD'/);
   assert.match(hook,/readSoundPreferences\(window\.localStorage\)/);
   assert.match(hook,/audioRef\.current\?\.dispose/);
   assert.match(component,/onClick=\{sound\.toggleMusic\}/);

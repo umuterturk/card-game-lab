@@ -1,11 +1,13 @@
 import {useEffect,useRef,useState} from 'react';
-import {createOverswingAudio} from './overswingAudio.js';
+import {createOverswingAudio,nextMusicLevel} from './overswingAudio.js';
 import {readSoundPreferences,persistSoundPreferences} from './overswingSoundPreferences.js';
 
 // One Web Audio context shared across map, preparation, quick play and journey.
 // Music never starts on a page load; only an explicit click enables playback.
 export default function useOverswingSound(){
-  const [musicOn,setMusicOn]=useState(false);
+  // Music is always OFF on page load. Autoplay is never inferred from storage.
+  const [musicLevel,setMusicLevel]=useState(0);
+  const musicOn=musicLevel>0;
   const [sfxOn,setSfxOn]=useState(()=>{
     if(typeof window==='undefined')return true;
     return readSoundPreferences(window.localStorage).sfx;
@@ -22,10 +24,11 @@ export default function useOverswingSound(){
   const toggleMusic=()=>{
     const audio=ensure();
     audio.setSfx(sfxOn);
-    const enabled=audio.setMusic(!musicOn);
-    setMusicOn(enabled);
+    // OFF -> NORMAL -> LOUD -> OFF. Volume updates never restart playback.
+    const next=audio.setMusicLevel(nextMusicLevel(musicLevel));
+    setMusicLevel(next);
     persistSoundPreferences(typeof window==='undefined'?null:window.localStorage,{
-      music:enabled,sfx:sfxOn
+      music:next>0,sfx:sfxOn
     });
   };
   const toggleSfx=()=>{
@@ -61,5 +64,5 @@ export default function useOverswingSound(){
       audioRef.current=null;
     };
   },[]);
-  return {musicOn,sfxOn,toggleMusic,toggleSfx,unlock,play,setTension};
+  return {musicOn,musicLevel,sfxOn,toggleMusic,toggleSfx,unlock,play,setTension};
 }

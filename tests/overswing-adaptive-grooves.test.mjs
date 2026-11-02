@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {
   GROOVE_NAMES,MUSIC_GROOVES,STEPS_PER_BAR,GROOVE_UP,GROOVE_DOWN,
-  grooveForTension,nextGroove,grooveEvents
+  grooveForTension,nextGroove,grooveEvents,GROOVE_TEMPOS,
+  tempoForGroove,approachTempo
 } from '../src/external/overswingGrooves.js';
 import {overswingTension,musicLayerMix} from '../src/external/overswingTension.js';
 import {MUSIC_TEMPO,MUSIC_RIFF,scoreNoteAt,createOverswingAudio}
@@ -16,7 +17,14 @@ const hits=(tier,kind,bar=0)=>Array.from({length:16},(_,step)=>
 
 test('Four unmistakably different beats run on the exact same rhythmic grid',()=>{
   assert.equal(STEPS_PER_BAR,16);
-  assert.equal(MUSIC_TEMPO,132);
+  assert.equal(MUSIC_TEMPO,132,'maximum tension tempo is unchanged');
+  assert.deepEqual(GROOVE_TEMPOS,[60,82,108,132]);
+  assert.equal(tempoForGroove(0),60);
+  assert.equal(tempoForGroove(3),132);
+  assert.throws(()=>tempoForGroove(4),RangeError);
+  assert.equal(approachTempo(60,82),62);
+  assert.equal(approachTempo(110,60),108);
+  assert.equal(approachTempo(60,60),60);
   assert.deepEqual(GROOVE_NAMES,['DREAD','PULSE','PURSUIT','PANIC']);
   assert.deepEqual(MUSIC_GROOVES.map(g=>g.name),GROOVE_NAMES);
   assert.deepEqual(hits(0,'kick'),[0,10]);
@@ -87,13 +95,15 @@ test('Music arrangement responds to genuine danger, not extra volume',()=>{
   assert.ok(b.menace/a.menace<1.17);
 });
 
-test('Original riff and tempo are preserved in all arrangements and every repeat',()=>{
+test('Original riff stays unchanged while bar tempo changes smoothly with groove',()=>{
   assert.equal(MUSIC_RIFF.length,4);
   assert.ok(MUSIC_RIFF.every(bar=>bar.length===16));
   for(let i=0;i<256;i++)assert.equal(scoreNoteAt(i),scoreNoteAt(i%64));
   const audio=file('overswingAudio.js');
   assert.match(audio,/const note=scoreNoteAt\(step\)/);
-  assert.match(audio,/nextAt\+=60\/MUSIC_TEMPO\/4/);
+  assert.match(audio,/nextAt\+=60\/currentTempo\/4/);
+  assert.match(audio,/currentTempo=approachTempo\(currentTempo,tempoForGroove\(activeGroove\)\)/);
+  assert.match(audio,/const beat=60\/currentTempo/);
   assert.match(audio,/smoothedTension\+=\.09\*\(targetTension-smoothedTension\)/);
   assert.match(audio,/if\(local===0\)activeGroove=nextGroove\(activeGroove,targetTension\)/);
   assert.doesNotMatch(audio,/nextStep=0;nextAt=context.currentTime.*setTension/);
@@ -134,26 +144,39 @@ test('Audio actually changes grooves during playback, only at musical boundaries
   assert.equal(audio.setMusic(true),true);
   assert.equal(audio.grooveName,'DREAD');
   assert.equal(intervals.size,1);
-  const advance=seconds=>{
-    for(let i=0;i<seconds/.08;i++){
+  assert.equal(audio.currentTempo,60,'calm starts with a genuinely slow musical clock');
+  const advanceTo=(expected,maxSeconds=12)=>{
+    const start=currentTime;
+    while(audio.grooveName!==expected&&currentTime-start<maxSeconds){
       currentTime+=.08;
       for(const fn of intervals.values())fn();
     }
+    assert.equal(audio.grooveName,expected);
+    return currentTime-start;
   };
+  const firstStep=audio.currentTempo;
   audio.setTension(.98);
-  advance(1.95);
-  assert.equal(audio.grooveName,'PULSE');
-  advance(1.85);
-  assert.equal(audio.grooveName,'PURSUIT');
-  advance(1.84);
-  assert.equal(audio.grooveName,'PANIC');
+  const dreadDuration=advanceTo('PULSE');
+  assert.ok(dreadDuration>3.4,
+    'first DREAD bar must be much slower than an original 132 BPM bar');
+  assert.ok(audio.currentTempo<=firstStep+2,
+    'tempo begins ramping at the boundary, it does not jump to 82');
+  const pulseDuration=advanceTo('PURSUIT');
+  const pursuitDuration=advanceTo('PANIC');
+  assert.ok(pulseDuration<dreadDuration);
+  assert.ok(pursuitDuration<pulseDuration);
+  // ON -> LOUD should not reset the timer, riff or groove state.
+  const beforeLevel=audio.grooveName;
+  const beforeCount=intervals.size;
+  assert.equal(audio.setMusicLevel(2),2);
+  assert.equal(audio.musicLevel,2);
+  assert.equal(audio.grooveName,beforeLevel);
+  assert.equal(intervals.size,beforeCount);
   audio.setTension(0);
-  advance(1.85);
-  assert.equal(audio.grooveName,'PURSUIT');
-  advance(1.85);
-  assert.equal(audio.grooveName,'PULSE');
-  advance(1.85);
-  assert.equal(audio.grooveName,'DREAD');
+  advanceTo('PURSUIT');
+  advanceTo('PULSE');
+  advanceTo('DREAD');
+  assert.equal(audio.grooveLevel,0);
   assert.equal(contexts,1,'same AudioContext across every groove');
   audio.setMusic(false);
   assert.equal(intervals.size,0);

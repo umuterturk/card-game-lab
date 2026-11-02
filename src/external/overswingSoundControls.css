@@ -37,3 +37,15 @@
 @media(max-width:370px){
   .oj-home .oj-title .oj-main-audio{right:2px;top:2px}
 }
+
+/* Third music-button state: LOUD is distinct and still fits compact phones. */
+.os-sound-controls button.os8-audio-toggle.loud{
+  border-color:#ffd078;color:#fff3c1;background:#764221;
+  box-shadow:2px 2px 0 #120c11,0 0 9px #f6ac4d77
+}
+.os-sound-controls button.os8-audio-toggle.loud span{
+  font-size:9px;font-weight:bold;letter-spacing:-.25px
+}
+.oj-home .oj-main-audio button.os8-audio-toggle.loud{
+  background:#633a24dd
+}

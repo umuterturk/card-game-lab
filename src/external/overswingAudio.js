@@ -3,7 +3,8 @@
 // Audio starts solely after a player's gesture and is cleaned up on unmount.
 import {multiplierFeedbackForAction,potCrackForAction} from './overswingFeedback.js';
 import {musicLayerMix} from './overswingTension.js';
-import {grooveForTension,nextGroove,grooveEvents,MUSIC_GROOVES} from './overswingGrooves.js';
+import {grooveForTension,nextGroove,grooveEvents,MUSIC_GROOVES,
+  tempoForGroove,approachTempo} from './overswingGrooves.js';
 
 export const AUDIO_CUES=Object.freeze(['flip','steer','zero','snap','bank']);
 export const BONUS_AUDIO_CUES=Object.freeze(['jackpot','swing','flipTier','potCrack']);
@@ -12,6 +13,13 @@ export function bonusAudioCuesForAction(action){
   const feedback=multiplierFeedbackForAction(action);
   if(!feedback)return [];
   return [feedback.kind==='flip'?'flipTier':feedback.kind];
+}
+// Ground impacts follow a real Pot loss, never an ordinary SNAP or shield save.
+// Bigger lost payouts produce a slightly longer cascade, safely capped for mobile.
+export function lostCoinClinkCount(action){
+  if(!potCrackForAction(action))return 0;
+  const amount=Math.max(0,Number(action.lostPayout)||0);
+  return Math.min(12,4+Math.round(2*Math.log10(1+amount)));
 }
 export function audioCueForAction(action){
   if(!action)return null;
@@ -22,7 +30,15 @@ export function audioCueForAction(action){
   return action.type;
 }
 const PITCH=Object.freeze({E:82.41,F:87.31,G:98,A:110,B:123.47,C:130.81,D:146.83});
+// The maximum tension tempo; actual scheduling uses the selected groove BPM.
 export const MUSIC_TEMPO=132;
+// Normal is a little louder than the old 0.70 setting. LOUD is +~2.2 dB.
+// Applied to musicBus only, leaving SFX at their previous level.
+export const MUSIC_VOLUMES=Object.freeze([0,.80,1.03]);
+export function nextMusicLevel(level){
+  if(!Number.isInteger(level)||level<0||level>2)throw new RangeError('Invalid music level');
+  return (level+1)%3;
+}
 export const MUSIC_RIFF=Object.freeze([
   Object.freeze(['E',null,'E','G','E',null,'F','E','B',null,'G','F','E',null,'D','B']),
   Object.freeze(['E',null,'E','A','G','E','F',null,'D','E','G','F','E','B',null,'E']),
@@ -40,6 +56,7 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
   let context=null,master=null,musicBus=null,sfxBus=null,timer=null;
   let nextStep=0,nextAt=0,musicOn=false,sfxOn=true,noise=null;
   let targetTension=.12,smoothedTension=.12,activeGroove=0;
+  let currentTempo=60,musicLevel=0;
   const canPlay=()=>!!(host&&(host.AudioContext||host.webkitAudioContext));
   const ctx=()=>{
     if(context||!canPlay())return context;
@@ -99,7 +116,8 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     const groove=grooveEvents(activeGroove,step,bar);
     const layers=musicLayerMix(smoothedTension);
     const note=scoreNoteAt(step);
-    const beat=60/MUSIC_TEMPO;
+    currentTempo=approachTempo(currentTempo,tempoForGroove(activeGroove));
+    const beat=60/currentTempo;
     const sixteenth=beat/4;
     const root=PITCH[['E','E','C','B'][bar%4]];
 
@@ -160,32 +178,38 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     let max=0;
     while(nextAt<now+.22&&max++<7){
       scheduleStep(nextStep++,nextAt);
-      nextAt+=60/MUSIC_TEMPO/4;
+      nextAt+=60/currentTempo/4;
     }
   }
   function stopMusic(){
-    musicOn=false;
+    musicOn=false;musicLevel=0;
     if(timer!==null){host?.clearInterval(timer);timer=null;}
     if(musicBus&&context){
       musicBus.gain.cancelScheduledValues(context.currentTime);
       musicBus.gain.setTargetAtTime(0,context.currentTime,.025);
     }
   }
-  function setMusic(enabled){
-    if(!enabled){stopMusic();return false;}
-    if(!unlock())return false;
-    musicOn=true;
+  function setMusicLevel(level){
+    if(!Number.isInteger(level)||level<0||level>2)
+      throw new RangeError('Music volume must be OFF, ON or LOUD');
+    if(level===0){stopMusic();return 0;}
+    if(!unlock())return 0;
+    musicOn=true;musicLevel=level;
     musicBus.gain.cancelScheduledValues(context.currentTime);
-    musicBus.gain.setTargetAtTime(.70,context.currentTime,.04);
+    // Smooth gain only; switching ON -> LOUD does not restart the riff.
+    musicBus.gain.setTargetAtTime(MUSIC_VOLUMES[level],context.currentTime,.08);
     if(timer===null){
       nextStep=0;nextAt=context.currentTime+.05;
       activeGroove=grooveForTension(targetTension);
       smoothedTension=targetTension;
+      currentTempo=tempoForGroove(activeGroove);
       schedule();
       timer=host.setInterval(schedule,80);
     }
-    return true;
+    return musicLevel;
   }
+  // Keep existing callers/tests working: setMusic(true) is normal volume.
+  function setMusic(enabled){return setMusicLevel(enabled?1:0)>0;}
   function setSfx(enabled){sfxOn=!!enabled;}
   function setTension(value){
     targetTension=Math.max(0,Math.min(1,Number.isFinite(value)?value:.12));
@@ -263,6 +287,17 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
           tone(185,time+.12,.31,.09,'sawtooth',sfxBus,61);
           blast(time+.21,.36,.20,sfxBus,700);
           tone(58,time+.26,.45,.11,'triangle',sfxBus,30);
+          // Coins tumble out of the shattered Pot: first a hard metal hit,
+          // then several lighter, higher bounces scattering on stone.
+          // This overlays SNAP + the existing demonic growl; no sound on shield.
+          for(let i=0,n=lostCoinClinkCount(action);i<n;i++){
+            const at=time+.16+i*(.045+(i%3)*.013);
+            const pitch=1150+(i*307)%940;
+            const weight=Math.max(.026,.095-i*.006);
+            tone(pitch,at,.095-i*.003,weight,'triangle',sfxBus,pitch*.74);
+            tone(pitch*.51,at+.012,.048,weight*.28,'square');
+            blast(at,.028,.032-i*.0015,sfxBus,2700);
+          }
           break;
       }
     }
@@ -284,8 +319,10 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     if(context&&context.state!=='closed')context.close().catch(()=>{});
     context=null;master=null;musicBus=null;sfxBus=null;noise=null;
   }
-  return {unlock,play,setMusic,setSfx,setTension,suspend,resume,dispose,
+  return {unlock,play,setMusic,setMusicLevel,setSfx,setTension,suspend,resume,dispose,
     get tension(){return targetTension;},
+    get musicLevel(){return musicLevel;},
+    get currentTempo(){return currentTempo;},
     get grooveLevel(){return activeGroove;},
     get grooveName(){return MUSIC_GROOVES[activeGroove].name;},
     get musicOn(){return musicOn;},get sfxOn(){return sfxOn;}};

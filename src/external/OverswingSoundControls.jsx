@@ -6,11 +6,15 @@ export default function OverswingSoundControls({sound,className=''}){
   return <div className={'os-sound-controls '+className}
     role="group" aria-label="Music and sound controls">
     <button type="button"
-      className={'os8-audio-toggle '+(sound.musicOn?'on':'off')}
+      className={'os8-audio-toggle '+(sound.musicOn?'on':'off')+
+        (sound.musicLevel===2?' loud':'')}
       onClick={sound.toggleMusic}
-      aria-label={sound.musicOn?'Turn music off':'Turn music on'}
-      aria-pressed={sound.musicOn} title={sound.musicOn?'Music on · tap to mute':'Play original battle music'}>
-      ♫<span>{sound.musicOn?'ON':'OFF'}</span>
+      aria-label={sound.musicLevel===0?'Turn music on':
+        sound.musicLevel===1?'Increase music volume':'Turn music off'}
+      aria-pressed={sound.musicLevel>0}
+      title={sound.musicLevel===0?'Music OFF · tap for ON':
+        sound.musicLevel===1?'Music ON · tap for LOUD':'Music LOUD · tap for OFF'}>
+      ♫<span>{sound.musicLevel===2?'LOUD':sound.musicOn?'ON':'OFF'}</span>
     </button>
     <button type="button"
       className={'os8-audio-toggle '+(sound.sfxOn?'on':'off')}
