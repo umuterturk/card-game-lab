@@ -46,10 +46,10 @@ test('mobile preparation highlights level limit and simplifies tall Royal sectio
   assert.doesNotMatch(play,/os8-meter-ends/);
   assert.match(play,/DECK \{deckRemaining\}/);
   assert.match(play,/d\.deck\.length-d\.pos/);
-  assert.match(journey,/oj-prepare-snap/);
+  assert.match(journey,/oj-prep-rules/);
   assert.match(journey,/level\.rules\.snapLimit\?\?10/);
-  assert.match(journey,/aria-expanded=\{expanded\}/);
-  assert.match(journey,/expanded&&<>/);
+  assert.match(journey,/oj-royal-mini-grid/);
+  assert.match(journey,/BUY ONCE · ALWAYS ACTIVE/);
   assert.match(controls,/<MusicNoteIcon\/>/);
   assert.match(controls,/sound\.restartAudio/);
 });

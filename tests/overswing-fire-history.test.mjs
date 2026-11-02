@@ -121,7 +121,7 @@ test('Doom flames run at low FPS and pause for visibility and reduced motion',()
   const map=source('OverswingCampaignMap.jsx');
   assert.match(jsx,/os8-meter-fire/);
   assert.match(home,/oj-title-doom-fire/);
-  assert.match(map,/ocm-map-doom-fire/);
+  assert.match(map,/ocm-embers/);
 });
 
 test('pixel pendulum advances in discrete frames, with SNAP rebound and endpoint stability',()=>{
