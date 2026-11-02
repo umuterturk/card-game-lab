@@ -51,7 +51,7 @@ test('card history marks public discard, hand, and Pot without leaking unseen de
   assert.deepEqual(history.royalsOut,[40]);
   assert.equal(Object.hasOwn(history,'deck'),false);
   assert.equal(Object.hasOwn(history,'remainingCards'),false);
-  assert.equal(history.revealed,8);
+  assert.equal(history.revealed,7,'duplicate mock card is counted once');
   assert.deepEqual(history.groups.discard,[6,16,40]);
   assert.deepEqual(history.groups.pot,[5,7]);
   assert.deepEqual(history.groups.hand,[2,12,royalId('J',0)]);
