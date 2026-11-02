@@ -42,6 +42,15 @@ export default function useOverswingSound(){
     setMusicOn(audio.musicOn);
     return true;
   };
+  const restartAudio=()=>{
+    const audio=ensure();
+    audio.restart();
+    // The reset preserves the selected track, but the engine might not have
+    // been started yet if the user has only opened the settings panel.
+    if(musicRef.current>0&&audio.musicVolume!==musicRef.current)
+      audio.setMusicVolume(musicRef.current);
+    setMusicOn(audio.musicOn);
+  };
   const setMusicVolume=value=>{
     const normalized=clampAudioVolume(Number(value));
     musicRef.current=normalized;
@@ -101,6 +110,7 @@ export default function useOverswingSound(){
     };
     document.addEventListener('visibilitychange',visibility);
     window.addEventListener('pagehide',pause);
+    window.addEventListener('blur',pause);
     window.addEventListener('pageshow',recover);
     window.addEventListener('focus',recover);
     document.addEventListener('pointerdown',recoverOnGesture,true);
@@ -109,6 +119,7 @@ export default function useOverswingSound(){
     return ()=>{
       document.removeEventListener('visibilitychange',visibility);
       window.removeEventListener('pagehide',pause);
+      window.removeEventListener('blur',pause);
       window.removeEventListener('pageshow',recover);
       window.removeEventListener('focus',recover);
       document.removeEventListener('pointerdown',recoverOnGesture,true);
@@ -120,5 +131,5 @@ export default function useOverswingSound(){
   },[]);
   return {musicVolume,sfxVolume,musicOn,sfxOn:sfxVolume>0,
     trackChoice,gateTrack,effectiveTrack,setMusicVolume,setSfxVolume,
-    setTrackChoice,setTrack,unlock,play,setTension};
+    setTrackChoice,setTrack,unlock,restartAudio,play,setTension};
 }
