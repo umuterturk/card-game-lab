@@ -1,9 +1,14 @@
 /* Cinematic enemy reveal. Animated embers are CSS-only and do not capture touch. */
 /* Low-resolution sprite atlases retain crisp faces while moving on iPhone. */
-.oe-portrait{display:block;user-select:none;pointer-events:none;
- background-image:var(--enemy-sprite);background-size:200% 300%;
- background-position:var(--enemy-x) var(--enemy-y);background-repeat:no-repeat;
+.oe-portrait{display:block;position:relative;overflow:hidden;user-select:none;pointer-events:none;
  image-rendering:pixelated}
+.oe-portrait-atlas{position:absolute!important;display:block!important;width:200%!important;
+ height:300%!important;max-width:none!important;max-height:none!important;
+ object-fit:fill!important;image-rendering:pixelated;pointer-events:none}
+.oe-portrait-atlas.oe-portrait-fallback{width:100%!important;height:100%!important;object-fit:cover!important}
+.oe-portrait-missing{position:absolute;inset:0;display:grid;place-items:center;
+ background:radial-gradient(#631e22,#130b15);color:#ffdca3;
+ text-align:center;padding:15px;font:12px/1.7 'VT323',monospace}
 .oe-intro{--oj-pixel:'Press Start 2P',monospace;position:fixed;inset:0;z-index:2400;
  background:#07050a;overflow:hidden;isolation:isolate;color:#ffe3a7;
  animation:oe-screen-in 1.1s steps(12,end) both}
@@ -110,7 +115,7 @@
 
 .oj-prepare-compact .oj-prep-opponent .oe-portrait{
  position:absolute;left:auto;right:-12px;top:-33px;width:202px;height:202px;
- background-size:200% 300%;image-rendering:pixelated}
+ image-rendering:pixelated}
 @media(prefers-reduced-motion:reduce){
  .oe-intro-image-shell{animation:none!important;transform:translateX(-50%)!important}
  .oe-intro-art,.oe-intro-heat{animation:none!important}

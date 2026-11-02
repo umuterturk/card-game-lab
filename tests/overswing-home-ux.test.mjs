@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync,statSync} from 'node:fs';
 import {startJourney,buyRoyal,EMPTY_JOURNEY_PROGRESS} from '../src/external/overswingJourney.js';
 import {OVERSWING_ENEMIES,opponentForLevel} from '../src/external/overswingEnemies.js';
 const read=file=>readFileSync(new URL('../src/external/'+file,import.meta.url),'utf8');
@@ -18,6 +18,25 @@ test('the twelve three-gate levels have unique enemies and two real portrait atl
   assert.doesNotMatch(map,/ocm-path|ocm-node|M22 88/);
   assert.match(map,/PREPARE · LEVEL/);
   assert.match(map,/onSelect\(selected-1\)/);
+});
+
+test('portrait assets resolve from document root, not stylesheet /assets folder',()=>{
+  const component=read('OverswingEnemy.jsx');
+  const css=read('overswingEnemy.css');
+    assert.match(component,/new URL\(relative,document\.baseURI\)\.href/);
+  assert.match(component,/<img key=\{src\} className=\{/);
+  assert.match(component,/onError=\{\(\)=>setFailedLoads/);
+  assert.match(css,/\.oe-portrait-atlas\{/);
+  assert.match(css,/\.oe-portrait-atlas\.oe-portrait-fallback/);
+  assert.doesNotMatch(component,/--enemy-sprite/);
+  assert.doesNotMatch(css,/background-image:var\(--enemy-sprite\)/);
+  for(const file of ['infernal-01-06.webp','infernal-07-12.webp']){
+    const asset=new URL('../public/enemies/'+file,import.meta.url);
+    assert.ok(statSync(asset).size>4000,file+' must exist and contain image data');
+    const header=readFileSync(asset);
+    assert.equal(header.toString('ascii',0,4),'RIFF');
+    assert.equal(header.toString('ascii',8,12),'WEBP');
+  }
 });
 
 test('minimal prepare shows portrait, four rules, buy-only Royals, and a fight button',()=>{

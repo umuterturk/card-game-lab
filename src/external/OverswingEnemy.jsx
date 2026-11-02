@@ -1,21 +1,36 @@
 import React from 'react';
 import {opponentForLevel} from './overswingEnemies.js';
 import './overswingEnemy.css';
+// Vite builds for GitHub Pages with base='./'. Resolve images against the
+// DOCUMENT, not against the generated stylesheet in /assets/. An inline CSS
+// var(url('./enemies/...')) otherwise points to /assets/enemies (404).
 export function enemyArtUrl(level){
-  return (import.meta.env?.BASE_URL||'/')+opponentForLevel(level).art;
+  const relative=(import.meta.env?.BASE_URL||'./')+opponentForLevel(level).art;
+  return typeof document==='undefined'?relative:new URL(relative,document.baseURI).href;
 }
-export function enemySpriteStyle(level){
-  const slot=opponentForLevel(level).slot;
-  return {
-    '--enemy-sprite': 'url("'+enemyArtUrl(level)+'")',
-    '--enemy-x':(slot%2)*100+'%',
-    '--enemy-y':Math.floor(slot/2)*50+'%'
-  };
+export function enemyFallbackUrl(){
+  const relative=(import.meta.env?.BASE_URL||'./')+'enemies/hell-enforcer.webp';
+  return typeof document==='undefined'?relative:new URL(relative,document.baseURI).href;
 }
 export function EnemyPortrait({level,className='',alt}){
-  return <div className={'oe-portrait '+className} style={enemySpriteStyle(level)}
+  const enemy=opponentForLevel(level);
+  const [failedLoads,setFailedLoads]=React.useState(0);
+  React.useEffect(()=>setFailedLoads(0),[level]);
+  const slot=enemy.slot;
+  const fallback=failedLoads>0;
+  const src=fallback?enemyFallbackUrl():enemyArtUrl(level);
+  const position=fallback?{left:'0%',top:'0%'}:{
+    left:(slot%2===0?0:-100)+'%',
+    top:(-100*Math.floor(slot/2))+'%'
+  };
+  return <div className={'oe-portrait '+className}
     role={alt===''?'presentation':'img'}
-    aria-label={alt===''?undefined:alt??opponentForLevel(level).name+' — infernal opponent'}/>;
+    aria-label={alt===''?undefined:alt??enemy.name+' — infernal opponent'}>
+    {failedLoads>=2?<span className="oe-portrait-missing">{enemy.name}</span>:
+      <img key={src} className={'oe-portrait-atlas'+(fallback?' oe-portrait-fallback':'')}
+        src={src} style={position} alt="" draggable="false"
+        decoding="async" onError={()=>setFailedLoads(count=>Math.min(2,count+1))}/>}
+  </div>;
 }
 export default function OverswingEnemyIntro({level,closing,onContinue}){
   const enemy=opponentForLevel(level);
