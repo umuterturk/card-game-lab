@@ -47,11 +47,10 @@ export function pickRoyalCards(tier,seed,index){
   });
 }
 
-// A purchased Royal is owned forever. The pre-journey loadout chooses
-// up to two Royals per encounter. They enter at randomized future hand
+// Every purchased Royal is owned forever and automatically joins future journeys. They enter at randomized future hand
 // refills, never in the initial hand or the ordinary FLIP deck.
 export function royalCardsForLoadout(equipped,seed,index){
-  if(!Array.isArray(equipped)||equipped.length>2||
+  if(!Array.isArray(equipped)||equipped.length>3||
      new Set(equipped).size!==equipped.length||
      equipped.some(id=>!ROYAL_NAMES.includes(id)))
     throw new TypeError('Invalid Royal loadout');

@@ -2,6 +2,8 @@ import React,{useEffect,useState} from 'react';
 import {createPortal} from 'react-dom';
 import OverswingPlay from './OverswingPlay.jsx';
 import OverswingCampaignMap from './OverswingCampaignMap.jsx';
+import OverswingEnemyIntro,{EnemyPortrait} from './OverswingEnemy.jsx';
+import {opponentForLevel} from './overswingEnemies.js';
 import DoomFire from './DoomFire.jsx';
 import HellPendulum from './HellPendulum.jsx';
 import {revealOffer} from './overswingReveal.js';
@@ -17,7 +19,7 @@ import {
   EMPTY_JOURNEY_PROGRESS,validJourneyProgress,journeyRunScore,recordJourneyGold,
   journeyGoldBalance,journeyRelicPrice,journeyEarnedGold,journeyRetryPrice,
   journeyCanRetry,RETRY_PRICE_RATES,restoreJourneyProgress,restoreJourneyRun,
-  journeyWildBalance,buyRoyal,toggleRoyalEquipped
+  journeyWildBalance,buyRoyal
 } from './overswingJourney.js';
 import {ROYAL_RULES,ROYAL_NAMES,ROYAL_PRICES} from './overswingRoyals.js';
 import {WILD_IDS,WILD_RULES} from './overswingWilds.js';
@@ -34,41 +36,22 @@ function GoldProgress({progress,compact=false}){
       {!compact&&<span>EARN AT CLEARED GATES</span>}</div>
   </section>;
 }
-function RoyalWorkshop({progress,onBuy,onToggle,disabled=false}){
-  const [expanded,setExpanded]=useState(false);
-  const owned=progress.ownedRoyalIds||[],equipped=progress.equippedRoyalIds||[];
-  return <section className="oj-royal-workshop" aria-label="Buy and equip Royal cards">
-    <button type="button" className="oj-royal-heading oj-royal-expand"
-      onClick={()=>setExpanded(value=>!value)}
-      aria-expanded={expanded} aria-controls="oj-royal-options">
-      <strong>ROYAL CARDS</strong>
-      <span>{equipped.length}/2 EQUIPPED · {owned.length}/3 OWNED</span>
-      <b aria-hidden="true">{expanded?'−':'+'}</b>
-    </button>
-    {expanded&&<>
-    <p>Buy once, own forever. Equip up to two before a journey.</p>
-    <div className="oj-royal-options" id="oj-royal-options">
-      {ROYAL_NAMES.map(id=>{
-        const has=owned.includes(id),price=ROYAL_PRICES[id],selected=equipped.includes(id);
-        return <div className={'oj-royal-option'+(selected?' oj-royal-equipped':'')} key={id}>
-          <div className={'oj-royal-symbol oj-royal-symbol-'+id.toLowerCase()} aria-hidden="true">
-            <span className="oj-royal-insignia">♛</span><strong>{id}</strong>
-          </div>
-          <div className="oj-royal-option-name"><strong>{ROYAL_RULES[id].title}</strong>
-            <span>{ROYAL_RULES[id].description}</span></div>
-          {has?<button type="button" className={selected?'oj-royal-toggle selected':'oj-royal-toggle'}
-            onClick={()=>onToggle(id)} disabled={disabled}
-            aria-pressed={selected} aria-label={(selected?'Unequip ':'Equip ')+ROYAL_RULES[id].title}>
-            {selected?'EQUIPPED':'EQUIP'}</button>:
-          <button type="button" className="oj-royal-buy" onClick={()=>onBuy(id)}
-            disabled={disabled||progress.lifetimeGold<price}
-            aria-label={'Buy '+ROYAL_RULES[id].title+' for '+fmt(price)+' Gold'}>
-            BUY <GoldAmount value={price}/></button>}
-        </div>;
-      })}
-    </div>
-    {disabled&&<small>Royal purchases and loadout changes are available between journeys.</small>}
-    </>}
+function RoyalWorkshop({progress,onBuy,disabled=false}){
+  const owned=progress.ownedRoyalIds||[];
+  return <section className="oj-royal-mini" aria-label="Royal card purchases">
+    <div className="oj-royal-mini-head"><strong>ROYAL CARDS</strong><span>BUY ONCE · ALWAYS ACTIVE</span></div>
+    <div className="oj-royal-mini-grid">{ROYAL_NAMES.map(id=>{
+      const has=owned.includes(id),price=ROYAL_PRICES[id];
+      return <button key={id} type="button"
+        className={'oj-royal-mini-card'+(has?' owned':'')}
+        disabled={has||disabled||progress.lifetimeGold<price}
+        title={ROYAL_RULES[id].title+': '+ROYAL_RULES[id].description}
+        onClick={()=>onBuy(id)}
+        aria-label={has?ROYAL_RULES[id].title+' owned and automatically included':
+          'Buy '+ROYAL_RULES[id].title+' for '+fmt(price)+' Gold'}>
+        <b>{id}</b><span>{has?'OWNED':<GoldAmount value={price}/>}</span>
+      </button>;
+    })}</div>
   </section>;
 }
 function WildInventory({inventory}){
@@ -110,7 +93,7 @@ function RoyalReveal({id,onContinue}){
         </div>
       <h2 id="oj-royal-name">{royal.title}</h2>
       <p>{royal.description}</p>
-      <p className="oj-royal-note">Hand-only. Appears at a random later hand refill, never on FLIP or in the opening hand. Equip before a journey.</p>
+      <p className="oj-royal-note">Automatically active in future journeys. Appears at a random later hand refill, never on FLIP or in the opening hand.</p>
       <button type="button" className="oj-primary" onClick={onContinue} autoFocus>CONTINUE</button>
     </section>
   </div>,document.body);
@@ -189,9 +172,16 @@ function RetryOffer({run,onRetry,onDecline}){
 }
 export default function OverswingJourney({quickState,quickAct,quickRestart,fullView=false}){
   const [view,setView]=useState('journey');
+  const [introVisible,setIntroVisible]=useState(false);
+  const [introClosing,setIntroClosing]=useState(false);
   const [bankTransition,setBankTransition]=useState(false);
   const [lossTransition,setLossTransition]=useState(false);
   const sound=useOverswingSound();
+  useEffect(()=>{
+    if(!introClosing)return;
+    const timer=window.setTimeout(()=>{setIntroVisible(false);setIntroClosing(false);},820);
+    return ()=>window.clearTimeout(timer);
+  },[introClosing]);
   const [progress,setProgress]=useState(()=>
     restoreJourneyProgress(readSaved(PROFILE_KEY),readSaved(RUN_KEY)));
   const [run,setRun]=useState(()=>restoreJourneyRun(
@@ -250,7 +240,7 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
       !(level===1&&settled.clearedChapterIds.includes('last_flame_v1'));
     setProgress(settled);
     setRun(startJourney(Date.now(),settled.lifetimeGold||0,level,
-      settled.equippedRoyalIds||[],{
+      (settled.ownedRoyalIds||[]).filter(id=>ROYAL_NAMES.includes(id)),{
         wildInventory:settled.wildInventory,
         rewardAvailable:firstClear,
         shopBeforeFirstGate:true
@@ -277,7 +267,6 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
   const buyRetry=()=>setRun(current=>current?stepJourney(current,{type:'BUY_RETRY'}):current);
   const acceptDefeat=()=>setRun(current=>current?stepJourney(current,{type:'ACCEPT_DEFEAT'}):current);
   const purchaseRoyal=id=>setProgress(current=>buyRoyal(current,id));
-  const equipRoyal=id=>setProgress(current=>toggleRoyalEquipped(current,id));
   const activeJourney=!!run&&!['won','lost','abandoned'].includes(run.phase);
   const newRoyal=(progress.ownedRoyalIds||[]).find(id=>!(progress.seenRoyalIds||[]).includes(id));
   const reveal=newRoyal?<RoyalReveal id={newRoyal} onContinue={()=>setProgress(old=>({
@@ -291,41 +280,32 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
   </div>;
   if(view==='prepare'){
     const level=campaignLevel(selectedLevel);
-    return <main className="oj-shell oj-prepare">
-      <button type="button" className="oj-back oj-prepare-back"
-        onClick={()=>setView('map')}>‹ BACK TO MAP</button>
-      <header className="oj-prepare-heading">
-        <DoomFire className="oj-prepare-fire" width={62} height={30}/>
-        <p className="oj-eyebrow">THE LAST FLAME · BEFORE THE DESCENT</p>
-        <h2>PREPARE YOUR JOURNEY</h2>
-        <strong>LEVEL {selectedLevel} · {level.title}</strong>
-      </header>
-      <GoldProgress progress={progress}/>
-      <section className="oj-prepare-rules" aria-label="Level rules">
-        <h3>LEVEL {selectedLevel} · RULES</h3>
-        <div className="oj-prepare-snap">
-          <span>SNAP LIMIT</span>
-          <strong>±{level.rules.snapLimit??10}</strong>
-          <small>Exceed this swing and lose your Pot</small>
-        </div>
-        <div className="oj-prepare-rule-chips">
-          <span>HAND {level.rules.maxHandSize??8}</span>
-          <span>FLIP {level.rules.maxFlips??'∞'}</span>
-          <span>BANK TAX {level.rules.bankTax??0}%</span>
-        </div>
-      </section>
-      <RoyalWorkshop progress={progress} onBuy={purchaseRoyal}
-        onToggle={equipRoyal} disabled={activeJourney}/>
-      <WildInventory inventory={progress.wildInventory}/>
+    const enemy=opponentForLevel(selectedLevel);
+    const wildCount=Object.values(progress.wildInventory||{}).reduce((sum,n)=>sum+n,0);
+    return <main className="oj-shell oj-prepare oj-prepare-compact">
+      <div className="oj-prep-top">
+        <button type="button" className="oj-back" onClick={()=>setView('map')}>‹ BACK</button>
+        <span>LEVEL {selectedLevel} / 12</span>
+      </div>
+      <div className="oj-prep-opponent">
+        <EnemyPortrait level={selectedLevel} alt=""/>
+        <div className="oj-prep-name"><small>THREE GATES · ONE ENEMY</small>
+          <h2>{enemy.name}</h2><p>{enemy.line}</p></div>
+      </div>
+      <div className="oj-prep-wallet"><span>AVAILABLE GOLD</span>
+        <GoldAmount value={progress.lifetimeGold||0}/></div>
+      <div className="oj-prep-rules" aria-label="Level rules">
+        <div><span>SNAP</span><strong>±{level.rules.snapLimit??10}</strong></div>
+        <div><span>HAND</span><strong>{level.rules.maxHandSize??8}</strong></div>
+        <div><span>FLIPS</span><strong>{level.rules.maxFlips??'∞'}</strong></div>
+        <div><span>BANK TAX</span><strong>{level.rules.bankTax??0}%</strong></div>
+      </div>
+      <RoyalWorkshop progress={progress} onBuy={purchaseRoyal} disabled={activeJourney}/>
+      {wildCount>0&&<p className="oj-prep-wild">WILD CARDS AVAILABLE · {wildCount}</p>}
       <div className="oj-choices oj-prepare-actions">
-        {activeJourney?<><p className="oj-prepare-notice">
-          A journey is already active. Finish it before changing your Royal loadout.
-        </p><button type="button" className="oj-primary"
-          onClick={()=>setView('journey')}>RESUME JOURNEY</button></>:
-        <button type="button" className="oj-primary"
-          onClick={()=>begin(selectedLevel)}>ENTER LEVEL {selectedLevel}</button>}
-        <button type="button" className="oj-secondary"
-          onClick={()=>setView('map')}>BACK TO MAP</button>
+        {activeJourney?<><p className="oj-prep-notice">A three-gate fight is already in progress.</p>
+          <button type="button" className="oj-primary" onClick={()=>setView('journey')}>RESUME FIGHT</button></>:
+        <button type="button" className="oj-primary" onClick={()=>begin(selectedLevel)}>FIGHT · LEVEL {selectedLevel}</button>}
       </div>
     </main>;
   }
@@ -338,7 +318,9 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
       <p className="oj-subtitle">THE LAST FLAME</p></header>
     <GoldProgress progress={progress} compact/>
     <OverswingCampaignMap progress={progress} selected={selectedLevel}
-      onSelect={setSelectedLevel} onStart={()=>setView('prepare')}
+      onSelect={setSelectedLevel} onStart={()=>{
+        setView('prepare');setIntroVisible(true);setIntroClosing(false);
+      }}
       onQuick={()=>setView('quick')}
       activeRun={run&&!['won','lost','abandoned'].includes(run.phase)?()=>setView('journey'):null}/>
   </main>;
@@ -386,5 +368,6 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
   </main>;
   return null;
   })();
-  return <>{screen}{reveal}</>;
+  return <>{screen}{reveal}{introVisible&&<OverswingEnemyIntro
+      level={selectedLevel} closing={introClosing} onContinue={()=>setIntroClosing(true)}/>}</>;
 }

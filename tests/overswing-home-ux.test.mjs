@@ -1,79 +1,66 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {startJourney,buyRoyal,toggleRoyalEquipped,EMPTY_JOURNEY_PROGRESS} from '../src/external/overswingJourney.js';
+import {startJourney,buyRoyal,EMPTY_JOURNEY_PROGRESS} from '../src/external/overswingJourney.js';
+import {OVERSWING_ENEMIES,opponentForLevel} from '../src/external/overswingEnemies.js';
+const read=file=>readFileSync(new URL('../src/external/'+file,import.meta.url),'utf8');
 
-const read=filename=>readFileSync(new URL('../src/external/'+filename,import.meta.url),'utf8');
+test('the twelve three-gate levels have unique enemies and shared placeholder art',()=>{
+  assert.equal(OVERSWING_ENEMIES.length,12);
+  assert.equal(new Set(OVERSWING_ENEMIES.map(e=>e.name)).size,12);
+  assert.equal(new Set(OVERSWING_ENEMIES.map(e=>e.art)).size,1);
+  assert.match(opponentForLevel(1).name,/BUTCHER/);
+  const map=read('OverswingCampaignMap.jsx');
+  assert.match(map,/ocm-opponent-art/);
+  assert.doesNotMatch(map,/ocm-path|ocm-node|M22 88/);
+  assert.match(map,/PREPARE · LEVEL/);
+  assert.match(map,/onSelect\(selected-1\)/);
+});
 
-test('campaign homepage stays minimal; Royals and inventory live in preparation',()=>{
+test('minimal prepare shows portrait, four rules, buy-only Royals, and a fight button',()=>{
   const jsx=read('OverswingJourney.jsx');
-  const mapStart=jsx.indexOf("if(!run||view==='menu'||view==='map')");
-  const playStart=jsx.indexOf("if(run.phase==='playing')",mapStart);
-  const prepStart=jsx.indexOf("if(view==='prepare')");
-  assert.ok(prepStart>0&&prepStart<mapStart);
-  const prepare=jsx.slice(prepStart,mapStart);
-  const home=jsx.slice(mapStart,playStart);
+  const prepare=jsx.slice(jsx.indexOf("if(view==='prepare')"),jsx.indexOf("if(!run||view==='menu'||view==='map')"));
+  const home=jsx.slice(jsx.indexOf("if(!run||view==='menu'||view==='map')"),jsx.indexOf("if(run.phase==='playing')"));
+  assert.match(prepare,/EnemyPortrait/);
+  assert.match(prepare,/oj-prep-rules/);
   assert.match(prepare,/<RoyalWorkshop progress=\{progress\}/);
-  assert.match(prepare,/<WildInventory inventory=\{progress.wildInventory\}/);
-  assert.match(prepare,/<GoldProgress progress=\{progress\}/);
   assert.match(prepare,/begin\(selectedLevel\)/);
-  assert.match(prepare,/onClick=\{\(\)=>setView\('map'\)\}/);
-  assert.match(prepare,/activeJourney/);
-  assert.doesNotMatch(home,/RoyalWorkshop/);
-  assert.doesNotMatch(home,/ROYAL_NAMES|ROYAL_PRICES/);
-  assert.doesNotMatch(home,/WildInventory/);
-  assert.doesNotMatch(home,/oj-record/);
-  assert.match(home,/<GoldProgress progress=\{progress\} compact\/>/);
-  assert.match(home,/<OverswingCampaignMap/);
-  assert.match(home,/onStart=\{\(\)=>setView\('prepare'\)\}/);
-  const campaign=read('OverswingCampaignMap.jsx');
-  assert.match(campaign,/PREPARE · LEVEL/);
+  assert.doesNotMatch(prepare,/onToggle|PREPARE YOUR JOURNEY/);
+  assert.match(home,/OverswingCampaignMap/);
+  assert.doesNotMatch(home,/RoyalWorkshop|ROYAL_PRICES|WildInventory/);
 });
 
-test('the selected permanent Royal loadout is scheduled for later hand refills',()=>{
-  let progress={...EMPTY_JOURNEY_PROGRESS,lifetimeGold:250000};
-  progress=buyRoyal(progress,'K');
-  progress=buyRoyal(progress,'J');
-  assert.deepEqual(progress.ownedRoyalIds,['K','J']);
-  assert.deepEqual(progress.equippedRoyalIds,['K','J']);
-  progress=toggleRoyalEquipped(progress,'K');
-  assert.deepEqual(progress.equippedRoyalIds,['J']);
-  const run=startJourney(8127,progress.lifetimeGold,1,progress.equippedRoyalIds,
-    {wildInventory:progress.wildInventory,rewardAvailable:true});
-  assert.deepEqual(run.equippedRoyals,['J']);
-  assert.equal(run.encounter.engineState.deal.hand.filter(card=>card>=40).length,0);
-  assert.equal(run.encounter.engineState.deal.pendingRoyals.length,1);
-  assert.equal(run.levelNumber,1);
-  assert.equal(run.wildRewardAvailable,true);
-});
-
-test('hellish minimal map keeps Doom fire, and the preparation screen fits portraits',()=>{
-  const css=read('overswingJourney.css');
-  assert.match(css,/\.oj-map-home\s*\{/);
-  assert.match(css,/\.oj-map-home \.oj-gold-compact/);
-  assert.match(css,/\.oj-prepare-heading/);
-  assert.match(css,/\.oj-prepare-fire/);
+test('cinematic intro fades in, sparkles, then shrinks into prepare on player tap',()=>{
+  const jsx=read('OverswingJourney.jsx'),intro=read('OverswingEnemy.jsx');
+  const css=read('overswingEnemy.css');
+  assert.match(jsx,/setIntroVisible\(true\)/);
+  assert.match(jsx,/setIntroClosing\(true\)/);
+  assert.match(intro,/TAP TO PREPARE/);
+  assert.match(intro,/oe-intro-embers/);
+  assert.match(css,/oe-intro-exit \.oe-intro-art/);
   assert.match(css,/prefers-reduced-motion:reduce/);
-  const jsx=read('OverswingJourney.jsx');
-  assert.match(jsx,/className="oj-title-doom-fire"/);
-  assert.match(jsx,/className="oj-prepare-fire"/);
 });
 
-test('the map displays a low-frame-rate burning pendulum instead of J/Q/K shop',()=>{
+test('permanent royal purchases require no selection and all three enter a fight',()=>{
+  let progress={...EMPTY_JOURNEY_PROGRESS,lifetimeGold:350000};
+  for(const id of ['K','J','Q'])progress=buyRoyal(progress,id);
+  assert.deepEqual(progress.ownedRoyalIds,['K','J','Q']);
+  assert.deepEqual(progress.equippedRoyalIds,['K','J','Q']);
+  const run=startJourney(8127,progress.lifetimeGold,1,progress.ownedRoyalIds);
+  assert.deepEqual(run.equippedRoyals,['K','J','Q']);
+  assert.equal(run.encounter.engineState.deal.pendingRoyals.length,3);
+  assert.equal(run.encounter.engineState.deal.hand.filter(id=>id>=40).length,0);
+  const jsx=read('OverswingJourney.jsx');
+  assert.match(jsx,/settled\.ownedRoyalIds/);
+  assert.match(jsx,/BUY ONCE · ALWAYS ACTIVE/);
+});
+
+test('homepage still has ambient hell pendulum and no Royal store',()=>{
   const jsx=read('OverswingJourney.jsx'),home=read('HellPendulum.jsx');
   const css=read('overswingJourney.css');
-  const mapStart=jsx.indexOf("if(!run||view==='menu'||view==='map')");
-  const playStart=jsx.indexOf("if(run.phase==='playing')",mapStart);
-  const page=jsx.slice(mapStart,playStart);
-  assert.match(jsx,/import HellPendulum from '\.\/HellPendulum\.jsx'/);
+  const page=jsx.slice(jsx.indexOf("if(!run||view==='menu'||view==='map')"),jsx.indexOf("if(run.phase==='playing')"));
   assert.match(page,/<HellPendulum\/>/);
-  assert.doesNotMatch(page,/oj-flame/);
-  assert.doesNotMatch(page,/RoyalWorkshop|ROYAL_NAMES|ROYAL_PRICES|oj-royal-option/);
   assert.match(home,/className="oj-hell-pendulum-arm"/);
-  assert.match(home,/className="oj-hell-pendulum-flame"/);
-  assert.match(home,/className="oj-hell-pendulum-sparks"/);
   assert.match(home,/shapeRendering="crispEdges"/);
   assert.match(css,/oj-hell-pendulum-swing 3\.2s steps\(15,end\)/);
-  assert.match(css,/oj-hell-pendulum-fire 1\.1s steps\(5,end\)/);
-  assert.match(css,/prefers-reduced-motion:reduce/);
 });

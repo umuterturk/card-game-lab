@@ -40,7 +40,7 @@ export function applySwing(S,W,value,limit=10){const next=S+value;if(Math.abs(ne
 // Zero Break resets all multipliers (not the Pot); only a strict sign change grants crossing bonuses.
 function dealSwing(rng,override,royals=[],handSize=8){
   const ordinary=override?override.slice():shuffle(all40(),rng);
-  if(!Array.isArray(royals)||royals.length>2||new Set(royals).size!==royals.length||
+  if(!Array.isArray(royals)||royals.length>3||new Set(royals).size!==royals.length||
      royals.some(id=>!isRoyal(id)))throw new TypeError('Invalid royal hand');
   // Royal cards replace ordinary cards in the forty-card total, but do NOT
   // belong to the FLIP deck and do NOT enter the opening hand. Each Royal is

@@ -58,7 +58,7 @@ export function startJourney(runSeed=Date.now(),goldBalance=0,levelNumber=1,equi
   if(!Number.isSafeInteger(runSeed)||runSeed<0)throw new TypeError('Invalid run seed');
   if(!campaignLevel(levelNumber))throw new RangeError('Invalid campaign level');
   if(!Number.isSafeInteger(goldBalance)||goldBalance<0)throw new RangeError('Invalid Gold balance');
-  if(!Array.isArray(equippedRoyals)||equippedRoyals.length>2||
+  if(!Array.isArray(equippedRoyals)||equippedRoyals.length>3||
      new Set(equippedRoyals).size!==equippedRoyals.length||
      equippedRoyals.some(id=>!ROYAL_NAMES.includes(id)))
     throw new TypeError('Invalid Royal loadout');
@@ -111,7 +111,7 @@ export function isValidJourney(run){
     typeof run.wildUsedGate==='boolean'&&typeof run.wildShieldArmed==='boolean'&&
     typeof run.wildRewardAvailable==='boolean'&&
     (run.wildRewardId===null||WILD_IDS.includes(run.wildRewardId))&&
-    Array.isArray(run.equippedRoyals)&&run.equippedRoyals.length<=2&&
+    Array.isArray(run.equippedRoyals)&&run.equippedRoyals.length<=3&&
     new Set(run.equippedRoyals).size===run.equippedRoyals.length&&
     run.equippedRoyals.every(id=>ROYAL_NAMES.includes(id))&&
     Number.isInteger(run.retryCount)&&run.retryCount>=0&&run.retryCount<=RETRY_PRICE_RATES.length&&
@@ -392,22 +392,15 @@ export function buyRoyal(progress,id){
   const old=restoreJourneyProgress(progress),price=ROYAL_PRICES[id];
   if(!ROYAL_NAMES.includes(id)||old.ownedRoyalIds.includes(id)||old.lifetimeGold<price)return old;
   const owned=[...old.ownedRoyalIds,id];
-  const equipped=old.equippedRoyalIds.length<2
-    ?[...old.equippedRoyalIds,id]:old.equippedRoyalIds;
   return {...old,lifetimeGold:old.lifetimeGold-price,
-    ownedRoyalIds:owned,equippedRoyalIds:equipped};
+    ownedRoyalIds:owned,equippedRoyalIds:[...owned]};
 }
 export function toggleRoyalEquipped(progress,id){
+  // Compatibility for old clients; the equipment picker has been retired.
   const old=restoreJourneyProgress(progress);
   if(!old.ownedRoyalIds.includes(id))return old;
-  const equipped=old.equippedRoyalIds.includes(id)
-    ?old.equippedRoyalIds.filter(x=>x!==id)
-    :old.equippedRoyalIds.length<2
-      ?[...old.equippedRoyalIds,id]:[old.equippedRoyalIds[1],id];
-  return {...old,equippedRoyalIds:equipped};
+  return {...old,equippedRoyalIds:[...old.ownedRoyalIds]};
 }
-// Settle each purchase or successful gate once, including after a reload.
-// The same lifetimeGold field is credited on victory and debited on purchases.
 export function recordJourneyGold(progress,run){
   if(!isValidJourney(run))return progress;
   const old=restoreJourneyProgress(progress);

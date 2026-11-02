@@ -1,67 +1,41 @@
-/* Compact portrait campaign route. Pages avoid scrolling on narrow phones. */
-.ocm{width:100%;max-width:440px;margin:4px auto 0;position:relative}
-.ocm-heading,.ocm-pages{display:flex;align-items:center;justify-content:space-between;gap:7px;color:#ffcf80;font:11px 'VT323',monospace;letter-spacing:.06em}
-.ocm-heading strong{color:#e5b873}
-.ocm-map{width:100%;height:clamp(220px,37vh,325px);position:relative;overflow:hidden;margin:5px auto;
- background:radial-gradient(ellipse at 45% 55%,#b85b201a,transparent 62%),
- linear-gradient(180deg,#200e18a3,#1e131f88);border:1px solid #64402b}
-.ocm-map:before{content:'';position:absolute;inset:0;opacity:.3;pointer-events:none;
- background-image:radial-gradient(#ffa54c 1px,transparent 1px);background-size:22px 22px}
-.ocm-path{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.ocm-node{position:absolute;transform:translate(-50%,-50%);width:43px;height:43px;display:grid;place-items:center;
- background:radial-gradient(circle at 30% 25%,#a95a2f,#3b1c1d 75%);border:3px solid #b37b46;box-shadow:0 4px 0 #100a13,0 0 14px #e7763a22;
- border-radius:50%;color:#ffe19d;font:15px var(--oj-pixel);cursor:pointer;transition:filter .12s}
-.ocm-node span{line-height:1}
-.ocm-node:disabled{filter:grayscale(1);opacity:.52;cursor:not-allowed;background:#24191f;border-color:#786c66}
-.ocm-cleared{background:radial-gradient(circle at 30% 25%,#e1b35b,#704126 80%);border-color:#ffc969;color:#24100c}
-.ocm-next{box-shadow:0 4px 0 #100a13,0 0 0 4px #ed983522,0 0 20px #e48a45b0}
-.ocm-selected{outline:3px solid #fff0b0;outline-offset:2px}
-.ocm-pages{justify-content:center;font:11px var(--oj-pixel);color:#e6be82}
-.ocm-pages button{border:1px solid #98663c;background:#372226;color:#ffe3ad;padding:8px 10px;font:10px 'VT323',monospace}
-.ocm-pages button:disabled{opacity:.3}
-.ocm-detail{border:2px solid #85502c;background:#241720db;margin:8px auto;padding:9px 10px;min-height:83px}
-.ocm-level-head{display:flex;gap:8px;align-items:baseline}
-.ocm-level-head small{font:11px 'VT323',monospace;color:#e6ae63}
-.ocm-level-head strong{font:10px/1.4 var(--oj-pixel);color:#ffe4a7}
-.ocm-detail p{font:16px 'VT323',monospace;margin:5px 0;color:#dcc2af}
-.ocm-rules{display:flex;flex-wrap:wrap;gap:5px}
-.ocm-rules span{padding:3px 6px;border:1px solid #ae683b;background:#4d281d;font:12px 'VT323',monospace;color:#ffdea5}
-.ocm-actions{margin:9px auto!important;gap:6px!important}
+/* One infernal opponent at a time, with replay navigation instead of a zigzag. */
+.ocm{width:100%;max-width:440px;margin:5px auto 0;position:relative}
+.ocm-heading{display:flex;justify-content:space-between;gap:6px;margin-bottom:8px;
+ font:13px 'VT323',monospace;letter-spacing:.08em;color:#e7a85f}
+.ocm-heading strong{color:#fbd58f;font-weight:normal}
+.ocm-opponent{height:clamp(258px,42dvh,400px);position:relative;overflow:hidden;border:3px solid #94512e;
+ background:#100810;box-shadow:inset 0 0 30px #000,0 7px 23px #0007;isolation:isolate}
+.ocm-opponent-art{position:absolute;width:100%;height:100%;inset:0;object-fit:cover;
+ object-position:50% 31%;image-rendering:pixelated;animation:ocm-enemy-idle 7s ease-in-out infinite alternate}
+.ocm-opponent-shade{position:absolute;inset:0;background:
+ linear-gradient(to bottom,#10081055,transparent 32%,#09050d22 44%,#10070fe8 100%),
+ linear-gradient(90deg,#140a18aa,transparent 22%,transparent 77%,#140a18aa)}
+.ocm-opponent-copy{position:absolute;left:15px;right:12px;bottom:13px;text-align:left;text-shadow:0 2px 4px #000,0 0 12px #000}
+.ocm-opponent-copy small{color:#ffc16e;font:11px var(--oj-pixel);letter-spacing:.06em}
+.ocm-opponent-copy h2{color:#ffe1a0;font:clamp(14px,4.2vw,20px)/1.35 var(--oj-pixel);margin:8px 0 5px}
+.ocm-opponent-copy p{color:#f1c5a5;font:21px 'VT323',monospace;margin:0}
+.ocm-embers{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.ocm-embers i{position:absolute;width:3px;height:3px;bottom:-10px;background:#ffca76;
+ box-shadow:0 0 7px 2px #ff702a8a;animation:ocm-ember-rise 6s linear infinite}
+.ocm-embers i:nth-child(even){width:2px;height:2px;animation-duration:8s;opacity:.6}
+.ocm-selector{display:grid;grid-template-columns:43px minmax(0,1fr) 43px;align-items:center;gap:6px;margin-top:8px}
+.ocm-selector button{min-height:43px;border:2px solid #8f532f;background:#321c20;
+ color:#ffe0ad;font:30px 'VT323',monospace;cursor:pointer}
+.ocm-selector button:disabled{opacity:.2;cursor:default}
+.ocm-selector>div{text-align:center;min-width:0}
+.ocm-selector strong{display:block;color:#ffdc93;font:12px/1.5 var(--oj-pixel)}
+.ocm-selector strong span{color:#af8970;font-size:9px}
+.ocm-selector small{display:block;color:#c4a28f;font:17px 'VT323',monospace}
+.ocm-rules{display:flex;justify-content:center;flex-wrap:wrap;gap:5px;margin:9px 0 0}
+.ocm-rules span{border:1px solid #74432f;background:#271922;color:#deb38a;padding:4px 7px;font:14px 'VT323',monospace}
+.ocm-actions{gap:6px!important;margin:9px auto 0!important}
 .ocm-actions button{min-height:42px!important}
-.overswing-fullscreen .ocm-map{height:clamp(195px,34vh,290px)}
-.overswing-fullscreen .ocm-node{width:40px;height:40px}
-.overswing-fullscreen .ocm-detail{padding:6px 9px;margin:5px auto;min-height:69px}
-.overswing-fullscreen .ocm-detail p{margin:2px 0}
-.overswing-fullscreen .ocm-actions{margin:6px auto!important}
+@keyframes ocm-enemy-idle{from{transform:scale(1.01) translateY(0);filter:brightness(.88)}
+ to{transform:scale(1.065) translateY(-3px);filter:brightness(1.08)}}
+@keyframes ocm-ember-rise{from{transform:translateY(0);opacity:0}
+ 20%{opacity:1}to{transform:translateY(-310px) translateX(17px);opacity:0}}
+.overswing-fullscreen .ocm-opponent{height:clamp(220px,41dvh,360px)}
+.overswing-fullscreen .ocm-selector{margin-top:5px}
 .overswing-fullscreen .ocm-actions button{min-height:36px!important}
-@media(max-height:660px){
-  .ocm-map{height:205px}
-  .ocm-node{width:34px;height:34px;font-size:12px}
-  .ocm-detail{min-height:0}
-  .ocm-actions button{min-height:34px!important}
-}
-
-
-/* Gentle idle map activity; conquered locations never block input. */
-.ocm-node.ocm-next:not(:disabled){
-  animation:ocm-idle-next 2.8s steps(7,end) infinite;
-  will-change:filter;
-}
-.ocm-node.ocm-cleared span{animation:ocm-idle-cleared 5s steps(7,end) infinite}
-@keyframes ocm-idle-next{0%,100%{filter:brightness(1)}50%{filter:brightness(1.35)}}
-@keyframes ocm-idle-cleared{0%,88%,100%{opacity:1}94%{opacity:.65}}
-@media(prefers-reduced-motion:reduce){
- .ocm-node.ocm-next:not(:disabled),.ocm-node.ocm-cleared span{
-   animation:none!important;will-change:auto!important
- }
-}
-
-
-/* Volumetric-looking but inexpensive low-resolution flame/smoke behind the route. */
-.ocm-map{isolation:isolate}
-.ocm-map-doom-fire{position:absolute;left:0;right:0;bottom:0;
-  width:100%;height:68%;opacity:.42;z-index:0;pointer-events:none;
-  mask-image:linear-gradient(to top,#000 40%,transparent 100%)}
-.ocm-map .ocm-path{z-index:1}
-.ocm-map .ocm-node{z-index:2}
-@media(prefers-reduced-motion:reduce){.ocm-map-doom-fire{opacity:.25}}
+@media(max-height:700px){.ocm-opponent{height:clamp(210px,37dvh,275px)}.ocm-opponent-copy{bottom:8px}}
+@media(prefers-reduced-motion:reduce){.ocm-opponent-art,.ocm-embers i{animation:none}}

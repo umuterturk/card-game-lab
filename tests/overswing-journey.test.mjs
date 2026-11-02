@@ -345,7 +345,7 @@ test('legacy lifetime Gold becomes the sole balance; owned Royals are grandfathe
   assert.equal(after.lifetimeGold,9640,'previously deducted expense must not be applied again');
   assert.strictEqual(recordJourneyGold(after,resumed),after);
 });
-test('Royal purchases are one time, spend Gold, and loadout stays at two',()=>{
+test('all purchased Royals remain active and appear in later hand refills',()=>{
   let progress={...EMPTY_JOURNEY_PROGRESS,lifetimeGold:350000};
   progress=buyRoyal(progress,'K');
   assert.equal(progress.lifetimeGold,170000);
@@ -357,19 +357,17 @@ test('Royal purchases are one time, spend Gold, and loadout stays at two',()=>{
   progress=buyRoyal(progress,'Q');
   assert.equal(progress.lifetimeGold,30000);
   assert.deepEqual(progress.ownedRoyalIds,['K','J','Q']);
-  assert.deepEqual(progress.equippedRoyalIds,['K','J']);
+  assert.deepEqual(progress.equippedRoyalIds,['K','J','Q']);
   progress=toggleRoyalEquipped(progress,'Q');
-  assert.deepEqual(progress.equippedRoyalIds,['J','Q']);
-  progress=toggleRoyalEquipped(progress,'Q');
-  assert.deepEqual(progress.equippedRoyalIds,['J']);
-  const run=startJourney(2100,progress.lifetimeGold,1,progress.equippedRoyalIds);
-  assert.deepEqual(run.equippedRoyals,['J']);
+  assert.deepEqual(progress.equippedRoyalIds,['K','J','Q'],'owning a card makes it permanently active');
+  const run=startJourney(2100,progress.lifetimeGold,1,progress.ownedRoyalIds);
+  assert.deepEqual(run.equippedRoyals,['K','J','Q']);
   assert.equal(run.encounter.engineState.deal.hand.length,8);
   assert.equal(run.encounter.engineState.deal.hand.filter(id=>id>=40).length,0);
-  assert.equal(run.encounter.engineState.deal.pendingRoyals.length,1);
+  assert.equal(run.encounter.engineState.deal.pendingRoyals.length,3);
   assert.equal(run.encounter.effectiveTarget,800);
   assert.equal(startJourney(2101,30000,1,[]).encounter.effectiveTarget,800);
-  assert.throws(()=>startJourney(2102,0,1,['J','Q','K']),TypeError);
+  assert.throws(()=>startJourney(2102,0,1,['J','J']),TypeError);
 });
 test('full real deck play terminates, each card is conserved; Journey never bypasses engine',()=>{
   for(let seed=1;seed<=25;seed++){

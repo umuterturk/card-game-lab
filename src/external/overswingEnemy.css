@@ -1,0 +1,81 @@
+/* Cinematic enemy reveal. Animated embers are CSS-only and do not capture touch. */
+.oe-portrait{display:block;user-select:none;-webkit-user-drag:none}
+.oe-intro{position:fixed;inset:0;z-index:2400;background:#07050a;overflow:hidden;isolation:isolate;
+ color:#ffe3a7;animation:oe-screen-in .55s ease-out both}
+.oe-intro-night{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 55%,#672318,#09040d 80%)}
+.oe-intro-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 31%;
+ image-rendering:pixelated;animation:oe-art-appear 1.15s ease-out both,oe-art-breathe 8s 1.2s ease-in-out infinite alternate}
+.oe-intro-vignette{position:absolute;inset:0;pointer-events:none;background:
+ linear-gradient(180deg,#060409a9,transparent 23%,transparent 45%,#09050ac9 84%,#09050a),
+ radial-gradient(ellipse at 50% 35%,transparent 22%,#0604098c 100%)}
+.oe-intro-embers{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.oe-intro-embers i{position:absolute;display:block;width:3px;height:3px;background:#ffe7a2;
+ box-shadow:0 0 8px 2px #f56c2bb8;opacity:0;animation:oe-sparkle 4s ease-in-out infinite}
+.oe-intro-embers i:nth-child(3n){width:5px;height:2px;background:#fd863a}
+.oe-intro-embers i:nth-child(4n){width:2px;height:5px;background:#f9d598}
+.oe-intro-words{position:absolute;z-index:2;bottom:calc(env(safe-area-inset-bottom,0px) + 120px);
+ left:18px;right:18px;text-align:center;text-shadow:0 3px 8px #000,0 0 20px #000;
+ animation:oe-words-in 1s .75s ease-out both}
+.oe-intro-words small{color:#ffad69;font:clamp(9px,2vw,12px) var(--oj-pixel)}
+.oe-intro-words h2{margin:15px 0 10px;color:#ffe49f;font:clamp(20px,6vw,37px)/1.5 var(--oj-pixel)}
+.oe-intro-words p{font:clamp(22px,6vw,32px) 'VT323',monospace;color:#ffd2b0;margin:0}
+.oe-intro-continue{position:absolute;z-index:3;bottom:calc(env(safe-area-inset-bottom,0px) + 29px);
+ left:50%;transform:translateX(-50%);white-space:nowrap;min-width:220px;min-height:52px;
+ background:#190d15d9;border:2px solid #d58d4d;color:#fff0c0;font:11px var(--oj-pixel);cursor:pointer;
+ animation:oe-tap-glow 3.1s 1.8s ease-in-out infinite}
+.oe-intro-continue span{font:26px 'VT323',monospace;margin-left:9px}
+.oe-intro-continue:focus-visible{outline:3px solid #fff2ba;outline-offset:3px}
+.oe-intro-exit{animation:none;pointer-events:none;opacity:0;transition:opacity .82s ease-in-out}
+.oe-intro-exit .oe-intro-art{animation:none;transform:translateY(-20dvh) scale(.42);
+ transform-origin:50% 32%;opacity:.35;transition:transform .82s cubic-bezier(.12,.7,.12,1),opacity .82s}
+.oe-intro-exit .oe-intro-words,.oe-intro-exit .oe-intro-continue{animation:none;opacity:0;transition:opacity .25s}
+@keyframes oe-screen-in{from{opacity:0}to{opacity:1}}
+@keyframes oe-art-appear{from{opacity:0;filter:brightness(.25)}to{opacity:1;filter:brightness(1)}}
+@keyframes oe-art-breathe{from{transform:scale(1.03)}to{transform:scale(1.095) translateY(-6px)}}
+@keyframes oe-words-in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes oe-tap-glow{0%,100%{box-shadow:0 0 0 #ffa75400}50%{box-shadow:0 0 22px #f1884e99}}
+@keyframes oe-sparkle{0%,100%{opacity:0;transform:translateY(18px) rotate(0deg)}
+ 36%{opacity:.8}65%{opacity:.3;transform:translateY(-32px) rotate(90deg)}}
+/* Minimal preparation. Portrait retains the opponent's skull/face. */
+.oj-prepare-compact{padding-top:11px!important}
+.oj-prepare-compact .oj-prep-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.oj-prepare-compact .oj-prep-top span{font:11px var(--oj-pixel);color:#e8a96a}
+.oj-prepare-compact .oj-prep-opponent{height:clamp(118px,20dvh,174px);border:2px solid #965a37;
+ background:#150d17;position:relative;overflow:hidden;display:flex;align-items:end}
+.oj-prepare-compact .oj-prep-opponent .oe-portrait{position:absolute;inset:0;width:100%;height:100%;
+ object-fit:cover;object-position:50% 31%;image-rendering:pixelated}
+.oj-prepare-compact .oj-prep-opponent:after{content:'';position:absolute;inset:0;background:
+ linear-gradient(90deg,#120912c9 0%,#130a137a 48%,transparent 100%),linear-gradient(0deg,#0c0712b8,transparent 70%);pointer-events:none}
+.oj-prepare-compact .oj-prep-name{position:relative;z-index:1;text-align:left;padding:8px 12px}
+.oj-prepare-compact .oj-prep-name small{font:9px var(--oj-pixel);color:#fbb56f}
+.oj-prepare-compact .oj-prep-name h2{font:clamp(11px,3.3vw,16px)/1.5 var(--oj-pixel);color:#ffdda0;margin:7px 0 3px}
+.oj-prepare-compact .oj-prep-name p{font:18px 'VT323',monospace;color:#f5bfa0;margin:0}
+.oj-prepare-compact .oj-prep-wallet{display:flex;justify-content:space-between;align-items:center;
+ padding:6px 9px;border-bottom:1px solid #6d3f30;font:11px var(--oj-pixel);color:#e4b27e}
+.oj-prepare-compact .oj-prep-wallet .os-gold-amount{color:#ffe09a}
+.oj-prepare-compact .oj-prep-rules{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin:10px 0}
+.oj-prepare-compact .oj-prep-rules div{padding:6px 2px;background:#2c191e;border:1px solid #6c3a2a;text-align:center;min-width:0}
+.oj-prepare-compact .oj-prep-rules span{display:block;font:9px 'VT323',monospace;color:#c99e82}
+.oj-prepare-compact .oj-prep-rules strong{display:block;font:clamp(14px,4vw,20px) 'VT323',monospace;color:#ffdaa2}
+.oj-royal-mini{border:1px solid #80503a;background:#170e16b9;padding:8px;margin-top:5px}
+.oj-royal-mini-head{display:flex;justify-content:space-between;align-items:center;gap:7px;margin-bottom:7px}
+.oj-royal-mini-head strong{font:10px var(--oj-pixel);color:#ffd28b}
+.oj-royal-mini-head span{font:13px 'VT323',monospace;color:#d1a78c}
+.oj-royal-mini-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+.oj-royal-mini-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+ min-width:0;min-height:67px;background:#39211e;border:2px solid #945b39;color:#ffd8a6;padding:5px 2px;cursor:pointer}
+.oj-royal-mini-card b{font:21px var(--oj-pixel)}
+.oj-royal-mini-card span{font:16px 'VT323',monospace;white-space:nowrap}
+.oj-royal-mini-card:disabled{cursor:default;opacity:.5}
+.oj-royal-mini-card.owned{border-color:#a67b42;background:#352719;color:#ffe2a4;opacity:1}
+.oj-royal-mini-card.owned span{color:#cfbb8d}
+.oj-prepare-compact .oj-prep-wild{margin-top:8px;color:#d2a58d;text-align:center;font:17px 'VT323',monospace}
+.oj-prepare-compact .oj-prepare-actions{max-width:none;margin:10px 0 0;gap:5px}
+.oj-prepare-compact .oj-prepare-actions button{min-height:43px}
+.oj-prepare-compact .oj-prep-notice{font:16px 'VT323',monospace;color:#c7a088;text-align:center;margin:4px 0}
+@media(max-height:720px){.oj-prepare-compact .oj-prep-opponent{height:125px}
+ .oj-royal-mini-card{min-height:56px}.oj-prepare-compact .oj-prepare-actions button{min-height:37px}}
+@media(prefers-reduced-motion:reduce){
+ .oe-intro,.oe-intro-art,.oe-intro-words,.oe-intro-continue,.oe-intro-embers i{animation:none!important}
+ .oe-intro-exit,.oe-intro-exit .oe-intro-art{transition:none!important}
+}
