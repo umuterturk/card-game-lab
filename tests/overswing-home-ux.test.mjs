@@ -31,7 +31,7 @@ test('campaign homepage stays minimal; Royals and inventory live in preparation'
 });
 
 test('the selected permanent Royal loadout still becomes the new hand',()=>{
-  let progress={...EMPTY_JOURNEY_PROGRESS,lifetimeGold:200000};
+  let progress={...EMPTY_JOURNEY_PROGRESS,lifetimeGold:250000};
   progress=buyRoyal(progress,'K');
   progress=buyRoyal(progress,'J');
   assert.deepEqual(progress.ownedRoyalIds,['K','J']);
