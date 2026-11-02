@@ -62,7 +62,7 @@ export function scoreNoteAt(step,trackId=0){
 export function createOverswingAudio(host=typeof window!=='undefined'?window:null){
   let context=null,master=null,musicBus=null,sfxBus=null,timer=null,trackBuses=null;
   let nextStep=0,nextAt=0,musicOn=false,sfxOn=true,noise=null;
-  let musicVolume=0,sfxVolume=100,backgrounded=false;
+  let musicVolume=0,sfxVolume=100,backgrounded=false,refreshSession=false;
   let targetTension=.12,smoothedTension=.12,activeGroove=0;
   let currentTempo=60,musicLevel=0;
   let selectedTrack=0,requestedTrack=0,crossfade=null,goalResolved=false;
@@ -113,6 +113,7 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
       else if(active.state==='interrupted'||active.state==='closed'){
         // iOS WebKit sometimes never resolves resume() or reports "running"
         // while the audio graph is silent. Retire the broken graph entirely.
+        refreshSession=true;
         releaseContext();
       }else clearScheduler();
     };
@@ -157,8 +158,25 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     }
     return true;
   }
+  function refreshIOSAudioSession(){
+    // Some iOS WebKit builds can keep an obsolete audio-session category
+    // after backgrounding, silencing even a fresh running AudioContext.
+    // Feature-detect this optional API; it is not available everywhere.
+    const session=host?.navigator?.audioSession;
+    if(!session||typeof session.type!=='string')return;
+    try{
+      session.type='ambient';
+      const restore=()=>{try{session.type='playback';}catch{}};
+      if(typeof host.setTimeout==='function')host.setTimeout(restore,0);
+      else restore();
+    }catch{}
+  }
   function unlock(){
     backgrounded=false;
+    if(refreshSession){
+      refreshSession=false;
+      refreshIOSAudioSession();
+    }
     return wakeContext();
   }
   function tone(frequency,time,duration,volume,type='square',bus=sfxBus,slide=null){
@@ -503,6 +521,7 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     // A resume() on iPhone can resolve without restoring sound. Abandon the
     // old context on backgrounding, and recreate it only on a real gesture.
     backgrounded=true;
+    refreshSession=true;
     releaseContext();
   }
   function resume(){
@@ -515,6 +534,7 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     // reporting "running" (there is no reliable Web Audio silence detector).
     releaseContext();
     backgrounded=false;
+    refreshSession=true;
     return unlock();
   }
   function dispose(){
