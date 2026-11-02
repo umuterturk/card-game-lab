@@ -35,12 +35,16 @@ test('main page, journey preparation, purchases, retries and results show the sa
   assert.match(jsx,/<GoldAmount value=\{progress\.lifetimeGold\|\|0\} showLabel/);
   assert.match(jsx,/<GoldProgress progress=\{progress\} compact\/>/);
   assert.match(jsx,/<GoldAmount value=\{price\}\/>/);
-  assert.match(jsx,/<GoldAmount value=\{journeyRelicPrice\(run\)\}\/>/);
+  const briefing=get('OverswingGateBriefing.jsx');
+  const market=get('OverswingMarket.jsx');
+  assert.match(briefing,/<GoldAmount value=\{price\}\/\>/);
+  assert.match(briefing,/<GoldAmount value=\{balance\}\/\>/);
+  assert.match(market,/<GoldAmount value=\{price\}\/\>/);
   assert.match(jsx,/RETRY GATE · <GoldAmount value=\{price\}\/>/);
   assert.match(jsx,/<GoldAmount value=\{journeyGoldBalance\(run\)\}\/>/);
   assert.match(jsx,/<GoldAmount value=\{journeyRunScore\(run\)\} size="lg"\/>/);
   assert.match(jsx,/<GoldAmount value=\{row\.finalScore\}\/>/);
-  assert.match(jsx,/<GoldAmount value=\{run\.completedEncounters\.at\(-1\)\.finalScore\}/);
+  assert.match(briefing,/<GoldAmount value=\{Math\.round\(gate\.target\*level\.targetScale\)\}\/\>/);
   assert.doesNotMatch(jsx,/✦ \{fmt\(progress\.lifetimeGold/);
   assert.doesNotMatch(jsx,/BUY \{fmt\(price\)\} G/);
   assert.doesNotMatch(jsx,/\{fmt\(journeyGoldBalance\(run\)\)\} G/);

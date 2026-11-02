@@ -94,8 +94,8 @@ test('cinematic UI enters from the side with stepped blur and exits gradually',(
   const jsx=read('OverswingJourney.jsx');
   const intro=read('OverswingEnemy.jsx');
   const css=read('overswingEnemy.css');
-  assert.match(jsx,/sound\.setCinematic\(true\)/);
-  assert.match(jsx,/sound\.setCinematic\(false\)/);
+  assert.match(jsx,/sound\.setAtmosphere\('cinematic'\)/);
+  assert.match(jsx,/sound\.setAtmosphere\('menu'\)/);
   assert.match(jsx,/1850/);
   assert.match(intro,/oe-intro-image-shell/);
   assert.match(css,/@keyframes oe-side-arrive/);

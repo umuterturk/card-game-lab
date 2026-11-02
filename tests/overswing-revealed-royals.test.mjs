@@ -22,7 +22,7 @@ test('character faces are absent, replaced with suit-aware engraved gold Royals'
   const journey=source('OverswingJourney.jsx');
   const gallery=source('RevealedCards.jsx');
   for(const jsx of [play,journey,gallery])assert.doesNotMatch(jsx,/RoyalPortrait/);
-  assert.match(read('OverswingMarket.jsx'),/om-royal-symbol/);
+  assert.match(source('OverswingMarket.jsx'),/om-royal-symbol/);
   assert.match(journey,/oj-royal-large-insignia/);
   assert.match(play,/royalRank\(id\)\?' os8-royal'/);
   assert.match(play,/suit\(id\)<2\?'os8-red':'os8-black'/);
