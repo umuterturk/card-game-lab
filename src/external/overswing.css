@@ -207,10 +207,6 @@
 .os8-flame-meter{position:relative}
 .os8-flame-meter svg{display:block;width:100%;height:auto;max-height:210px;filter:drop-shadow(0 3px 3px #000)}
 .os8-flame-meter svg text{font-family:'VT323',monospace}
-.os8-meter-ends{display:flex;justify-content:space-between;align-items:center;gap:3px;margin:-5px 8px 0;
-  font:12px 'VT323',monospace;color:#ff9951}
-.os8-meter-ends span:first-child{color:#aaa7af}
-.os8-meter-ends strong{font-size:13px;white-space:nowrap;color:#eec789}
 .os8-zero-warning{margin:3px 0 0;font:11px 'VT323',monospace;letter-spacing:.03em;color:#e3a477}
 .os8-factors{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:8px 0}
 .os8-factor{min-height:66px;display:flex;align-items:center;justify-content:center;gap:3px;
@@ -360,8 +356,6 @@
 .os8-full .os8-scoreline b{margin-top:1px;font-size:clamp(18px,5.4vw,26px);line-height:1}
 .os8-full .os8-meter{margin:3px 0;padding:1px 4px 0}
 .os8-full .os8-flame-meter svg{max-height:clamp(88px,17.5dvh,145px)}
-.os8-full .os8-meter-ends{margin:-7px 4px 1px;font-size:10px}
-.os8-full .os8-meter-ends strong{font-size:11px}
 .os8-full .os8-factors{gap:4px;margin:4px 0}
 .os8-full .os8-factor{min-height:44px;padding:3px 2px;gap:1px}
 .os8-full .os8-factor span{font-size:clamp(6px,1.8vw,8px);line-height:1.05}
@@ -1021,3 +1015,18 @@
     height:clamp(20px,4.8dvh,27px);width:23px
   }
 }
+
+/* The Jack reveal replaces the mystery glyph on FLIP with a real suit-colored card. */
+.os8-actions .os8-next-flip-card{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:31px;min-width:43px;padding:1px 5px;margin-bottom:1px;
+  background:#fff0cd;border:2px solid #d6ad70;
+  box-shadow:inset 0 0 0 1px #aa7652,2px 2px #200e12;
+  text-shadow:none;font-family:'VT323',monospace
+}
+.os8-actions .os8-next-flip-card.os8-next-red{color:#bc2d29}
+.os8-actions .os8-next-flip-card.os8-next-black{color:#242029}
+.os8-actions .os8-next-flip-card strong{font:19px/1 'VT323',monospace}
+.os8-actions .os8-next-flip-card span{font:12px/.9 'VT323',monospace}
+.os8-full .os8-actions .os8-next-flip-card{height:28px;min-width:40px}
+.os8-hand .os8-section-heading span{font-variant-numeric:tabular-nums;white-space:nowrap}
