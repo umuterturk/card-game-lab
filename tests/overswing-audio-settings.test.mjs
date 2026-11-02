@@ -30,7 +30,7 @@ test('music and SFX sliders map 0..100 onto their independent gain buses',()=>{
 
 test('preferences persist both independent volumes, Auto/manual track and migrate v1',()=>{
   assert.deepEqual(DEFAULT_SOUND_PREFS,{
-    musicVolume:0,sfxVolume:100,trackChoice:null
+    musicVolume:25,sfxVolume:50,trackChoice:null
   });
   const store=new Map(),storage={
     getItem:key=>store.get(key)||null,
