@@ -34,7 +34,7 @@ test('Settings replace two toggles with 0-100 volume controls and 16-track selec
   assert.match(hook,/trackChoice:choiceRef\.current/);
   const css=read('overswingSoundControls.css');
   assert.match(css,/\.os-audio-modal-backdrop/);
-  assert.match(css,/\.os-audio-gear-icon/);
+  assert.match(css,/\.os-audio-music-icon/);
   assert.match(css,/input\[type=range\]/);
 });
 test('Real tempo is slow at zero tension and smoothly rises across four grooves',()=>{
