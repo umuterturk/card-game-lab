@@ -89,7 +89,8 @@ test('Gate track selection and crossfade are connected without creating audio on
   const journey=read('OverswingJourney.jsx');
   assert.match(journey,/trackForGate\(run\.runSeed,run\.levelNumber,run\.encounterIndex\)/);
   const hook=read('useOverswingSound.js');
-  assert.match(hook,/audioRef\.current\.setTrack\(trackRef\.current\)/);
+  assert.match(hook,/audioRef\.current\.setTrack\(choiceRef\.current\?\?gateRef\.current\)/);
+  assert.match(hook,/if\(choiceRef\.current===null\)audioRef\.current\?\.setTrack\(index\)/);
   assert.match(hook,/audioRef\.current\?\.setTrack\(index\)/);
   const code=read('overswingAudio.js');
   assert.match(code,/TRACK_FADE_SECONDS=1\.8/);
