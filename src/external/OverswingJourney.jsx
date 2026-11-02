@@ -21,7 +21,7 @@ import {
   EMPTY_JOURNEY_PROGRESS,validJourneyProgress,journeyRunScore,recordJourneyGold,
   journeyGoldBalance,journeyRelicPrice,journeyEarnedGold,journeyRetryPrice,
   journeyCanRetry,RETRY_PRICE_RATES,restoreJourneyProgress,restoreJourneyRun,
-  journeyWildBalance,buyRoyal,buyMarketWild
+  journeyWildBalance,buyRoyal,buyMarketWild,resetJourneyAtLevel
 } from './overswingJourney.js';
 import {ROYAL_RULES,ROYAL_NAMES,ROYAL_PRICES} from './overswingRoyals.js';
 import {WILD_IDS,WILD_RULES} from './overswingWilds.js';
@@ -216,20 +216,14 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
     }
   },[run?.phase,run?.runId]);
   const begin=(level=selectedLevel)=>{
-    const paid=run?recordJourneyGold(progress,run):progress;
-    const settled=run?recordJourneyProgress(paid,run):paid;
-    const next=campaignNextLevel(settled.clearedChapterIds);
-    if(level>next||!campaignLevel(level))return;
-    const firstClear=!settled.clearedChapterIds.includes(campaignLevel(level).id)&&
-      !(level===1&&settled.clearedChapterIds.includes('last_flame_v1'));
-    setProgress(settled);
-    setRun(startJourney(Date.now(),settled.lifetimeGold||0,level,
-      (settled.ownedRoyalIds||[]).filter(id=>ROYAL_NAMES.includes(id)),{
-        wildInventory:settled.wildInventory,
-        rewardAvailable:firstClear,
-        shopBeforeFirstGate:true
-      }));
+    const restarted=resetJourneyAtLevel(progress,run,level,Date.now());
+    if(!restarted)return false;
+    setProgress(restarted.progress);
+    setRun(restarted.run);
+    setBankTransition(false);
+    setLossTransition(false);
     setView('journey');
+    return true;
   };
   const play=action=>{
     if(action?.type==='bank')setBankTransition(true);
@@ -279,12 +273,13 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
       }}>✧ MARKET</button></div>
     <OverswingCampaignMap progress={progress} selected={selectedLevel}
       onSelect={setSelectedLevel} onStart={()=>{
-        if(activeJourney){setView('journey');return;}
+        if(!begin(selectedLevel))return;
         sound.setAtmosphere('cinematic');
         sound.unlock();
+        // Each PREPARE press starts a fresh intro and a fresh gate briefing.
         setBriefingReady(false);
-        begin(selectedLevel);
-        setIntroVisible(true);setIntroClosing(false);
+        setIntroClosing(false);
+        setIntroVisible(true);
       }}
       onQuick={()=>{sound.unlock();setView('quick');}}
       activeRun={run&&!['won','lost','abandoned'].includes(run.phase)?()=>setView('journey'):null}/>

@@ -388,6 +388,25 @@ export function restoreJourneyRun(value,progress=EMPTY_JOURNEY_PROGRESS){
   delete migration.treasuryStart;
   return isValidJourney(migration)?restoreGateRelicState(migration):null;
 }
+// PREPARE always starts a new fight. Settle the previous run exactly once
+// before replacing it, including earned Gold and consumed Wild Cards.
+export function resetJourneyAtLevel(progress,previousRun,levelNumber,runSeed){
+  const previous=isValidJourney(previousRun)?previousRun:null;
+  const stopped=previous&&!['won','lost','abandoned'].includes(previous.phase)
+    ?stepJourney(previous,{type:'ABANDON'}):previous;
+  const credited=stopped?recordJourneyGold(progress,stopped):restoreJourneyProgress(progress);
+  const settled=stopped?recordJourneyProgress(credited,stopped):credited;
+  const stage=campaignLevel(levelNumber);
+  if(!stage||levelNumber>campaignNextLevel(settled.clearedChapterIds))return null;
+  const firstClear=!settled.clearedChapterIds.includes(stage.id)&&
+    !(levelNumber===1&&settled.clearedChapterIds.includes('last_flame_v1'));
+  const royals=(settled.ownedRoyalIds||[]).filter(id=>ROYAL_NAMES.includes(id));
+  return {progress:settled,run:startJourney(runSeed,settled.lifetimeGold,levelNumber,royals,{
+    wildInventory:settled.wildInventory,
+    rewardAvailable:firstClear,
+    shopBeforeFirstGate:true
+  })};
+}
 export function buyRoyal(progress,id){
   const old=restoreJourneyProgress(progress),price=ROYAL_PRICES[id];
   if(!ROYAL_NAMES.includes(id)||old.ownedRoyalIds.includes(id)||old.lifetimeGold<price)return old;
