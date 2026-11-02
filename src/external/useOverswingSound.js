@@ -11,8 +11,12 @@ export default function useOverswingSound(){
     return readSoundPreferences(window.localStorage).sfx;
   });
   const audioRef=useRef(null);
+  const tensionRef=useRef(.12);
   const ensure=()=>{
-    if(!audioRef.current)audioRef.current=createOverswingAudio();
+    if(!audioRef.current){
+      audioRef.current=createOverswingAudio();
+      audioRef.current.setTension(tensionRef.current);
+    }
     return audioRef.current;
   };
   const toggleMusic=()=>{
@@ -39,6 +43,12 @@ export default function useOverswingSound(){
     audio.unlock();
   };
   const play=action=>audioRef.current?.play(action);
+  // Store the current danger without creating a new AudioContext or autoplay.
+  const setTension=value=>{
+    const normalized=Number.isFinite(value)?Math.max(0,Math.min(1,value)):.12;
+    tensionRef.current=normalized;
+    audioRef.current?.setTension(normalized);
+  };
   useEffect(()=>{
     const visibility=()=>{
       if(document.hidden)audioRef.current?.suspend();
@@ -51,5 +61,5 @@ export default function useOverswingSound(){
       audioRef.current=null;
     };
   },[]);
-  return {musicOn,sfxOn,toggleMusic,toggleSfx,unlock,play};
+  return {musicOn,sfxOn,toggleMusic,toggleSfx,unlock,play,setTension};
 }

@@ -2,6 +2,7 @@
 // No third-party music, recordings or samples. Browser Web Audio only.
 // Audio starts solely after a player's gesture and is cleaned up on unmount.
 import {multiplierFeedbackForAction,potCrackForAction} from './overswingFeedback.js';
+import {musicLayerMix} from './overswingTension.js';
 
 export const AUDIO_CUES=Object.freeze(['flip','steer','zero','snap','bank']);
 export const BONUS_AUDIO_CUES=Object.freeze(['jackpot','swing','flipTier','potCrack']);
@@ -37,6 +38,7 @@ export function scoreNoteAt(step){
 export function createOverswingAudio(host=typeof window!=='undefined'?window:null){
   let context=null,master=null,musicBus=null,sfxBus=null,timer=null;
   let nextStep=0,nextAt=0,musicOn=false,sfxOn=true,noise=null;
+  let targetTension=.12,smoothedTension=.12;
   const canPlay=()=>!!(host&&(host.AudioContext||host.webkitAudioContext));
   const ctx=()=>{
     if(context||!canPlay())return context;
@@ -88,23 +90,33 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
   // Original descending battle riff with a pulse, a low distorted-sounding
   // square bass, an organ-like harmony, and synthesized drums.
   function scheduleStep(step,time){
+    // Change the arrangement, NEVER the melody or playback position.
+    // One-pole smoothing prevents abrupt tension shifts between two beats.
+    smoothedTension+=.09*(targetTension-smoothedTension);
+    const layers=musicLayerMix(smoothedTension);
     const note=scoreNoteAt(step),local=step%16,bar=Math.floor(step/16);
     const eighth=60/MUSIC_TEMPO/2;
     if(note){
       tone(note,time,eighth*.86,.085,'sawtooth',musicBus,note*.995);
-      tone(note*.5,time,eighth*.72,.065,'square',musicBus);
+      tone(note*.5,time,eighth*.72,.065*layers.bass,'square',musicBus);
+      if(local%4===2)tone(note*.5,time+.025,eighth*.42,
+        .026*layers.menace,'sawtooth',musicBus);
       if(local===0||local===8)
         tone(note*2,time,eighth*3,.022,'triangle',musicBus);
     }
     if(local%4===0){
       tone(110,time,.145,.21,'sine',musicBus,45);
-      blast(time,.07,.048,musicBus,170);
+      blast(time,.07,.048*layers.percussion,musicBus,170);
     }
     if(local===4||local===12){
-      blast(time,.12,.085,musicBus,1850);
+      blast(time,.12,.085*layers.percussion,musicBus,1850);
       tone(180,time,.07,.025,'triangle',musicBus,90);
     }
-    if(local%2===0)blast(time,.034,.024,musicBus,6500);
+    if(local%2===0)blast(time,.034,.024*layers.percussion,musicBus,6500);
+    // A near-silent syncopated hi-hat and subharmonic emerge as risk rises.
+    if(local%2===1)blast(time,.025,.018*layers.menace,musicBus,5000);
+    if((local===7||local===15)&&note!==null)
+      tone(note*.75,time,.14,.020*layers.menace,'sawtooth',musicBus);
     if(local===14&&bar%4===3){
       tone(PITCH.E*4,time,eighth*.6,.031,'triangle',musicBus,PITCH.D*4);
     }
@@ -141,6 +153,10 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     return true;
   }
   function setSfx(enabled){sfxOn=!!enabled;}
+  function setTension(value){
+    targetTension=Math.max(0,Math.min(1,Number.isFinite(value)?value:.12));
+    return targetTension;
+  }
   function play(action){
     const cue=audioCueForAction(action);
     if(!sfxOn||!cue||!context||context.state==='closed')return;
@@ -234,6 +250,7 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     if(context&&context.state!=='closed')context.close().catch(()=>{});
     context=null;master=null;musicBus=null;sfxBus=null;noise=null;
   }
-  return {unlock,play,setMusic,setSfx,suspend,resume,dispose,
+  return {unlock,play,setMusic,setSfx,setTension,suspend,resume,dispose,
+    get tension(){return targetTension;},
     get musicOn(){return musicOn;},get sfxOn(){return sfxOn;}};
 }

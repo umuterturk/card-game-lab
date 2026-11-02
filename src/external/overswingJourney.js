@@ -3,6 +3,7 @@ import {LAST_FLAME,LAST_FLAME_RELICS} from './overswingJourneyContent.js';
 import {ROYAL_NAMES,royalCardsForLoadout,ROYAL_PRICES} from './overswingRoyals.js';
 import {campaignLevel,campaignNextLevel,CAMPAIGN_LEVELS} from './overswingCampaign.js';
 import {WILD_IDS,wildInventory,wildBalance,shuffleWildHand} from './overswingWilds.js';
+import {revealOffer} from './overswingReveal.js';
 
 export const JOURNEY_SCHEMA=4;
 export const JOURNEY_PHASES=['playing','choosing_relic','choosing_wild','retry_offer','won','lost','abandoned'];
@@ -64,6 +65,7 @@ export function startJourney(runSeed=Date.now(),goldBalance=0,levelNumber=1,equi
     contentVersion:LAST_FLAME.version,runId:'last-flame-'+seed.toString(36),
     runSeed:seed,equippedRoyals:loadout,levelNumber,goldSpent:0,retryGoldSpent:0,
     goldStart:goldBalance,treasuryEvents:[],retryCount:0,
+    revealedCardIds:[],revealPurchaseCount:0,revealGoldSpent:0,
     wildInventoryStart:inventory,wildEvents:[],wildUsedGate:false,wildShieldArmed:false,
     wildRewardAvailable:options.rewardAvailable===true,wildRewardId:null,
     phase:'playing',encounterIndex:0,relicIds:[],
@@ -83,6 +85,13 @@ export function isValidJourney(run){
     Number.isSafeInteger(run.retryGoldSpent)&&run.retryGoldSpent>=0&&
     Number.isSafeInteger(run.goldStart)&&run.goldStart>=0&&
     Array.isArray(run.treasuryEvents)&&
+    (run.revealedCardIds===undefined||
+      Array.isArray(run.revealedCardIds)&&
+      run.revealedCardIds.every(id=>Number.isInteger(id)&&id>=0&&id<52))&&
+    (run.revealPurchaseCount===undefined||
+      Number.isSafeInteger(run.revealPurchaseCount)&&run.revealPurchaseCount>=0)&&
+    (run.revealGoldSpent===undefined||
+      Number.isSafeInteger(run.revealGoldSpent)&&run.revealGoldSpent>=0)&&
     Array.isArray(run.wildEvents)&&run.wildEvents.every(e=>WILD_IDS.includes(e.wildId)&&
       (e.amount===1||e.amount===-1)&&typeof e.id==='string')&&
     WILD_IDS.every(id=>Number.isSafeInteger(run.wildInventoryStart?.[id])&&
@@ -178,6 +187,7 @@ export function stepJourney(run,command){
     if(command.type!=='BUY_RETRY'||!journeyCanRetry(run))return run;
     const price=journeyRetryPrice(run),retryCount=run.retryCount+1;
     return {...run,phase:'playing',retryCount,
+      revealedCardIds:[],revealPurchaseCount:0,
       goldSpent:run.goldSpent+price,retryGoldSpent:run.retryGoldSpent+price,
       treasuryEvents:treasuryEvent(run,'retry:'+run.encounterIndex+':'+retryCount,-price),
       // Failed gate earnings are discarded, not counted toward Treasury or lifetime Gold.
@@ -198,6 +208,7 @@ export function stepJourney(run,command){
        !LAST_FLAME_RELICS[command.relicId]||
        journeyGoldBalance(run)<price))return run;
     return {...run,phase:'playing',encounterIndex:nextIndex,retryCount:0,
+      revealedCardIds:[],revealPurchaseCount:0,
       wildUsedGate:false,wildShieldArmed:false,
       goldSpent:run.goldSpent+(buying?price:0),
       treasuryEvents:buying?treasuryEvent(run,'relic:'+nextIndex,-price):run.treasuryEvents,
@@ -206,6 +217,16 @@ export function stepJourney(run,command){
       encounter:dealFor(run.runSeed,nextIndex,run.equippedRoyals,run.levelNumber||1)};
   }
   if(run.phase!=='playing')return run;
+  if(command.type==='BUY_REVEAL'){
+    const offer=revealOffer(run);
+    if(!offer||journeyGoldBalance(run)<offer.price)return run;
+    return {...run,revealPurchaseCount:1,
+      revealedCardIds:offer.cards,
+      revealGoldSpent:(run.revealGoldSpent||0)+offer.price,
+      goldSpent:run.goldSpent+offer.price,
+      treasuryEvents:treasuryEvent(run,
+        'reveal:'+run.encounterIndex+':'+run.retryCount,-offer.price)};
+  }
   if(command.type==='USE_WILD'&&command.wildId!=='polarity'){
     const id=command.wildId;
     if(!journeyCanUseWild(run,id))return run;

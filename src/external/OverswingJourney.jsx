@@ -4,7 +4,7 @@ import OverswingPlay from './OverswingPlay.jsx';
 import OverswingCampaignMap from './OverswingCampaignMap.jsx';
 import DoomFire from './DoomFire.jsx';
 import HellPendulum from './HellPendulum.jsx';
-import {RoyalPortrait} from './RoyalPortrait.jsx';
+import {revealOffer} from './overswingReveal.js';
 import useOverswingSound from './useOverswingSound.js';
 import OverswingSoundControls from './OverswingSoundControls.jsx';
 import {potCrackForAction} from './overswingFeedback.js';
@@ -21,6 +21,7 @@ import {
 import {ROYAL_RULES,ROYAL_NAMES,ROYAL_PRICES} from './overswingRoyals.js';
 import {WILD_IDS,WILD_RULES} from './overswingWilds.js';
 import './overswingJourney.css';
+import './overswingVisualFix.css';
 
 const RUN_KEY='card-game-lab.overswing.journey.v1';
 const PROFILE_KEY='card-game-lab.overswing.journey-profile.v1';
@@ -42,8 +43,8 @@ function RoyalWorkshop({progress,onBuy,onToggle,disabled=false}){
       {ROYAL_NAMES.map(id=>{
         const has=owned.includes(id),price=ROYAL_PRICES[id],selected=equipped.includes(id);
         return <div className={'oj-royal-option'+(selected?' oj-royal-equipped':'')} key={id}>
-          <div className={'oj-royal-symbol oj-royal-symbol-'+id.toLowerCase()}>
-            <RoyalPortrait rank={id} size="workshop"/>
+          <div className={'oj-royal-symbol oj-royal-symbol-'+id.toLowerCase()} aria-hidden="true">
+            <span className="oj-royal-insignia">♛</span><strong>{id}</strong>
           </div>
           <div className="oj-royal-option-name"><strong>{ROYAL_RULES[id].title}</strong>
             <span>{ROYAL_RULES[id].description}</span></div>
@@ -95,8 +96,8 @@ function RoyalReveal({id,onContinue}){
     <section className="oj-royal-modal" role="dialog" aria-modal="true" aria-labelledby="oj-royal-name">
       <p className="oj-eyebrow">ROYAL CARD OWNED FOREVER</p>
       <div className={'oj-royal-card oj-royal-card-'+id.toLowerCase()} aria-hidden="true">
-          <span>{id}</span><RoyalPortrait rank={id} size="reveal"/>
-          <strong>{royal.value}</strong><small>ROYAL</small>
+          <span className="oj-royal-large-insignia">♛</span>
+          <span>{id}</span><strong>{royal.value}</strong><small>ROYAL</small>
         </div>
       <h2 id="oj-royal-name">{royal.title}</h2>
       <p>{royal.description}</p>
@@ -142,7 +143,7 @@ function Recap({run,onNew,onMenu,progress}){
       run.phase==='abandoned'?'You left the furnace. Your collected knowledge remains.':
       'The gate demanded more fire than you could bank.'}</p>
     <div className="oj-recap-total"><small>RUN GOLD · AFTER PURCHASES</small><strong><GoldAmount value={journeyRunScore(run)} size="lg"/></strong></div>
-    <p className="oj-gold-accounting">Cleared gates <GoldAmount value={journeyEarnedGold(run)}/> · Relics <GoldAmount value={run.goldSpent-run.retryGoldSpent}/> · Retries <GoldAmount value={run.retryGoldSpent}/></p>
+    <p className="oj-gold-accounting">Cleared gates <GoldAmount value={journeyEarnedGold(run)}/> · Relics <GoldAmount value={run.goldSpent-run.retryGoldSpent-(run.revealGoldSpent||0)}/> · Deck reveal <GoldAmount value={run.revealGoldSpent||0}/> · Retries <GoldAmount value={run.retryGoldSpent}/></p>
     <p className="oj-gold-accounting">Gold balance: <GoldAmount value={journeyGoldBalance(run)}/></p>
     <div className="oj-recap-rows">{run.completedEncounters.map(row=>
       <div key={row.id}><span>{LAST_FLAME.encounters.find(e=>e.id===row.id)?.title}</span>
@@ -241,6 +242,8 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
   };
   const useWild=(wildId,index)=>setRun(current=>current?
     stepJourney(current,{type:'USE_WILD',wildId,index}):current);
+  const purchaseReveal=()=>setRun(current=>current?
+    stepJourney(current,{type:'BUY_REVEAL'}):current);
   const claimWild=wildId=>setRun(current=>current?
     stepJourney(current,{type:'CHOOSE_WILD',wildId}):current);
   const buy=relicId=>setRun(current=>current?stepJourney(current,{type:'BUY_RELIC',relicId}):current);
@@ -310,6 +313,7 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
      potCrackForAction(run.encounter?.engineState?.lastAction)))
     return <div className="oj-shell oj-playing">
     <OverswingPlay s={run.encounter.engineState} act={play} onWild={useWild}
+      onReveal={purchaseReveal}
       journey={run} fullView={fullView} onBack={()=>setView('menu')}
       sound={sound}/>
     <div className="oj-exit-row"><button type="button" onClick={()=>setView('menu')}>LEAVE BOARD</button></div>

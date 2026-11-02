@@ -3,6 +3,7 @@ import {createPortal} from 'react-dom';
 import {rank,suit,signed,label,applySwing,overswingActions,overswingPayout,overswingMultiplier} from './engines.js';
 import {royalRank} from './overswingRoyals.js';
 import './overswing.css';
+import './overswingVisualFix.css';
 import {OVERSWING_TUTORIAL_STEPS,OVERSWING_TUTORIAL_INTRO} from './overswingTutorial.js';
 import {LAST_FLAME,LAST_FLAME_RELICS} from './overswingJourneyContent.js';
 import {journeyRules,journeyActions} from './overswingJourney.js';
@@ -13,7 +14,9 @@ import {swingImpactForAction} from './overswingImpact.js';
 import DoomFire from './DoomFire.jsx';
 import GoldAmount,{GoldCoin} from './GoldCoin.jsx';
 import RevealedCards from './RevealedCards.jsx';
-import {RoyalPortrait} from './RoyalPortrait.jsx';
+import AbilityIcon from './OverswingAbilityIcon.jsx';
+import {revealOffer} from './overswingReveal.js';
+import {overswingTension} from './overswingTension.js';
 import {pixelPendulumFrame,PENDULUM_FPS,PENDULUM_REGULAR_MS,PENDULUM_SNAP_MS} from './overswingPendulum.js';
 import {cardFlightResult,flipFlightPoints,bankCoinBurst,bankBurstPoints} from './overswingFlipFlight.js';
 import OverswingSoundControls from './OverswingSoundControls.jsx';
@@ -31,7 +34,7 @@ function Card({id,onClick,caption,chosen=false,mini=false,potCard=false,handCard
     className={'os8-card '+(suit(id)<2?'os8-red':'os8-black')+(royalRank(id)?' os8-royal':'')+(chosen?' os8-selected':'')+(mini?' os8-mini':'')+(flightHidden?' os8-pot-flight-hidden':'')}
     aria-label={name(id)+' '+val(signed(id))+(caption?' '+caption:'')}>
     <span className="os8-card-top">{name(id)}</span>
-    {!mini&&royalRank(id)&&<RoyalPortrait id={id} size="card"/>}
+
     {!mini&&<strong>{val(signed(id))}</strong>}
     {!mini&&<small>{caption}</small>}
   </button>;
@@ -157,8 +160,8 @@ const IMPACT_RAYS=Array.from({length:12},(_,i)=>({
 function SwingImpact({impact}){
   if(!impact)return null;
   const snap=impact.kind==='snap';
-  return <div className={'os8-impact os8-impact-'+impact.kind+' os8-impact-'+impact.side}
-    aria-hidden="true">
+  return createPortal(<div className={'os8-impact os8-impact-over-card os8-impact-'+impact.kind+' os8-impact-'+impact.side}
+    style={impact.frame} aria-hidden="true">
     <div className="os8-impact-flash"/>
     <div className="os8-impact-shockwave"/>
     <div className="os8-impact-split"/>
@@ -174,7 +177,7 @@ function SwingImpact({impact}){
       <strong>{snap?'SNAP!':'ZERO BREAK'}</strong>
       <span>{snap?'POT LOST':'ALL MULTIPLIERS → ×1'}</span>
     </div>
-  </div>;
+  </div>,document.body);
 }
 
 
@@ -198,9 +201,7 @@ function FlipFlight({flight,onFinish}){
       aria-hidden="true">
       <div className="os8-flip-face">
         <span className="os8-flip-face-corner">{face}</span>
-        {royalRank(flight.card)?
-          <RoyalPortrait id={flight.card} size="flight"/>:
-          <strong className="os8-flip-face-suit">{SUITS[suit(flight.card)]}</strong>}
+        <strong className="os8-flip-face-suit">{SUITS[suit(flight.card)]}</strong>
         <b className="os8-flip-face-value">{val(signed(flight.card))}</b>
         <span className="os8-flip-face-tag">{isSnap?'SNAP!':isDiscard?'DISCARDED':isSteer?'STEERED':'FLIPPED'}</span>
       </div>
@@ -249,7 +250,7 @@ function Factor({id,label,value,onClick,expanded,winning=false}){
     <b>×{value.toLocaleString('en-US')}</b>
   </button>;
 }
-export default function OverswingPlay({s,act,restart,onWild=null,journey=null,onBack=null,fullView=false,sound=null}){
+export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,journey=null,onBack=null,fullView=false,sound=null}){
   const [discardPick,setDiscardPick]=useState(false);
   const [openFactor,setOpenFactor]=useState(null);
   const [polarityPick,setPolarityPick]=useState(false);
@@ -329,9 +330,13 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
   },[s.lastAction,s.dealIndex,s.seed]);
   // A new action object means a new event. Use an increasing key so successive
   // ZERO BREAKs or SNAPs always restart their CSS animations.
-  useEffect(()=>{
+  useLayoutEffect(()=>{
     const event=swingImpactForAction(s.lastAction);
-    setImpact(previous=>event?{...event,serial:(previous?.serial||0)+1}:null);
+    if(!event){setImpact(null);return;}
+    const rect=meterRef.current?.getBoundingClientRect();
+    const frame=rect?{left:rect.left,top:rect.top,width:rect.width,height:rect.height}:
+      {left:0,top:0,width:window.innerWidth,height:window.innerHeight*.28};
+    setImpact(previous=>({...event,frame,serial:(previous?.serial||0)+1}));
   },[s.lastAction,s.seed,s.dealIndex]);
   useEffect(()=>setHelpOpen(false),[s.mode,s.dealIndex]);
   const tutorial=s.mode==='tutorial';
@@ -341,6 +346,10 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
   const rules=isJourney?journeyRules(journey):{};
   const limit=rules.snapLimit||10;
   const payout=overswingPayout(s,rules),multiplier=overswingMultiplier(d);
+  const tension=overswingTension({deal:d,
+    target:isJourney?journey.encounter.effectiveTarget:3000,
+    limit,boss:isJourney&&journey.encounterIndex===2});
+  useEffect(()=>sound?.setTension(tension),[tension]);
   const total=s.dealTotals.reduce((a,b)=>a+b,0)+(s.status==='over'?0:d.T);
   const canFlip=legal.some(a=>a.type==='flip'),canBank=legal.some(a=>a.type==='bank');
   const wildCounts=isJourney?journeyWildBalance(journey):null;
@@ -392,7 +401,7 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
         <small><GoldAmount value={payout} prefix="+"/></small>
       </button>
     </div>
-    <div className={'os8-abilities '+(isJourney?'os8-abilities-journey':'os8-abilities-quick')}
+    {isJourney&&<div className={'os8-abilities '+(isJourney?'os8-abilities-journey':'os8-abilities-quick')}
       aria-label="Wild Cards and revealed cards">
       {isJourney&&WILD_IDS.map(id=><button type="button" key={id}
         className={'os8-ability os8-wild-action os8-ability-'+id}
@@ -400,16 +409,20 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
         aria-label={WILD_RULES[id].name+', '+wildCounts[id]+' remaining'}
         disabled={discardPick||!journeyCanUseWild(journey,id)}
         onClick={()=>id==='polarity'?setPolarityPick(true):triggerWild(id)}>
-        <strong className="os8-ability-icon" aria-hidden="true">{WILD_RULES[id].symbol}</strong>
+        <AbilityIcon kind={id}/>
         <span>{id==='shuffle'?'SHUFFLE':id==='polarity'?'POLARITY':'SHIELD'}</span>
         <b>{journey.wildUsedGate?'USED':'×'+wildCounts[id]}</b>
       </button>)}
-      <button type="button" ref={discardTargetRef} className="os8-ability os8-history-button"
-        onClick={()=>setHistoryOpen(true)} aria-label="Show revealed cards">
-        <strong className="os8-ability-icon" aria-hidden="true">▤</strong>
-        <span>REVEALED</span><b>{new Set([...d.discard,...d.pot,...d.hand]).size}</b>
-      </button>
-    </div>
+      {isJourney&&<button type="button" ref={discardTargetRef} className="os8-ability os8-history-button"
+        onClick={()=>setHistoryOpen(true)} aria-label="Reveal remaining deck for Gold"
+        disabled={!revealOffer(journey)&&!journey.revealPurchaseCount}>
+        <AbilityIcon kind="revealed"/>
+        <span>REVEALED</span>
+        <b>{revealOffer(journey)?
+          <GoldAmount value={revealOffer(journey).price}/>:
+          journey.revealPurchaseCount?'OWNED':'EMPTY'}</b>
+      </button>}
+    </div>}
   </div>;
   const multiplierDetails=<>
     <div className="os8-factors" aria-label="Multiplier details; tap for an explanation">
@@ -448,9 +461,10 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
     <p>Consecutive safe FLIPs build FLIP ×2, ×3, ×4… Crossing zero with a FLIP adds a JACKPOT tier. A noncrossing FLIP or STEER costs one SWING tier. SNAP loses your Pot.</p>
     <h3>THE JOURNEY</h3>
     <p>Follow the level map. Each level changes visible rules: hand size, SNAP limit, FLIP cap or BANK tax. Buy relics between gates or skip. Boss SNAPs increase the target.</p>
-    <h3>WILD CARDS &amp; HISTORY</h3>
-    <p>The row below FLIP and BANK contains SHUFFLE, POLARITY, SHIELD and a free PLAYED CARDS viewer.
-      One Wild Card can be spent per gate; tap a hand card to STEER normally.</p>
+    <h3>WILD CARDS &amp; REVEALED</h3>
+    <p>SHUFFLE, POLARITY and SHIELD are consumable Wild Cards. REVEALED lets
+      you buy all remaining deck card identities, sorted by rank and suit—not draw order.
+      The fewer cards remain, the higher the Gold price.</p>
     <button type="button" className="os8-help-return" onClick={()=>setHelpOpen(false)}>BACK TO GAME</button>
   </section>;
   return <div className={'os8'+(fullView?' os8-full':'')}>
@@ -566,7 +580,8 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
       setCoinBurst(current=>current?.serial===serial?null:current)}/>}
     {potCrack&&<PotCrack key={potCrack.serial} crack={potCrack} onFinish={serial=>
       setPotCrack(current=>current?.serial===serial?null:current)}/>}
-    {historyOpen&&<RevealedCards deal={d} onClose={()=>setHistoryOpen(false)}/>}
+    {historyOpen&&isJourney&&<RevealedCards deal={d} run={journey}
+      onPurchase={()=>onReveal?.()} onClose={()=>setHistoryOpen(false)}/>}
     {polarityPick&&isJourney&&<div className="os8-wild-overlay" role="presentation">
       <div className="os8-wild-modal" role="dialog" aria-modal="true"
         aria-labelledby="os8-polarity-title">
@@ -601,6 +616,6 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
         <button type="button" className="os8-queen-cancel" onClick={()=>setQueenPick(null)}>CANCEL</button>
       </div>
     </div>}
-    {s.status==='over'&&<div className="os8-complete"><h3>GAME OVER</h3><b><GoldAmount value={s.dealTotals.reduce((a,b)=>a+b,0)} size="lg" showLabel/></b><button type="button" onClick={()=>restart(s.mode)}>PLAY AGAIN</button></div>}
+    {!isJourney&&s.status==='over'&&<div className="os8-complete"><h3>{tutorial?'TRAINING COMPLETE':'DEAL COMPLETE'}</h3><b><GoldAmount value={s.dealTotals.reduce((a,b)=>a+b,0)} size="lg" showLabel/></b><button type="button" onClick={()=>restart(s.mode)}>PLAY AGAIN</button></div>}
   </div>;
 }

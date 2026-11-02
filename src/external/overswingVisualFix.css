@@ -1,0 +1,177 @@
+/* November polish: pixel-art controls, gold-etched Royals, and fixed
+   victory/impact hierarchy. Loaded last in both gameplay and campaign. */
+
+/* ZERO BREAK needs the SAME portal hierarchy as Jackpot:
+   flying cards 1040 < JACKPOT 1070 < ZERO/SNAP 1076 < pot fracture 1080. */
+.os8-impact.os8-impact-over-card{
+  position:fixed;inset:auto;z-index:1076;
+  pointer-events:none;overflow:visible;isolation:isolate
+}
+.os8-impact-over-card .os8-impact-caption{bottom:-18%}
+.os8-impact-over-card.os8-impact-zero .os8-impact-caption{bottom:-32%}
+.os8-impact-over-card .os8-impact-shockwave{z-index:2}
+.os8-impact-over-card .os8-impact-glyph,
+.os8-impact-over-card .os8-impact-caption{z-index:4}
+
+/* No portrait art. Royals are ornamental gold-etched playing cards. */
+.os8-card.os8-royal{
+  position:relative;isolation:isolate;
+  border:3px solid #ba8840;
+  background:
+    repeating-linear-gradient(135deg,transparent 0 7px,#fff3c225 7px 9px),
+    linear-gradient(145deg,#fff3cb,#efd38b 48%,#b5803f 89%);
+  box-shadow:inset 0 0 0 2px #fff2bc,inset 0 0 0 4px #976329,
+    2px 3px 0 #1c1115,0 0 9px #eeb75457
+}
+.os8-card.os8-royal.os8-red{color:#9c3028;border-color:#b87b4a}
+.os8-card.os8-royal.os8-black{color:#2d3545;border-color:#95836a}
+.os8-card.os8-royal::before{
+  content:"♛";position:absolute;left:50%;top:48%;
+  transform:translate(-50%,-50%);pointer-events:none;
+  font:clamp(26px,6vw,43px)/1 'VT323',monospace;
+  color:#a9783d;opacity:.29;text-shadow:2px 2px #ffe1a1
+}
+.os8-card.os8-royal .os8-card-top{
+  font-weight:900;position:relative;z-index:1;
+  color:inherit!important;text-shadow:1px 1px #ffeac5
+}
+.os8-hand .os8-card.os8-royal{
+  gap:2px;justify-content:space-around;padding:3px 2px
+}
+.os8-hand .os8-card.os8-royal>strong{
+  position:relative;z-index:1;font-size:clamp(17px,4.8vw,25px);
+  line-height:1.1;text-shadow:1px 1px #f6db9c
+}
+.os8-hand .os8-card.os8-royal>small{
+  display:block;position:relative;z-index:1;
+  font:9px/1 'VT323',monospace;color:#68452b
+}
+.os8-flip-flight .os8-flip-face{
+  background:linear-gradient(140deg,#fff4d7,#e6c38b)
+}
+
+/* Four hand-carved buttons under FLIP and BANK. */
+.os8-ability{
+  position:relative;min-width:0;min-height:clamp(46px,6.1dvh,57px);
+  padding:5px 1px 4px;gap:2px;border:3px solid #bd9256;
+  border-radius:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  color:#ffedc7;
+  background:linear-gradient(155deg,#633e3c,#3a2531 60%,#241720);
+  box-shadow:inset 0 0 0 2px #241722,
+    inset 0 -4px 0 #1b131a,3px 4px 0 #0e0a0f;
+  text-shadow:2px 2px 0 #1c111b
+}
+.os8-ability::before{
+  content:"";position:absolute;top:2px;left:3px;right:3px;height:3px;
+  background:linear-gradient(90deg,#ffe6a1,#b46e40 75%,#fff1ba);
+  pointer-events:none
+}
+.os8-ability-shuffle{
+  border-color:#b8a0d9;
+  background:linear-gradient(155deg,#665078,#352a45 75%)
+}
+.os8-ability-polarity{
+  border-color:#d89073;
+  background:linear-gradient(155deg,#87484b,#462834 75%)
+}
+.os8-ability-shield{
+  border-color:#e7b65f;
+  background:linear-gradient(155deg,#80613b,#48301f 75%)
+}
+.os8-ability.os8-history-button{
+  border-color:#ffd078;
+  background:linear-gradient(155deg,#92703b,#533920 65%,#312221)
+}
+.os8-ability .os8-ability-pixel-icon{
+  width:clamp(21px,5.4vw,29px);height:clamp(21px,5.4vw,29px);
+  flex:0 0 auto;margin:0
+}
+.os8-ability span:not(.os-gold-amount):not(.os-gold-amount-value):not(.os-gold-coin){
+  font:clamp(9px,2.5vw,12px)/1.1 'VT323',monospace;
+  letter-spacing:.04em;color:#fff0d3
+}
+.os8-ability b{
+  font:clamp(13px,3.6vw,18px)/1 'VT323',monospace;
+  color:#ffe5a6;white-space:nowrap
+}
+.os8-ability .os-gold-amount{gap:1px;font-size:clamp(11px,3vw,15px)}
+.os8-ability .os-gold-coin{font-size:clamp(12px,3.3vw,16px)}
+.os8-ability:not(:disabled):active{
+  transform:translate(2px,2px);
+  box-shadow:inset 0 0 0 2px #241722,1px 1px 0 #0e0a0f
+}
+.os8-ability:disabled{opacity:.58;filter:grayscale(.30);cursor:not-allowed}
+.os8-ability:not(:disabled):focus-visible{
+  outline:3px solid #ffe6a2;outline-offset:2px
+}
+.os8-full .os8-ability{
+  min-height:clamp(40px,5.5dvh,49px);padding:3px 1px
+}
+@media(max-width:390px){
+  .os8-ability{border-width:2px;padding:3px 1px}
+  .os8-ability .os-gold-amount{font-size:11px}
+}
+
+/* Reveal All: the only paid deck-peek action, not a tier menu. */
+.os8-reveal-shop{
+  margin:8px 0 12px;padding:9px;
+  border:3px solid #b78645;background:linear-gradient(140deg,#493020,#261c26);
+  box-shadow:inset 0 0 0 2px #291a1e,3px 4px 0 #160e15
+}
+.os8-reveal-shop p{
+  margin:0 0 8px;color:#ffe0b3;font:17px/1.15 'VT323',monospace
+}
+.os8-reveal-wallet{
+  display:flex;justify-content:space-between;align-items:center;
+  border-top:1px solid #9d7048;padding:6px 0;
+  color:#ffe6ae;font:16px 'VT323',monospace
+}
+.os8-reveal-all{
+  width:100%;min-height:53px;padding:8px;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  border:3px solid #e7ba64;border-radius:0;
+  background:linear-gradient(155deg,#9a6b34,#49301f);
+  color:#fff2c9;box-shadow:3px 3px 0 #140c11;
+  cursor:pointer
+}
+.os8-reveal-all strong{
+  font:clamp(9px,2.7vw,13px)/1.4 var(--pixel,monospace)
+}
+.os8-reveal-all .os-gold-amount{font:21px 'VT323',monospace}
+.os8-reveal-all:disabled{opacity:.55;filter:grayscale(.35);cursor:not-allowed}
+.os8-reveal-all:not(:disabled):active{transform:translate(2px,2px)}
+.os8-reveal-all:focus-visible{outline:2px solid #ffe6a1;outline-offset:2px}
+
+/* Engraved gold Royal badges in preparation and reward screens. */
+.oj-royal-symbol{
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+  border:3px solid #c59042;
+  background:linear-gradient(145deg,#fff0bb,#d4a057 55%,#9e632d);
+  color:#573020;box-shadow:inset 0 0 0 2px #fff0ba,2px 2px 0 #1b1014
+}
+.oj-royal-symbol .oj-royal-insignia{
+  font:19px/1 'VT323',monospace;color:#9e652b
+}
+.oj-royal-symbol>strong{
+  font:20px/1 'VT323',monospace;color:#4e291d
+}
+.oj-royal-symbol-j,.oj-royal-symbol-q,.oj-royal-symbol-k{border-color:#c59042}
+.oj-royal-card{
+  display:flex;flex-direction:column;justify-content:space-around;
+  padding:7px 2px;gap:2px;
+  background:repeating-linear-gradient(145deg,#fff0c6 0 9px,#e6c789 9px 16px);
+  color:#5c331c;border:6px double #ad7736;
+  box-shadow:inset 0 0 0 3px #fff3cb,0 0 23px #f0b64a72
+}
+.oj-royal-card .oj-royal-large-insignia{
+  font:38px/1 'VT323',monospace;color:#9e652b;text-shadow:2px 2px #fff0b2
+}
+.oj-royal-card>span:not(.oj-royal-large-insignia){
+  font:35px/1 var(--oj-pixel,monospace);color:#6c411f
+}
+.oj-royal-card>strong{font:30px/1 'VT323',monospace}
+.oj-royal-card-j,.oj-royal-card-q,.oj-royal-card-k{border-color:#ad7736}
+@media(prefers-reduced-motion:reduce){
+  .os8-impact-over-card{animation:none!important}
+}

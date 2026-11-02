@@ -1,0 +1,10 @@
+.os8-ability-pixel-icon{
+  width:clamp(19px,5vw,27px);height:clamp(19px,5vw,27px);
+  display:block;flex:0 0 auto;
+  color:#ffd68b;filter:drop-shadow(2px 2px 0 #190b16);
+  image-rendering:pixelated
+}
+.os8-icon-shuffle{color:#ddbdff}
+.os8-icon-polarity{color:#ffd2b2}
+.os8-icon-shield{color:#f6d17d}
+.os8-icon-revealed{color:#fff0ab}
