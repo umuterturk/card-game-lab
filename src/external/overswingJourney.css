@@ -46,6 +46,7 @@
 .oj-home-copy{font:22px/1.1 'VT323',monospace;color:#e6bea1;max-width:390px;margin:15px auto 21px}
 .oj-choices{display:flex;flex-direction:column;gap:9px;align-items:stretch;margin:18px auto 12px;max-width:400px}
 .oj-choices button{min-height:52px;border-radius:2px;padding:10px 9px;line-height:1.6;font:11px var(--oj-pixel)}
+.oj-choices .oj-primary:disabled{opacity:.48;filter:grayscale(.6);cursor:not-allowed}
 .oj-primary{color:#fff1c7;border:3px solid #ffb65b;
   background:linear-gradient(#f7892c,#9b2817 69%,#58140f);
   text-shadow:2px 2px #752014;box-shadow:inset 0 0 0 2px #501c15,0 4px 0 #10080b,0 0 20px #e24a1880}
@@ -151,7 +152,7 @@ button.oj-relic:hover,button.oj-relic:focus-visible{border-color:#ffe088;backgro
 }
 
 
-/* Lifetime Gold is earned on BANK, not spent for Royal discoveries. */
+/* Only cleared gates deposit Gold; lifetime Royal discoveries are not spent. */
 .oj-gold-progress{margin:12px auto;padding:9px 11px;max-width:440px;border:2px solid #85602c;background:#211722;color:#f4dca7;text-align:left}
 .oj-gold-progress>div:first-child{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;font:15px 'VT323',monospace}
 .oj-gold-progress strong{color:#ffe39b}
@@ -174,8 +175,7 @@ button.oj-relic:hover,button.oj-relic:focus-visible{border-color:#ffe088;backgro
 .overswing-fullscreen .oj-gold-progress>div:first-child{font-size:13px}
 .overswing-fullscreen .oj-gold-track{margin:4px 0}
 
-/* Paid between-gate relic shop. Available Gold is the run's earned BANK Gold
-   minus purchases; lifetime Royal discoveries remain based on gross earnings. */
+/* Relics and retries spend persistent Treasury Gold; only cleared gates fund it. */
 .oj-shop-wallet{display:flex;justify-content:space-between;gap:10px;margin:8px 0 9px;padding:9px 10px;
   border:2px solid #a06b30;background:#241918;color:#ddbb8b}
 .oj-shop-wallet span{display:flex;flex-direction:column;gap:6px;font:14px 'VT323',monospace;line-height:1.1}

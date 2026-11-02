@@ -196,7 +196,7 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fu
     </section>}
     <div className="os8-legend"><span className="os8-redtext">♥ ♦ POSITIVE</span><span>♠ ♣ NEGATIVE</span><span>0 = RESET</span><span>±{limit} = SNAP</span></div>
     <div className="os8-scoreline">
-      <div><small>✦ GOLD</small><b>{total.toLocaleString('en-US')}</b></div>
+      <div><small>✦ {isJourney?'GATE GOLD':'GOLD'}</small><b>{total.toLocaleString('en-US')}</b></div>
       <div><small>♨ POT</small><b>{pot}</b></div>
       <div><small>× MULTIPLIER</small><b>×{multiplier.toLocaleString('en-US')}</b></div>
       <div><small>♛ BANK NOW</small><b>+{payout.toLocaleString('en-US')}</b></div>

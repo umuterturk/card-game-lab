@@ -4,7 +4,9 @@ import {newOverswing,overswingActions,overswingMultiplier,overswingFinal,stepOve
 import {LAST_FLAME} from '../src/external/overswingJourneyContent.js';
 import {startJourney,stepJourney,journeyActions,journeyRules,journeySeed,
   offerJourneyRelics,recordJourneyProgress,EMPTY_JOURNEY_PROGRESS,isValidJourney,
-  journeyRunScore,journeyEarnedGold,journeyGoldBalance,journeyRelicPrice,RELIC_PRICE_RATE} from '../src/external/overswingJourney.js';
+  journeyRunScore,journeyEarnedGold,journeyGoldBalance,journeyRelicPrice,RELIC_PRICE_RATE,
+  RETRY_PRICE_RATES,journeyRetryPrice,journeyCanRetry,recordJourneyGold,
+  restoreJourneyProgress,restoreJourneyRun} from '../src/external/overswingJourney.js';
 
 function withDeal(run,changes){
   return {...run,encounter:{...run.encounter,
@@ -66,7 +68,7 @@ test('goal check waits for full deal, threshold equality wins and below fails',(
   const halfway=withDeal(run,{T:3000});
   assert.equal(halfway.phase,'playing');
   assert.equal(halfway.encounter.engineState.status,'playing');
-  assert.equal(finish(startJourney(100),799).phase,'lost');
+  assert.equal(finish(startJourney(100),799).phase,'retry_offer');
   const passed=finish(startJourney(100),800);
   assert.equal(passed.phase,'choosing_relic');
   assert.equal(passed.completedEncounters[0].finalScore,800);
@@ -78,7 +80,9 @@ test('goal check waits for full deal, threshold equality wins and below fails',(
   assert.strictEqual(stepJourney(chosen,{type:'BUY_RELIC',relicId:passed.offeredRelicIds[1]}),chosen);
 });
 test('shop never grants unpaid relics and SKIP advances without spending',()=>{
-  const poor={...finish(startJourney(24),800),goldSpent:800};
+  const ready=finish(startJourney(24),800);
+  const poor={...ready,goldSpent:800,treasuryEvents:[
+    ...ready.treasuryEvents,{id:'test-expense',amount:-800,lifetimeDelta:0}]};
   assert.equal(poor.phase,'choosing_relic');
   assert.equal(journeyGoldBalance(poor),0);
   const refused=stepJourney(poor,{type:'BUY_RELIC',relicId:poor.offeredRelicIds[0]});
@@ -192,7 +196,7 @@ test('boss SNAP increases target 200, while earlier stages stay unchanged',()=>{
   assert.equal(snapped.encounter.snapCount,1);
   assert.equal(snapped.encounter.effectiveTarget,3200);
   assert.equal(snapped.encounter.engineState.deal.pot.length,0);
-  assert.equal(finish(snapped,3199).phase,'lost');
+  assert.equal(finish(snapped,3199).phase,'retry_offer');
   assert.equal(finish(snapped,3200).phase,'won');
 });
 test('run progress and terminal commands are idempotent; persisted JSON is resumable',()=>{
@@ -209,6 +213,130 @@ test('run progress and terminal commands are idempotent; persisted JSON is resum
   assert.strictEqual(stepJourney(run,{type:'BUY_RELIC',relicId:'steady_hand'}),run);
   assert.equal(profile.wins,0);
   assert.equal(profile.bestRunScore,800);
+});
+test('three retry prices are linear percentages, per-gate, deterministic and capped',()=>{
+  assert.deepEqual(RETRY_PRICE_RATES,[0.25,0.35,0.50]);
+  let run=finish(startJourney(2001,0,1,5000),799);
+  assert.equal(run.phase,'retry_offer');
+  assert.equal(journeyEarnedGold(run),0,'failed gate Gold is forfeited');
+  assert.equal(journeyGoldBalance(run),5000);
+  for(const [index,price] of [200,280,400].entries()){
+    assert.equal(journeyRetryPrice(run),price);
+    assert.equal(journeyCanRetry(run),true);
+    const previous=run,spentBefore=run.goldSpent;
+    run=stepJourney(run,{type:'BUY_RETRY'});
+    assert.equal(run.retryCount,index+1);
+    assert.equal(run.goldSpent,spentBefore+price);
+    assert.equal(run.retryGoldSpent,run.goldSpent);
+    assert.equal(run.encounter.engineState.deal.T,0);
+    assert.deepEqual(run.encounter.relicUses,{});
+    assert.deepEqual(run.completedEncounters,[]);
+    assert.notDeepEqual(run.encounter.engineState.deal.deck,previous.encounter.engineState.deal.deck);
+    assert.deepEqual(stepJourney(previous,{type:'BUY_RETRY'}),run,
+      'same initial state and retry number produce the same attempt');
+    run=finish(run,700);
+  }
+  assert.equal(run.retryCount,3);
+  assert.equal(run.phase,'retry_offer');
+  assert.equal(journeyCanRetry(run),false);
+  assert.equal(journeyRetryPrice(run),0);
+  assert.strictEqual(stepJourney(run,{type:'BUY_RETRY'}),run);
+  assert.equal(journeyGoldBalance(run),4120);
+  const lost=stepJourney(run,{type:'ACCEPT_DEFEAT'});
+  assert.equal(lost.phase,'lost');
+  assert.strictEqual(stepJourney(lost,{type:'ACCEPT_DEFEAT'}),lost);
+  assert.equal(recordJourneyProgress(EMPTY_JOURNEY_PROGRESS,run).totalRuns,0,
+    'a pending retry offer must not finalize the journey');
+  assert.equal(recordJourneyProgress(EMPTY_JOURNEY_PROGRESS,lost).totalRuns,1);
+});
+test('affordability prevents retries without Treasury Gold and prices scale without SNAP tax',()=>{
+  const broke=finish(startJourney(2002),799);
+  assert.equal(journeyRetryPrice(broke),200);
+  assert.equal(journeyCanRetry(broke),false);
+  assert.strictEqual(stepJourney(broke,{type:'BUY_RETRY'}),broke);
+  const expensive=startJourney(2003,180000,12,10000);
+  const fakeBoss={...expensive,phase:'retry_offer',encounterIndex:2,
+    encounter:{...expensive.encounter,encounterId:'ember_keeper',effectiveTarget:99999},
+    completedEncounters:[{id:'ember_keeper',finalScore:2000,target:99999,passed:false}]};
+  assert.equal(journeyRetryPrice(fakeBoss),1000);
+  assert.equal(journeyRetryPrice({...fakeBoss,encounter:{
+    ...fakeBoss.encounter,effectiveTarget:3000}}),1000,
+    'SNAP target penalties must not change retry price');
+});
+test('failed BANKs never credit lifetime Gold; cleared gates deposit exactly once',()=>{
+  const oldProgress={...EMPTY_JOURNEY_PROGRESS,treasuryGold:1200};
+  let run=finish(startJourney(2004,0,1,1200),799);
+  assert.strictEqual(recordJourneyGold(oldProgress,run),oldProgress);
+  run=stepJourney(run,{type:'BUY_RETRY'});
+  let progress=recordJourneyGold(oldProgress,run);
+  assert.equal(progress.treasuryGold,1000);
+  assert.equal(progress.lifetimeGold,0);
+  assert.strictEqual(recordJourneyGold(progress,run),progress);
+  run=finish(run,800);
+  assert.equal(run.phase,'choosing_relic');
+  progress=recordJourneyGold(progress,run);
+  assert.equal(progress.treasuryGold,1800);
+  assert.equal(progress.lifetimeGold,800);
+  assert.equal(journeyEarnedGold(run),800);
+  assert.equal(journeyRunScore(run),600);
+  assert.strictEqual(recordJourneyGold(progress,JSON.parse(JSON.stringify(run))),progress);
+  const bought=stepJourney(run,{type:'BUY_RELIC',relicId:run.offeredRelicIds[0]});
+  progress=recordJourneyGold(progress,bought);
+  assert.equal(progress.treasuryGold,1440);
+  assert.equal(progress.lifetimeGold,800,'buying a relic does not reverse unlock progress');
+  assert.strictEqual(recordJourneyGold(progress,bought),progress);
+  const nextJourney=startJourney(2005,progress.lifetimeGold,1,progress.treasuryGold);
+  assert.equal(journeyGoldBalance(nextJourney),1440,'Treasury survives across journeys');
+});
+test('retry preserves passed gates and relics, then resets retry count at next gate',()=>{
+  let run=finish(startJourney(2006),800);
+  const first=run.completedEncounters[0];
+  run=stepJourney(run,{type:'BUY_RELIC',relicId:run.offeredRelicIds[0]});
+  const relicId=run.relicIds[0];
+  run=finish(run,1000);
+  assert.equal(run.phase,'retry_offer');
+  assert.equal(journeyGoldBalance(run),440,'failed Furnace does not deposit its score');
+  assert.equal(journeyRetryPrice(run),450);
+  assert.equal(journeyCanRetry(run),false,'remaining Gold cannot be borrowed');
+  // A player with previously saved Treasury can afford the same retry.
+  let rich=finish(startJourney(2007,0,1,1000),800);
+  rich=stepJourney(rich,{type:'BUY_RELIC',relicId:rich.offeredRelicIds[0]});
+  rich=finish(rich,1500);
+  const before=rich.completedEncounters[0],keptRelic=rich.relicIds[0];
+  rich=stepJourney(rich,{type:'BUY_RETRY'});
+  assert.equal(rich.phase,'playing');
+  assert.equal(rich.encounterIndex,1);
+  assert.equal(rich.retryCount,1);
+  assert.equal(rich.completedEncounters.length,1);
+  assert.deepEqual(rich.completedEncounters[0],before);
+  assert.ok(rich.relicIds.includes(keptRelic));
+  assert.deepEqual(rich.encounter.relicUses,{},'relic charges recharge on retries');
+  rich=finish(rich,1800);
+  assert.equal(rich.phase,'choosing_relic');
+  rich=stepJourney(rich,{type:'SKIP_RELIC'});
+  assert.equal(rich.encounterIndex,2);
+  assert.equal(rich.retryCount,0);
+  assert.equal(journeyRetryPrice({...rich,phase:'retry_offer'}),750);
+  assert.deepEqual(run.completedEncounters[0],first);
+  assert.ok(run.relicIds.includes(relicId));
+});
+test('legacy saves keep unlocked Royals, and in-progress gate earnings are not double counted',()=>{
+  const legacy={...EMPTY_JOURNEY_PROGRESS,schemaVersion:1,lifetimeGold:100000,
+    creditedBankIds:['legacy'],treasuryGold:undefined,creditedTreasuryEventIds:undefined};
+  const upgraded=restoreJourneyProgress(legacy);
+  assert.equal(upgraded.lifetimeGold,100000);
+  assert.equal(upgraded.treasuryGold,0);
+  assert.equal(upgraded.schemaVersion,2);
+  assert.equal(upgraded.creditedBankIds,undefined);
+  const cleared=finish(startJourney(2010),800);
+  const oldRun={...cleared,schemaVersion:1,treasuryStart:undefined,
+    treasuryEvents:undefined,retryGoldSpent:undefined,retryCount:undefined};
+  const restored=restoreJourneyRun(oldRun,0);
+  assert.ok(isValidJourney(restored));
+  const funded=recordJourneyGold(upgraded,restored);
+  assert.equal(funded.treasuryGold,800);
+  assert.equal(funded.lifetimeGold,100000);
+  assert.strictEqual(recordJourneyGold(funded,restored),funded);
 });
 test('full real deck play terminates, each card is conserved; Journey never bypasses engine',()=>{
   for(let seed=1;seed<=25;seed++){

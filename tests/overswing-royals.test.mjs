@@ -110,16 +110,16 @@ test('King BANK discards the selected non-K card, not the shifted index',()=>{
   assert.equal(bank.lastAction.dropped,toDrop);
   assert.ok(!bank.deal.hand.includes(toDrop));
 });
-test('Gold accounting credits BANK exactly once and is independent of run completion',()=>{
+test('BANK adds provisional gate Gold but not Treasury or lifetime Royal progress',()=>{
   const run=startJourney(101,0);
   const bankState={...run.encounter.engineState,
     deal:{...run.encounter.engineState.deal,pot:[1],plays:2}};
   const base={...run,encounter:{...run.encounter,engineState:bankState}};
   const after=stepJourney(base,{type:'PLAY',action:{type:'bank',dropIndex:0}});
-  const once=recordJourneyGold(EMPTY_JOURNEY_PROGRESS,after);
-  assert.equal(once.lifetimeGold,2);
-  assert.strictEqual(recordJourneyGold(once,after),once);
-  assert.equal(recordJourneyGold(once,run),once);
+  assert.equal(after.encounter.engineState.lastAction.points,2);
+  assert.equal(after.encounter.engineState.deal.T,2);
+  assert.strictEqual(recordJourneyGold(EMPTY_JOURNEY_PROGRESS,after),EMPTY_JOURNEY_PROGRESS);
+  assert.equal(recordJourneyGold(EMPTY_JOURNEY_PROGRESS,after).lifetimeGold,0);
 });
 test('full 40-card conservation and legal game termination with Royal combinations',()=>{
   for(const tier of [1,2,3])for(let seed=1;seed<=30;seed++){
