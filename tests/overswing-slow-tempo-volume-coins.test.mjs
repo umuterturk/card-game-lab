@@ -12,9 +12,10 @@ test('OFF -> ON -> LOUD -> OFF is the only music-button cycle',()=>{
   assert.deepEqual([0,1,2,0].map(nextMusicLevel),[1,2,0,1]);
   assert.throws(()=>nextMusicLevel(-1),RangeError);
   assert.throws(()=>nextMusicLevel(3),RangeError);
-  assert.deepEqual(MUSIC_VOLUMES,[0,.80,1.03]);
-  assert.ok(MUSIC_VOLUMES[1]>.70,'default music is slightly louder');
-  assert.ok(MUSIC_VOLUMES[2]>MUSIC_VOLUMES[1],'LOUD is higher than ON');
+  assert.deepEqual(MUSIC_VOLUMES,[0,.80,3.20]);
+  assert.ok(MUSIC_VOLUMES[1]>.70,'normal music retains its prior level');
+  assert.ok(MUSIC_VOLUMES[2]/MUSIC_VOLUMES[1]>=4,
+    'LOUD is at least 12 dB higher at the music bus before limiting');
   const controls=read('OverswingSoundControls.jsx');
   assert.match(controls,/sound\.musicLevel===2\?'LOUD'/);
   assert.match(controls,/Increase music volume/);
@@ -80,7 +81,7 @@ test('Changing ON to LOUD preserves the active AudioContext, riff and timer',()=
   const timer=intervals.values().next().value;
   const countBefore=createGainCount;
   assert.equal(audio.setMusicLevel(2),2);
-  assert.equal(gainRecords[1].value,1.03);
+  assert.equal(gainRecords[1].value,3.20);
   assert.equal(contextCount,1);
   assert.equal(audio.grooveName,groove);
   assert.equal(audio.currentTempo,60);

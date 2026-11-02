@@ -32,9 +32,10 @@ export function audioCueForAction(action){
 const PITCH=Object.freeze({E:82.41,F:87.31,G:98,A:110,B:123.47,C:130.81,D:146.83});
 // The maximum tension tempo; actual scheduling uses the selected groove BPM.
 export const MUSIC_TEMPO=132;
-// Normal is a little louder than the old 0.70 setting. LOUD is +~2.2 dB.
-// Applied to musicBus only, leaving SFX at their previous level.
-export const MUSIC_VOLUMES=Object.freeze([0,.80,1.03]);
+// OFF / ON / LOUD. LOUD has 4x the music-bus gain of ON (+12 dB
+// before the shared dynamics limiter). The limiter keeps peaks controlled,
+// while leaving normal music and the independent SFX level unchanged.
+export const MUSIC_VOLUMES=Object.freeze([0,.80,3.20]);
 export function nextMusicLevel(level){
   if(!Number.isInteger(level)||level<0||level>2)throw new RangeError('Invalid music level');
   return (level+1)%3;
