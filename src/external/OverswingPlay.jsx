@@ -346,10 +346,11 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,j
   const rules=isJourney?journeyRules(journey):{};
   const limit=rules.snapLimit||10;
   const payout=overswingPayout(s,rules),multiplier=overswingMultiplier(d);
-  const tension=overswingTension({deal:d,
-    target:isJourney?journey.encounter.effectiveTarget:3000,
+  const gateTarget=isJourney?journey.encounter.effectiveTarget:3000;
+  const goalMet=isJourney&&d.T>=gateTarget;
+  const tension=overswingTension({deal:d,target:gateTarget,
     gateLevel:isJourney?(journey.levelNumber-1)*3+journey.encounterIndex+1:1});
-  useEffect(()=>sound?.setTension(tension),[tension]);
+  useEffect(()=>sound?.setTension(tension,{goalMet}),[tension,goalMet]);
   const total=s.dealTotals.reduce((a,b)=>a+b,0)+(s.status==='over'?0:d.T);
   const canFlip=legal.some(a=>a.type==='flip'),canBank=legal.some(a=>a.type==='bank');
   const wildCounts=isJourney?journeyWildBalance(journey):null;

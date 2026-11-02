@@ -13,6 +13,9 @@ export function overswingTension({
   if(!deal)return .06;
   const goal=Number.isFinite(target)&&target>0?target:3000;
   const scored=Math.max(0,Number.isFinite(deal.T)?deal.T:0);
+  // Successful gate: resolve the tension immediately. Neither the remaining
+  // deck nor campaign difficulty should keep the music in combat mode.
+  if(scored>=goal)return .06;
   const goldRemainingPct=clamp((goal-scored)/goal);
   const goldProgress=1-goldRemainingPct;
   const deckLeft=Math.max(0,(deal.deck?.length||0)-(deal.pos||0));

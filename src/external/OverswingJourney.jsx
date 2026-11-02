@@ -6,6 +6,7 @@ import DoomFire from './DoomFire.jsx';
 import HellPendulum from './HellPendulum.jsx';
 import {revealOffer} from './overswingReveal.js';
 import useOverswingSound from './useOverswingSound.js';
+import {trackForGate} from './overswingTracks.js';
 import OverswingSoundControls from './OverswingSoundControls.jsx';
 import {potCrackForAction} from './overswingFeedback.js';
 import GoldAmount from './GoldCoin.jsx';
@@ -190,6 +191,21 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
     campaignNextLevel(readSaved(PROFILE_KEY)?.clearedChapterIds));
   useEffect(()=>setSelectedLevel(campaignNextLevel(progress.clearedChapterIds)),
     [progress.clearedChapterIds]);
+  // Choose one original track for each gate (including restored runs).
+  // Same run/level/gate -> same selection; the six-track shuffle bag avoids
+  // adjacent repeats without touching any gameplay RNG.
+  useEffect(()=>{
+    if(run){
+      sound.setTrack(trackForGate(run.runSeed,run.levelNumber,run.encounterIndex));
+    }else{
+      sound.setTrack(0);
+    }
+  },[run?.runSeed,run?.levelNumber,run?.encounterIndex]);
+  // Keep the music calm on reward screens and after successful gates. The
+  // action SFX and BANK coin celebration are independent from this reset.
+  useEffect(()=>{
+    if(!run||run.phase!=='playing')sound.setTension(.06,{goalMet:true});
+  },[run?.phase,run?.runSeed]);
   // Keep the board visible for the coin fountain before entering a gate shop
   // or final result. It doesn't delay scoring, persistence, or game rules.
   useEffect(()=>{

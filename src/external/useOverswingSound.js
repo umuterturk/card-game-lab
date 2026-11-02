@@ -13,10 +13,12 @@ export default function useOverswingSound(){
     return readSoundPreferences(window.localStorage).sfx;
   });
   const audioRef=useRef(null);
-  const tensionRef=useRef(.12);
+  const tensionRef=useRef(.06);
+  const trackRef=useRef(0);
   const ensure=()=>{
     if(!audioRef.current){
       audioRef.current=createOverswingAudio();
+      audioRef.current.setTrack(trackRef.current);
       audioRef.current.setTension(tensionRef.current);
     }
     return audioRef.current;
@@ -47,10 +49,16 @@ export default function useOverswingSound(){
   };
   const play=action=>audioRef.current?.play(action);
   // Store the current danger without creating a new AudioContext or autoplay.
-  const setTension=value=>{
-    const normalized=Number.isFinite(value)?Math.max(0,Math.min(1,value)):.12;
-    tensionRef.current=normalized;
-    audioRef.current?.setTension(normalized);
+  const setTension=(value,options={})=>{
+    const normalized=Number.isFinite(value)?Math.max(0,Math.min(1,value)):.06;
+    tensionRef.current=options.goalMet?.06:normalized;
+    audioRef.current?.setTension(tensionRef.current,options);
+  };
+  // Gate selection is stored even when music is OFF. A playing track
+  // crossfades; a muted player starts the selected track on their next tap.
+  const setTrack=index=>{
+    trackRef.current=index;
+    audioRef.current?.setTrack(index);
   };
   useEffect(()=>{
     const visibility=()=>{
@@ -64,5 +72,5 @@ export default function useOverswingSound(){
       audioRef.current=null;
     };
   },[]);
-  return {musicOn,musicLevel,sfxOn,toggleMusic,toggleSfx,unlock,play,setTension};
+  return {musicOn,musicLevel,sfxOn,toggleMusic,toggleSfx,unlock,play,setTension,setTrack};
 }

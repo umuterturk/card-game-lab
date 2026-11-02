@@ -99,8 +99,8 @@ test('Tension builds from gate Gold progress, cards remaining and gate level onl
   assert.equal(audio.setTension(3),1);
   audio.dispose();
   const src=file('overswingAudio.js');
-  assert.match(src,/smoothedTension\+=\.025\*\(targetTension-smoothedTension\)/);
-  assert.match(src,/const note=scoreNoteAt\(step\)/);
+  assert.match(src,/smoothedTension\+=rate\*\(targetTension-smoothedTension\)/);
+  assert.match(src,/const note=scoreNoteAt\(step,trackId\)/);
   assert.match(src,/synthwaveBassPitch/);
   assert.match(src,/layers\.percussion/);
   assert.match(src,/layers\.menace/);

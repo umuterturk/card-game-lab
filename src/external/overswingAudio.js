@@ -5,6 +5,8 @@ import {multiplierFeedbackForAction,potCrackForAction} from './overswingFeedback
 import {musicLayerMix} from './overswingTension.js';
 import {grooveForTension,nextGroove,grooveEvents,MUSIC_GROOVES,
   tempoForGroove,approachTempo,synthwaveBassPitch} from './overswingGrooves.js';
+import {MUSIC_RIFF,MUSIC_TRACKS,trackNoteAt} from './overswingTracks.js';
+export {MUSIC_RIFF,MUSIC_TRACKS} from './overswingTracks.js';
 
 export const AUDIO_CUES=Object.freeze(['flip','steer','zero','snap','bank']);
 export const BONUS_AUDIO_CUES=Object.freeze(['jackpot','swing','flipTier','potCrack']);
@@ -40,24 +42,18 @@ export function nextMusicLevel(level){
   if(!Number.isInteger(level)||level<0||level>2)throw new RangeError('Invalid music level');
   return (level+1)%3;
 }
-export const MUSIC_RIFF=Object.freeze([
-  Object.freeze(['E',null,'E','G','E',null,'F','E','B',null,'G','F','E',null,'D','B']),
-  Object.freeze(['E',null,'E','A','G','E','F',null,'D','E','G','F','E','B',null,'E']),
-  Object.freeze(['C',null,'C','G','E',null,'D','E','C',null,'B','G','A',null,'G','E']),
-  Object.freeze(['B',null,'B','D','E','G','F','E','B',null,'A','G','F','D','E',null])
-]);
-export function scoreNoteAt(step){
-  if(!Number.isInteger(step)||step<0)throw new RangeError('Invalid score step');
-  const bar=Math.floor(step/16)%MUSIC_RIFF.length;
-  const note=MUSIC_RIFF[bar][step%16];
-  return note?PITCH[note]:null;
+export function scoreNoteAt(step,trackId=0){
+  const symbol=trackNoteAt(step,trackId);
+  return symbol?PITCH[symbol]:null;
 }
 
 export function createOverswingAudio(host=typeof window!=='undefined'?window:null){
-  let context=null,master=null,musicBus=null,sfxBus=null,timer=null;
+  let context=null,master=null,musicBus=null,sfxBus=null,timer=null,trackBuses=null;
   let nextStep=0,nextAt=0,musicOn=false,sfxOn=true,noise=null;
   let targetTension=.12,smoothedTension=.12,activeGroove=0;
   let currentTempo=60,musicLevel=0;
+  let selectedTrack=0,requestedTrack=0,crossfade=null,goalResolved=false;
+  const TRACK_FADE_SECONDS=1.8;
   const canPlay=()=>!!(host&&(host.AudioContext||host.webkitAudioContext));
   const ctx=()=>{
     if(context||!canPlay())return context;
@@ -66,6 +62,15 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     master=context.createGain();master.gain.value=.32;
     musicBus=context.createGain();musicBus.gain.value=0;
     sfxBus=context.createGain();sfxBus.gain.value=.85;
+    // Each track has its own channel under the music bus. The outgoing and
+    // incoming themes are rendered simultaneously only during a crossfade.
+    // The limiter continues protecting the combined music + SFX output.
+    trackBuses=MUSIC_TRACKS.map((track,i)=>{
+      const channel=context.createGain();
+      channel.gain.value=i===selectedTrack?1:0;
+      channel.connect(musicBus);
+      return channel;
+    });
     const limiter=context.createDynamicsCompressor();
     limiter.threshold.value=-16;limiter.knee.value=12;limiter.ratio.value=4;
     limiter.attack.value=.004;limiter.release.value=.12;
@@ -99,8 +104,8 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
   // Original analog-style synthwave bass: a filtered saw with an octave
   // overtone and a short, rounded filter envelope. The bass follows a steady
   // arpeggiated pattern; no soundtrack samples or external audio assets.
-  function synthBass(frequency,time,duration,volume,brightness=0){
-    if(!context||!musicBus)return;
+  function synthBass(frequency,time,duration,volume,brightness=0,bus=musicBus){
+    if(!context||!bus)return;
     const low=context.createOscillator();
     const overtone=context.createOscillator();
     const filter=context.createBiquadFilter();
@@ -116,7 +121,7 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     gain.gain.setValueAtTime(.0001,time);
     gain.gain.exponentialRampToValueAtTime(Math.max(.002,volume),time+.018);
     gain.gain.exponentialRampToValueAtTime(.0001,time+duration);
-    low.connect(filter);overtone.connect(filter);filter.connect(gain);gain.connect(musicBus);
+    low.connect(filter);overtone.connect(filter);filter.connect(gain);gain.connect(bus);
     low.start(time);overtone.start(time);
     low.stop(time+duration+.014);overtone.stop(time+duration+.014);
     low.onended=()=>{low.disconnect();overtone.disconnect();
@@ -132,72 +137,120 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     source.start(time);source.stop(time+duration+.001);
     source.onended=()=>{source.disconnect();filter.disconnect();gain.disconnect();};
   }
-  // Stable, original synthwave foundation. The four-bar theme loops normally,
-  // while bass/drums shift across arrangements only on every SECOND bar.
-  // Smooth the three-factor progress over many notes: no action can make the
-  // beat jump immediately, even if the player BANKs a huge amount at once.
-  function scheduleStep(step,time){
-    smoothedTension+=.025*(targetTension-smoothedTension);
-    const local=step%16,bar=Math.floor(step/16);
-    if(local===0&&bar%2===0)
-      activeGroove=nextGroove(activeGroove,smoothedTension);
-    const groove=grooveEvents(activeGroove,step,bar);
-    const layers=musicLayerMix(smoothedTension);
-    const note=scoreNoteAt(step);
-    currentTempo=approachTempo(currentTempo,tempoForGroove(activeGroove),.8);
-    const beat=60/currentTempo;
-    const sixteenth=beat/4;
-    const root=PITCH[['E','E','C','B'][bar%4]];
-
-    // Same recognizable 64-step theme and near-constant loudness.
+  function renderTrackStep(trackId,step,time,groove,layers,beat,sixteenth){
+    const track=MUSIC_TRACKS[trackId];
+    const bus=trackBuses[trackId],local=step%16,bar=Math.floor(step/16);
+    const note=scoreNoteAt(step,trackId);
+    const root=PITCH[track.roots[bar%4]];
+    // Six different melodic phrases, waveforms, chord voicings, and bass
+    // patterns over the same synchronized score grid. No borrowed audio.
     if(note){
-      tone(note,time,(beat/2)*.86,.085,'sawtooth',musicBus,note*.995);
+      tone(note*track.octave,time,(beat/2)*.86,
+        .085*track.leadGain,track.lead,bus,
+        note*track.octave*.995);
     }
-    // Dark 80s synthwave pulse: filtered, gently detuned bass, cycling
-    // through root/fifth/minor-third accents. Rhythm—not gain—drives danger.
     if(groove.bass){
       const duration=activeGroove<2?beat*.53:beat*.30;
-      const bassNote=synthwaveBassPitch(root,local);
+      const bassNote=trackId===0?synthwaveBassPitch(root,local):
+        root*track.bass[Math.floor(local/4)];
       synthBass(bassNote,time,duration,.083*layers.bass,
-        activeGroove/3);
+        activeGroove/3+(trackId%3)*.12,bus);
     }
     if(groove.chug)
       tone(root*2,time,sixteenth*.84,.039*layers.menace,
-        'sawtooth',musicBus,root*1.91);
+        'sawtooth',bus,root*1.91);
     if(groove.chord){
-      // Slow noir-synth pad, with a stable minor chord under the main theme.
-      // No sudden key changes when the groove intensifies.
       const hold=activeGroove===0?beat*2.5:beat*1.5;
-      tone(root*1.189,time,hold,.020,'triangle',musicBus);
-      tone(root*1.498,time,hold,.014,'triangle',musicBus);
+      tone(root*track.chord[0],time,hold,.020,'triangle',bus);
+      tone(root*track.chord[1],time,hold,.014,'triangle',bus);
     }
-    if(groove.echo&&note){
-      // Short same-note answer after the theme, not a new melody.
-      tone(note,time+sixteenth*.52,sixteenth*.43,.025*layers.menace,
-        'square',musicBus);
-    }
-
-    // Kick, snare and hat patterns are the musical source of tension.
-    // Frequencies have an upper attack so phone speakers reproduce the beat.
-    if(groove.kick){
-      tone(120,time,.16,.14*layers.percussion,'sine',musicBus,44);
-      blast(time,.028,.034*layers.percussion,musicBus,2300);
+    if(groove.echo&&note)
+      tone(note*track.octave,time+sixteenth*.52,sixteenth*.43,
+        .025*layers.menace,'square',bus);
+    // Core synthwave drum machine; each new theme adds its own percussion
+    // accents so switching tracks changes more than the lead melody.
+    if(groove.kick||track.kicks.includes(local)&&activeGroove>=1){
+      tone(120,time,.16,.14*layers.percussion,'sine',bus,44);
+      blast(time,.028,.034*layers.percussion,bus,2300);
     }
     if(groove.snare){
-      blast(time,.115,groove.fill?.105:.095,musicBus,1900);
-      tone(178,time,.084,.026,'triangle',musicBus,91);
+      blast(time,.115,groove.fill?.105:.095,bus,1900);
+      tone(178,time,.084,.026,'triangle',bus,91);
     }
-    if(groove.ghost)
-      blast(time,.062,.043,musicBus,1650);
-    if(groove.hat)
-      blast(time,.035,.026*layers.percussion,musicBus,5800);
-    if(groove.openHat)
-      blast(time,.11,.032,musicBus,7200);
-
-    // Small original motif at the end of the four-bar loop, retained
-    // for a seamless repeat in all four arrangements.
+    if(groove.ghost)blast(time,.062,.043,bus,1650);
+    if(groove.hat||track.hats.includes(local)){
+      blast(time,.035,.026*layers.percussion,bus,5800);
+    }
+    if(groove.openHat)blast(time,.11,.032,bus,7200);
     if(local===14&&bar%4===3)
-      tone(PITCH.E*4,time,sixteenth*.95,.031,'triangle',musicBus,PITCH.D*4);
+      tone(root*4,time,sixteenth*.95,.031,'triangle',bus,root*3.56);
+  }
+  // The three-factor gate tension is already stable. Respond to it quickly
+  // with a short note-level envelope and musical changes ON THE BEAT, never
+  // the old two-bar delay. Keep gradual tempo ramps to avoid a speed jump.
+  function scheduleStep(step,time){
+    const local=step%16;
+    const descending=targetTension<smoothedTension;
+    const rate=goalResolved?.65:descending?.28:.19;
+    smoothedTension+=rate*(targetTension-smoothedTension);
+    if(local%4===0){
+      activeGroove=nextGroove(activeGroove,smoothedTension);
+      if(activeGroove===0)goalResolved=false;
+    }
+    const layers=musicLayerMix(smoothedTension);
+    currentTempo=approachTempo(currentTempo,
+      tempoForGroove(activeGroove),goalResolved?5:3);
+    const beat=60/currentTempo,sixteenth=beat/4;
+    // Both themes share the same 16-step clock. No timeline restart on a gate
+    // change; only these two buses overlap during the 1.8-second crossfade.
+    const active=crossfade?[crossfade.from,crossfade.to]:[selectedTrack];
+    for(const trackId of active)
+      renderTrackStep(trackId,step,time,grooveEvents(activeGroove,step,
+        Math.floor(step/16)),layers,beat,sixteenth);
+  }
+  function beginTrackCrossfade(nextId){
+    if(!context||!trackBuses||!musicOn||nextId===selectedTrack)return;
+    const now=context.currentTime,start=now+.025,end=start+TRACK_FADE_SECONDS;
+    const old=trackBuses[selectedTrack].gain;
+    const incoming=trackBuses[nextId].gain;
+    old.cancelScheduledValues(now);
+    incoming.cancelScheduledValues(now);
+    old.setValueAtTime(1,start);
+    incoming.setValueAtTime(0,start);
+    // AudioParam ramps are sample-accurate and preserve the global beat.
+    // Some test shims lack linearRampToValueAtTime, hence the fallback.
+    if(typeof old.linearRampToValueAtTime==='function'){
+      old.linearRampToValueAtTime(0,end);
+      incoming.linearRampToValueAtTime(1,end);
+    }else{
+      old.setTargetAtTime(0,start,.35);
+      incoming.setTargetAtTime(1,start,.35);
+    }
+    crossfade={from:selectedTrack,to:nextId,endAt:end};
+  }
+  function finishTrackCrossfade(nextTime){
+    if(!crossfade||nextTime<crossfade.endAt)return;
+    selectedTrack=crossfade.to;
+    crossfade=null;
+    if(requestedTrack!==selectedTrack)beginTrackCrossfade(requestedTrack);
+  }
+  function setTrack(index){
+    if(!Number.isInteger(index)||index<0||index>=MUSIC_TRACKS.length)
+      throw new RangeError('Unknown music track');
+    requestedTrack=index;
+    if(!musicOn){
+      selectedTrack=index;crossfade=null;
+      if(context&&trackBuses){
+        for(let i=0;i<trackBuses.length;i++){
+          const p=trackBuses[i].gain;
+          p.cancelScheduledValues(context.currentTime);
+          p.setValueAtTime(i===index?1:0,context.currentTime);
+        }
+      }
+      return index;
+    }
+    if(!crossfade&&index!==selectedTrack)beginTrackCrossfade(index);
+    return index;
   }
   function schedule(){
     if(!context||!musicOn||context.state!=='running')return;
@@ -205,6 +258,7 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     if(nextAt<now-.6)nextAt=now+.04;
     let max=0;
     while(nextAt<now+.22&&max++<7){
+      finishTrackCrossfade(nextAt);
       scheduleStep(nextStep++,nextAt);
       nextAt+=60/currentTempo/4;
     }
@@ -212,6 +266,16 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
   function stopMusic(){
     musicOn=false;musicLevel=0;
     if(timer!==null){host?.clearInterval(timer);timer=null;}
+    // OFF cancels any pending fade; next ON starts cleanly on the requested
+    // theme without leaving muted channels running in the background.
+    crossfade=null;selectedTrack=requestedTrack;
+    if(context&&trackBuses){
+      for(let i=0;i<trackBuses.length;i++){
+        const p=trackBuses[i].gain;
+        p.cancelScheduledValues(context.currentTime);
+        p.setValueAtTime(i===selectedTrack?1:0,context.currentTime);
+      }
+    }
     if(musicBus&&context){
       musicBus.gain.cancelScheduledValues(context.currentTime);
       musicBus.gain.setTargetAtTime(0,context.currentTime,.025);
@@ -231,6 +295,14 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
       activeGroove=grooveForTension(targetTension);
       smoothedTension=targetTension;
       currentTempo=tempoForGroove(activeGroove);
+      selectedTrack=requestedTrack;
+      if(trackBuses){
+        for(let i=0;i<trackBuses.length;i++){
+          const p=trackBuses[i].gain;
+          p.cancelScheduledValues(context.currentTime);
+          p.setValueAtTime(i===selectedTrack?1:0,context.currentTime);
+        }
+      }
       schedule();
       timer=host.setInterval(schedule,80);
     }
@@ -239,8 +311,15 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
   // Keep existing callers/tests working: setMusic(true) is normal volume.
   function setMusic(enabled){return setMusicLevel(enabled?1:0)>0;}
   function setSfx(enabled){sfxOn=!!enabled;}
-  function setTension(value){
+  function setTension(value,options={}){
     targetTension=Math.max(0,Math.min(1,Number.isFinite(value)?value:.12));
+    if(options?.goalMet){
+      // The goal has been reached: immediately resolve the target tension,
+      // then descend one groove per beat with a faster, smooth tempo ramp.
+      targetTension=.06;
+      smoothedTension=.06;
+      goalResolved=true;
+    }
     return targetTension;
   }
   function play(action){
@@ -346,9 +425,14 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     stopMusic();
     if(context&&context.state!=='closed')context.close().catch(()=>{});
     context=null;master=null;musicBus=null;sfxBus=null;noise=null;
+    trackBuses=null;crossfade=null;
   }
-  return {unlock,play,setMusic,setMusicLevel,setSfx,setTension,suspend,resume,dispose,
+  return {unlock,play,setMusic,setMusicLevel,setSfx,setTension,
+    setTrack,suspend,resume,dispose,
     get tension(){return targetTension;},
+    get trackId(){return requestedTrack;},
+    get trackName(){return MUSIC_TRACKS[requestedTrack].name;},
+    get crossfading(){return !!crossfade;},
     get musicLevel(){return musicLevel;},
     get currentTempo(){return currentTempo;},
     get grooveLevel(){return activeGroove;},

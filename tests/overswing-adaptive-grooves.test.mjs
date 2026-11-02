@@ -103,12 +103,12 @@ test('Original 64-step riff unchanged; synthwave bass and arrangement are genera
   assert.ok(MUSIC_RIFF.every(bar=>bar.length===16));
   for(let i=0;i<256;i++)assert.equal(scoreNoteAt(i),scoreNoteAt(i%64));
   const audio=file('overswingAudio.js');
-  assert.match(audio,/const note=scoreNoteAt\(step\)/);
+  assert.match(audio,/const note=scoreNoteAt\(step,trackId\)/);
   assert.match(audio,/nextAt\+=60\/currentTempo\/4/);
-  assert.match(audio,/currentTempo=approachTempo\(currentTempo,tempoForGroove\(activeGroove\),\.8\)/);
+  assert.match(audio,/currentTempo=approachTempo\(currentTempo,/);
   assert.match(audio,/const beat=60\/currentTempo/);
-  assert.match(audio,/smoothedTension\+=\.025\*\(targetTension-smoothedTension\)/);
-  assert.match(audio,/if\(local===0&&bar%2===0\)/);
+  assert.match(audio,/smoothedTension\+=rate\*\(targetTension-smoothedTension\)/);
+  assert.match(audio,/if\(local%4===0\)/);
   assert.match(audio,/activeGroove=nextGroove\(activeGroove,smoothedTension\)/);
   assert.doesNotMatch(audio,/nextStep=0;nextAt=context.currentTime.*setTension/);
   assert.match(audio,/function synthBass\(/);
@@ -121,10 +121,11 @@ test('Original 64-step riff unchanged; synthwave bass and arrangement are genera
   assert.match(audio,/groove\.chug/);
 });
 
-test('A fast tension spike waits for 2-bar musical boundaries before changing groove',()=>{
+test('Fast tension updates change groove on beats, with smooth tempo ramps',()=>{
   const intervals=new Map();
   let currentTime=0,contexts=0;
-  const parameter=()=>({value:0,setValueAtTime(){},exponentialRampToValueAtTime(){},
+  const parameter=()=>({value:0,setValueAtTime(){},
+    linearRampToValueAtTime(){},exponentialRampToValueAtTime(){},
     cancelScheduledValues(){},setTargetAtTime(){}});
   const node=()=>({connect(){return this;},disconnect(){},start(){},stop(){},
     gain:parameter(),frequency:parameter(),threshold:parameter(),knee:parameter(),
@@ -157,28 +158,27 @@ test('A fast tension spike waits for 2-bar musical boundaries before changing gr
       for(const fn of intervals.values())fn();
     }
   };
-  const advanceTo=(expected,maxSeconds=35)=>{
+  const advanceTo=(expected,maxSeconds=16)=>{
     const start=currentTime;
     while(audio.grooveName!==expected&&currentTime-start<maxSeconds)advance(.08);
     assert.equal(audio.grooveName,expected);
     return currentTime-start;
   };
   audio.setTension(.98);
-  advance(4.5);
-  assert.equal(audio.grooveName,'DREAD','single bar does not force a transition');
   const firstChange=advanceTo('PULSE');
-  assert.ok(firstChange>2.5,'DREAD lasts roughly two full slow bars');
-  const pulseDuration=advanceTo('PURSUIT');
-  const pursuitDuration=advanceTo('PANIC');
-  assert.ok(pulseDuration>3.5);
-  assert.ok(pursuitDuration>2.5);
+  assert.ok(firstChange<3,'first groove should react within a few beats');
+  assert.ok(audio.currentTempo<82,'tempo ramps rather than jumps to 82 BPM');
+  advanceTo('PURSUIT');
+  advanceTo('PANIC');
   assert.equal(audio.setMusicLevel(2),2);
   assert.equal(intervals.size,1,'LOUD does not restart playback');
-  audio.setTension(0);
+  audio.setTension(.06,{goalMet:true});
+  assert.equal(audio.tension,.06);
   const highExit=advanceTo('PURSUIT');
   const midExit=advanceTo('PULSE');
   const lowExit=advanceTo('DREAD');
-  assert.ok(highExit>2.5&&midExit>2.5&&lowExit>2.5);
+  assert.ok(highExit<4&&midExit<4&&lowExit<4,
+    'a cleared gate returns quickly to calm without cutting the music');
   assert.equal(contexts,1);
   audio.setMusic(false);
   assert.equal(intervals.size,0);
