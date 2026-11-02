@@ -53,7 +53,7 @@ function fakeAudioHost(){
   };
 }
 
-test('sleep, iOS interruption, closed context and repeated wake gestures restore audio',async()=>{
+test('sleep, interrupted output, stale running contexts and retries rebuild safely',async()=>{
   const fake=fakeAudioHost();
   const audio=createOverswingAudio(fake.host);
   audio.resume();
@@ -63,64 +63,64 @@ test('sleep, iOS interruption, closed context and repeated wake gestures restore
   audio.setMusicVolume(25);
   assert.equal(fake.contexts.length,1);
   assert.equal(fake.timers.size,1);
-  assert.equal(audio.musicVolume,25);
-  assert.equal(audio.sfxVolume,50);
   const first=fake.contexts[0];
   assert.equal(first.gains[1].value,musicGainForVolume(25));
   assert.equal(first.gains[2].value,sfxGainForVolume(50));
 
   audio.suspend();
-  assert.equal(fake.timers.size,0,'no background music scheduler');
-  assert.equal(first.state,'suspended');
+  assert.equal(fake.timers.size,0,'sleep stops the scheduler');
+  assert.equal(first.state,'closed','sleep retires the potentially stuck context');
   audio.resume();
-  await Promise.resolve();
-  assert.equal(first.state,'running');
-  assert.equal(fake.timers.size,1,'wake restarts the music clock');
+  assert.equal(fake.contexts.length,1,'focus alone never creates new audio');
+  assert.equal(fake.timers.size,0,'the next gesture must reactivate audio');
 
-  audio.suspend();
-  audio.unlock(); // First tap after screen unlock, without touching the slider.
+  audio.unlock(); // First tap after screen unlock, without touching settings.
   await Promise.resolve();
+  assert.equal(fake.contexts.length,2);
   assert.equal(fake.timers.size,1);
   audio.unlock();audio.resume();audio.unlock();
-  assert.equal(fake.timers.size,1,'repeated gestures cannot duplicate timers');
-  assert.equal(fake.contexts.length,1,'ordinary wake keeps the same context');
+  assert.equal(fake.timers.size,1,'repeated gestures do not duplicate timers');
+  assert.equal(fake.contexts.length,2);
   assert.equal(audio.musicVolume,25);
   assert.equal(audio.trackId,3);
 
-  first.state='interrupted';
-  first.onstatechange?.();
-  assert.equal(fake.timers.size,0);
+  const second=fake.contexts[1];
+  second.state='interrupted';
+  second.onstatechange?.();
+  assert.equal(fake.timers.size,0,'WebKit interruption invalidates the context');
+  assert.equal(second.state,'closed');
   audio.unlock();
-  await Promise.resolve();
-  assert.equal(fake.timers.size,1,'iOS interrupted state is recoverable');
-  first.state='interrupted';
-  first.onstatechange?.();
-  first.state='running';
-  first.onstatechange?.();
-  assert.equal(fake.timers.size,1,'auto-recovered iOS audio restarts the clock');
+  assert.equal(fake.contexts.length,3);
+  assert.equal(fake.timers.size,1,'next gesture rebuilds after interruption');
 
-  first.state='closed';
-  first.onstatechange?.();
-  assert.equal(fake.timers.size,0);
-  audio.unlock();
-  await Promise.resolve();
-  assert.equal(fake.contexts.length,2,'closed context is replaced on a gesture');
+  const third=fake.contexts[2];
+  // Some WebKit versions say running even while sending silent samples.
+  assert.equal(third.state,'running');
+  audio.restart(); // Explicit RECOVER button forces a new graph.
+  assert.equal(fake.contexts.length,4,'restart replaces even a running context');
   assert.equal(fake.timers.size,1);
-  const replacement=fake.contexts[1];
-  assert.equal(replacement.gains[1].value,musicGainForVolume(25));
-  assert.equal(replacement.gains[2].value,sfxGainForVolume(50));
-  assert.equal(replacement.gains[3+3].value,1,'chosen track remains active');
+  assert.equal(third.state,'closed');
+  const fourth=fake.contexts[3];
+  assert.equal(fourth.gains[1].value,musicGainForVolume(25));
+  assert.equal(fourth.gains[2].value,sfxGainForVolume(50));
+  assert.equal(fourth.gains[3+3].value,1,'selected theme survives');
   const before=fake.oscillators;
   audio.play({type:'flip',card:3});
-  assert.ok(fake.oscillators>before,'SFX play after closed-context recovery');
+  assert.ok(fake.oscillators>before,'sound effects work after recreation');
+
+  fourth.state='closed';
+  fourth.onstatechange?.();
+  assert.equal(fake.timers.size,0);
+  audio.unlock();
+  assert.equal(fake.contexts.length,5,'closed context recovers on gesture');
+  assert.equal(fake.timers.size,1);
 
   audio.setMusicVolume(0);
   assert.equal(fake.timers.size,0);
   audio.suspend();
   audio.resume();
   audio.unlock();
-  await Promise.resolve();
-  assert.equal(fake.timers.size,0,'explicitly muted music never restarts');
+  assert.equal(fake.timers.size,0,'muted music never autoplays');
   assert.equal(audio.musicVolume,0);
   audio.dispose();
   assert.equal(fake.timers.size,0);
