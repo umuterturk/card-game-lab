@@ -182,3 +182,10 @@
 
 /* The audio button uses an unambiguous music-note glyph instead of a gear. */
 .os-audio-music-icon{display:block;flex-shrink:0}
+
+.os-audio-modal button.os-audio-restart{
+  display:block;width:100%;min-height:35px;margin:5px 0 12px;
+  background:#34242b;border:1px solid #b58d60;color:#ffe0ac;
+  font:16px/1.1 'VT323',monospace;cursor:pointer
+}
+.os-audio-modal button.os-audio-restart:active{background:#68442a}
