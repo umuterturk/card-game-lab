@@ -237,3 +237,55 @@ button.oj-relic:disabled .oj-relic-pick{color:#b09e8a}
  .oj-royal-option-name strong{font-size:7px}
  .oj-royal-option-name span{font-size:12px}
 }
+
+
+/* Persistent one-per-first-clear Wild inventory and choice screen. */
+.oj-wild-inventory{max-width:440px;margin:7px auto;padding:6px 9px;
+  border:2px solid #7e5a42;background:#211720;display:flex;
+  align-items:center;justify-content:space-between;gap:9px}
+.oj-wild-inventory>span{font:9px/1.4 var(--oj-pixel);color:#ffdb9c;white-space:nowrap}
+.oj-wild-inventory>div{display:flex;align-items:center;gap:6px}
+.oj-wild-stock{display:flex;align-items:center;gap:3px;color:#e8c99c}
+.oj-wild-stock strong{font:20px 'VT323',monospace;color:#ffc96f;
+  text-shadow:0 0 7px #d47b3680}
+.oj-wild-stock small{font:11px 'VT323',monospace}
+.oj-wild-stock b{font:17px 'VT323',monospace;color:#fff0bd}
+.oj-wild-reward-options{display:flex;flex-direction:column;gap:9px;max-width:420px;margin:15px auto}
+.oj-wild-reward-option{display:grid;grid-template-columns:44px 1fr auto;
+  align-items:center;gap:8px;padding:10px 8px;
+  border:2px solid #bc773e;background:#301c22;color:#ffe2b8;text-align:left;
+  cursor:pointer}
+.oj-wild-reward-symbol{font:37px 'VT323',monospace;color:#ffc76c;
+  text-shadow:0 0 9px #d36a2788;grid-row:span 2}
+.oj-wild-reward-option strong{font:9px/1.5 var(--oj-pixel)}
+.oj-wild-reward-option small{grid-column:2;line-height:1.2;font:16px 'VT323',monospace;color:#d5ad87}
+.oj-wild-reward-option b{grid-column:3;grid-row:span 2;font:15px 'VT323',monospace;color:#f9c76d}
+.oj-wild-reward-option:active{transform:translateY(2px)}
+.oj-wild-reward-option:focus-visible{outline:3px solid #ffdb79;outline-offset:2px}
+@media(max-width:370px){
+  .oj-wild-inventory{flex-wrap:wrap;justify-content:center;gap:3px}
+  .oj-wild-stock small{font-size:10px}
+  .oj-wild-reward-option{grid-template-columns:34px 1fr auto;gap:5px}
+  .oj-wild-reward-symbol{font-size:29px}
+  .oj-wild-reward-option strong{font-size:8px}
+}
+/* Pixel flicker is lightweight transform/opacity only; no layout changes. */
+.oj-home .oj-flame{transform-origin:center bottom;
+  animation:oj-idle-flame 3.1s steps(7,end) infinite;
+  will-change:transform}
+.oj-home .oj-title h1{animation:oj-idle-title 5.7s steps(9,end) infinite}
+.oj-home .oj-royal-symbol{animation:oj-idle-royal 5.3s steps(9,end) infinite}
+.oj-home .oj-wild-stock strong{animation:oj-idle-wild 3.8s steps(6,end) infinite}
+@keyframes oj-idle-flame{
+  0%,100%{transform:translateY(0) scale(1);filter:drop-shadow(0 0 7px #ff7b25)}
+  25%{transform:translateY(-3px) scale(1.045,.99)}
+  55%{transform:translateY(1px) scale(.97,1.04);filter:drop-shadow(0 0 15px #f9a641)}
+  75%{transform:translateY(-2px) scale(1.025,1.02)}
+}
+@keyframes oj-idle-title{0%,80%,100%{filter:brightness(1)}86%{filter:brightness(1.22)}}
+@keyframes oj-idle-royal{0%,92%,100%{transform:translateY(0)}95%{transform:translateY(-2px)}}
+@keyframes oj-idle-wild{0%,88%,100%{opacity:.78}90%{opacity:1}}
+@media(prefers-reduced-motion:reduce){
+  .oj-home .oj-flame,.oj-home .oj-title h1,.oj-home .oj-royal-symbol,
+  .oj-home .oj-wild-stock strong{animation:none!important;will-change:auto!important}
+}

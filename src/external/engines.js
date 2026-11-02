@@ -69,7 +69,7 @@ export function overswingMultiplier(d){
 const OVERSWING_BASE_RULES=Object.freeze({
   steerNoncrossPenalty:1,flipCrossJackpotGain:1,bankCapacityLoss:1,
   steerCrossSwingBonus:0,flipNoncrossPenalty:1,snapLimit:10,
-  maxFlips:null,bankTax:0
+  maxFlips:null,bankTax:0,polarityReverse:false,shieldNextFlip:false
 });
 function overswingEffectiveRules(input={}){
   const rules={...OVERSWING_BASE_RULES,...input};
@@ -77,7 +77,7 @@ function overswingEffectiveRules(input={}){
     steerNoncrossPenalty:[0,1],flipCrossJackpotGain:[1,2],
     bankCapacityLoss:[0,1],steerCrossSwingBonus:[0,1],
     flipNoncrossPenalty:[0,1],snapLimit:[8,9,10],
-    bankTax:[0,5,10,15]
+    bankTax:[0,5,10,15],polarityReverse:[false,true],shieldNextFlip:[false,true]
   }))if(!allowed.includes(rules[name]))throw new RangeError('Invalid Overswing rule: '+name);
   if(rules.maxFlips!==null&&(!Number.isInteger(rules.maxFlips)||rules.maxFlips<1||rules.maxFlips>40))
     throw new RangeError('Invalid Overswing rule: maxFlips');
@@ -183,15 +183,19 @@ export function stepOverswing(s,a,rules={}){
         d.discard.push(...expired);
       }
     }else d.crownBonus=0;
-    const movement=royalRank(c)==='Q'?a.direction*12:signed(c);
+    const reversed=a.type==='steer'&&!isRoyal(c)&&effective.polarityReverse;
+    const movement=royalRank(c)==='Q'?a.direction*12:signed(c)*(reversed?-1:1);
+    const shielded=a.type==='flip'&&effective.shieldNextFlip;
     const outcome=applySwing(d.S,d.W,movement,effective.snapLimit);
     if(outcome.snap){
       n.lastAction={type:a.type,card:c,from:previousS,to:previousS+movement,
-        snap:true,destination:'discard',lost:previousPot,prevMultiplier:previousMultiplier,
-        lostPayout:previousPot*previousMultiplier};
+        snap:true,shielded,polarityReversed:reversed,destination:'discard',
+        lost:shielded?0:previousPot,prevMultiplier:previousMultiplier,
+        lostPayout:shielded?0:previousPot*previousMultiplier};
       if(a.type==='flip')n.lastFlip=n.lastAction;
-      d.discard.push(...d.pot,c);
-      msg='SNAP! '+label(c)+' exceeded the limit. Pot lost.';
+      d.discard.push(...(shielded?[]:d.pot),c);
+      msg=shielded?'EMBER SHIELD! SNAP contained. Pot saved, multipliers reset.':
+        'SNAP! '+label(c)+' exceeded the limit. Pot lost.';
       ended=true;
     }else{
       d.S=outcome.S;
@@ -224,6 +228,7 @@ export function stepOverswing(s,a,rules={}){
       const addedToPot=destination==='pot'?rank(c):0;
       n.lastAction={type:a.type,card:c,from:previousS,to:d.S,
         snap:false,swung:outcome.swung,zeroBreak,
+        polarityReversed:reversed,shieldFaded:shielded,
         resetFromMultiplier:zeroBreak?previousMultiplier:null,
         gain:zeroBreak?0:outcome.gain+(a.type==='steer'&&outcome.swung?effective.steerCrossSwingBonus:0),
         swingPenalty:!outcome.swung&&!zeroBreak&&d.W<previousW,
@@ -244,7 +249,13 @@ export function stepOverswing(s,a,rules={}){
           '. Total multiplier ×'+overswingMultiplier(d)+'.';
     }
   }
-  if(ended)clearSwing(d);
+  if(ended){
+    if(n.lastAction?.shielded){
+      // A protected SNAP still counts as a SNAP (including boss penalties).
+      // The offending card is discarded but the Pot remains intact.
+      d.S=0;d.plays=0;resetMultipliers(d);d.swingNo++;
+    }else clearSwing(d);
+  }
   const refill=refillEmptyHand(d);
   // Refill consumes the top of the ordinary deck. A Scout preview must always
   // point at the next actual FLIP card, never a card moved into the hand.

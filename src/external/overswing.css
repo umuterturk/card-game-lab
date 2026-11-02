@@ -553,3 +553,71 @@
   .os8-impact-glyph{animation:none;opacity:1;transform:translate(-50%,-50%)}
   .os8-impact-caption{animation:none;opacity:1;transform:none}
 }
+
+
+/* STEER is performed by tapping any enabled card; no separate STEER button. */
+.os8-actions.os8-actions-quick,.os8-full .os8-actions.os8-actions-quick{
+  grid-template-columns:repeat(2,minmax(0,1fr))
+}
+.os8-actions.os8-actions-journey,.os8-full .os8-actions.os8-actions-journey{
+  grid-template-columns:repeat(3,minmax(0,1fr))
+}
+.os8-actions .os8-wild-action{
+  border-color:#ce9d67;background:linear-gradient(155deg,#6a3f65,#342543 60%,#1d192f);
+  box-shadow:inset 0 0 0 2px #f2ae8144,0 5px 0 #130910,0 0 12px #b45fa746
+}
+.os8-actions .os8-wild-action .os8-action-icon{color:#f7d1ff}
+.os8-wild-armed{
+  margin:4px 0;padding:3px 7px;border:2px solid #f2ae79;
+  background:#55331d;color:#ffe9bb;text-align:center;
+  font:13px/1.4 'VT323',monospace;
+  animation:os8-idle-shield 2.5s steps(6,end) infinite;
+}
+.os8-wild-overlay{position:fixed;inset:0;z-index:1100;
+  display:flex;align-items:center;justify-content:center;
+  padding:calc(env(safe-area-inset-top,0px) + 12px) 12px
+    calc(env(safe-area-inset-bottom,0px) + 12px);
+  background:#08070ce8}
+.os8-wild-modal{width:100%;max-width:410px;max-height:100%;overflow-y:auto;
+  border:3px solid #c78a4a;background:linear-gradient(155deg,#382338,#160f1c 76%);
+  padding:12px;color:#ffedd0;box-shadow:0 15px 45px #000b}
+.os8-wild-heading{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.os8-wild-heading h3{margin:0;font:clamp(9px,3vw,13px)/1.5 var(--pixel);color:#ffdb91}
+.os8-wild-heading button,.os8-wild-cancel{border:2px solid #8c6c48;
+  background:#301d29;color:#ffe1b9;font:18px 'VT323',monospace;padding:6px 12px}
+.os8-wild-modal p{font:17px/1.1 'VT323',monospace;color:#e9c5a5;margin:9px 0}
+.os8-wild-options{display:flex;flex-direction:column;gap:7px}
+.os8-wild-options>button{display:grid;grid-template-columns:39px 1fr 30px;
+  align-items:center;gap:8px;min-height:64px;padding:6px;
+  border:2px solid #8f6b4a;background:#332231;color:#ffe4bd;text-align:left}
+.os8-wild-options>button:disabled{opacity:.36;cursor:not-allowed;filter:grayscale(.6)}
+.os8-wild-icon{font:34px 'VT323',monospace;color:#ffca7b;text-align:center}
+.os8-wild-copy{display:flex;flex-direction:column;gap:4px}
+.os8-wild-copy b{font:9px/1.4 var(--pixel);color:#ffdfb2}
+.os8-wild-copy small{font:14px/1.1 'VT323',monospace;color:#d3ad99}
+.os8-wild-quantity{font:22px 'VT323',monospace;color:#ffda91}
+.os8-wild-polarity-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+.os8-wild-polarity-cards button{display:flex;flex-direction:column;align-items:center;
+  gap:3px;min-height:60px;padding:7px 2px;border:2px solid #bb7b3c;
+  background:#462a25;color:#fff0ca;font:20px 'VT323',monospace}
+.os8-wild-polarity-cards button strong{font-size:22px}
+.os8-wild-polarity-cards button span{font-size:16px}
+.os8-wild-polarity-cards button small{font-size:13px;color:#ffca83}
+.os8-wild-cancel{width:100%;margin-top:10px}
+/* Subtle pixel-art idle motion: only opacity, glow, and compositor transforms. */
+.os8::before{animation:os8-idle-embers 9s steps(12,end) infinite}
+.os8-flame-meter svg{animation:os8-idle-meter 4.4s steps(7,end) infinite}
+.os8-actions button:not(:disabled){animation:os8-idle-button 5.5s steps(9,end) infinite}
+.os8-hand .os8-card:not(:disabled){animation:os8-idle-hand 7.2s steps(12,end) infinite}
+.os8-actions .os8-wild-action:not(:disabled){animation:os8-idle-wild 3.6s steps(6,end) infinite}
+@keyframes os8-idle-embers{0%,100%{opacity:.42;transform:translateY(0)}50%{opacity:.7;transform:translateY(-10px)}}
+@keyframes os8-idle-meter{0%,100%{filter:drop-shadow(0 3px 3px #000)}50%{filter:drop-shadow(0 3px 6px #d94c2855)}}
+@keyframes os8-idle-button{0%,90%,100%{filter:brightness(1)}94%{filter:brightness(1.13)}}
+@keyframes os8-idle-hand{0%,85%,100%{filter:brightness(1)}90%{filter:brightness(1.07)}}
+@keyframes os8-idle-wild{0%,100%{filter:brightness(1)}50%{filter:brightness(1.2)}}
+@keyframes os8-idle-shield{0%,100%{filter:brightness(1)}50%{filter:brightness(1.28)}}
+@media(prefers-reduced-motion:reduce){
+ .os8::before,.os8-flame-meter svg,.os8-actions button:not(:disabled),
+ .os8-hand .os8-card:not(:disabled),.os8-actions .os8-wild-action:not(:disabled),
+ .os8-wild-armed{animation:none!important}
+}

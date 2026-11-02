@@ -2,9 +2,10 @@ import {newOverswing,overswingActions,stepOverswing,overswingFinal} from './engi
 import {LAST_FLAME,LAST_FLAME_RELICS} from './overswingJourneyContent.js';
 import {ROYAL_NAMES,royalCardsForLoadout,ROYAL_PRICES} from './overswingRoyals.js';
 import {campaignLevel,campaignNextLevel,CAMPAIGN_LEVELS} from './overswingCampaign.js';
+import {WILD_IDS,wildInventory,wildBalance,shuffleWildHand} from './overswingWilds.js';
 
-export const JOURNEY_SCHEMA=3;
-export const JOURNEY_PHASES=['playing','choosing_relic','retry_offer','won','lost','abandoned'];
+export const JOURNEY_SCHEMA=4;
+export const JOURNEY_PHASES=['playing','choosing_relic','choosing_wild','retry_offer','won','lost','abandoned'];
 export const RELIC_PRICE_RATE=0.20; // price is 20% of the next gate's scaled target
 export const RETRY_PRICE_RATES=Object.freeze([0.25,0.35,0.50]);
 const BASE_RELIC_RULES={steerNoncrossPenalty:1,flipCrossJackpotGain:1,
@@ -49,7 +50,7 @@ export function offerJourneyRelics(run){
   }
   return choices.slice(0,LAST_FLAME.rewards.offerCount);
 }
-export function startJourney(runSeed=Date.now(),goldBalance=0,levelNumber=1,equippedRoyals=[]){
+export function startJourney(runSeed=Date.now(),goldBalance=0,levelNumber=1,equippedRoyals=[],options={}){
   if(!Number.isSafeInteger(runSeed)||runSeed<0)throw new TypeError('Invalid run seed');
   if(!campaignLevel(levelNumber))throw new RangeError('Invalid campaign level');
   if(!Number.isSafeInteger(goldBalance)||goldBalance<0)throw new RangeError('Invalid Gold balance');
@@ -58,10 +59,13 @@ export function startJourney(runSeed=Date.now(),goldBalance=0,levelNumber=1,equi
      equippedRoyals.some(id=>!ROYAL_NAMES.includes(id)))
     throw new TypeError('Invalid Royal loadout');
   const seed=runSeed,loadout=equippedRoyals.slice();
+  const inventory=wildInventory(options.wildInventory);
   return {schemaVersion:JOURNEY_SCHEMA,contentPackId:LAST_FLAME.id,
     contentVersion:LAST_FLAME.version,runId:'last-flame-'+seed.toString(36),
     runSeed:seed,equippedRoyals:loadout,levelNumber,goldSpent:0,retryGoldSpent:0,
     goldStart:goldBalance,treasuryEvents:[],retryCount:0,
+    wildInventoryStart:inventory,wildEvents:[],wildUsedGate:false,wildShieldArmed:false,
+    wildRewardAvailable:options.rewardAvailable===true,wildRewardId:null,
     phase:'playing',encounterIndex:0,relicIds:[],
     offeredRelicIds:[],encounter:dealFor(seed,0,loadout,levelNumber),completedEncounters:[]};
 }
@@ -79,6 +83,13 @@ export function isValidJourney(run){
     Number.isSafeInteger(run.retryGoldSpent)&&run.retryGoldSpent>=0&&
     Number.isSafeInteger(run.goldStart)&&run.goldStart>=0&&
     Array.isArray(run.treasuryEvents)&&
+    Array.isArray(run.wildEvents)&&run.wildEvents.every(e=>WILD_IDS.includes(e.wildId)&&
+      (e.amount===1||e.amount===-1)&&typeof e.id==='string')&&
+    WILD_IDS.every(id=>Number.isSafeInteger(run.wildInventoryStart?.[id])&&
+      run.wildInventoryStart[id]>=0)&&
+    typeof run.wildUsedGate==='boolean'&&typeof run.wildShieldArmed==='boolean'&&
+    typeof run.wildRewardAvailable==='boolean'&&
+    (run.wildRewardId===null||WILD_IDS.includes(run.wildRewardId))&&
     Array.isArray(run.equippedRoyals)&&run.equippedRoyals.length<=2&&
     new Set(run.equippedRoyals).size===run.equippedRoyals.length&&
     run.equippedRoyals.every(id=>ROYAL_NAMES.includes(id))&&
@@ -113,6 +124,20 @@ export function journeyGoldBalance(run){
 export function journeyRunScore(run){
   return journeyEarnedGold(run)-run.goldSpent;
 }
+export function journeyWildBalance(run){
+  return wildBalance(run.wildInventoryStart,run.wildEvents);
+}
+export function journeyCanUseWild(run,id){
+  if(!isValidJourney(run)||run.phase!=='playing'||run.wildUsedGate||
+     !WILD_IDS.includes(id)||journeyWildBalance(run)[id]<1)return false;
+  const d=run.encounter.engineState.deal;
+  if(id==='shuffle')return d.hand.some(card=>card<40)&&d.pos<d.deck.length;
+  if(id==='polarity')return d.hand.some(card=>card<40);
+  return journeyActions(run).some(action=>action.type==='flip');
+}
+function wildEvent(run,id,amount,source){
+  return [...run.wildEvents,{id:run.runId+'|wild:'+source,wildId:id,amount}];
+}
 function gateBaseTarget(run){
   const gate=LAST_FLAME.encounters[run.encounterIndex];
   return Math.round(gate.target*campaignLevel(run.levelNumber||1).targetScale);
@@ -142,6 +167,12 @@ export function stepJourney(run,command){
     if(run.phase==='won'||run.phase==='lost'||run.phase==='abandoned')return run;
     return {...run,phase:'abandoned',offeredRelicIds:[]};
   }
+  if(run.phase==='choosing_wild'){
+    if(command.type!=='CHOOSE_WILD'||!run.wildRewardAvailable||
+       !WILD_IDS.includes(command.wildId))return run;
+    return {...run,phase:'won',wildRewardId:command.wildId,
+      wildEvents:wildEvent(run,command.wildId,1,'reward:'+run.levelNumber)};
+  }
   if(run.phase==='retry_offer'){
     if(command.type==='ACCEPT_DEFEAT')return {...run,phase:'lost'};
     if(command.type!=='BUY_RETRY'||!journeyCanRetry(run))return run;
@@ -151,6 +182,8 @@ export function stepJourney(run,command){
       treasuryEvents:treasuryEvent(run,'retry:'+run.encounterIndex+':'+retryCount,-price),
       // Failed gate earnings are discarded, not counted toward Treasury or lifetime Gold.
       completedEncounters:run.completedEncounters.filter(e=>e.id!==run.encounter.encounterId),
+      wildShieldArmed:false,
+      // The one-Wild-per-gate limit survives retries.
       encounter:dealFor(run.runSeed,run.encounterIndex,run.equippedRoyals,run.levelNumber,retryCount)};
   }
   if(run.phase==='choosing_relic'&&
@@ -165,15 +198,44 @@ export function stepJourney(run,command){
        !LAST_FLAME_RELICS[command.relicId]||
        journeyGoldBalance(run)<price))return run;
     return {...run,phase:'playing',encounterIndex:nextIndex,retryCount:0,
+      wildUsedGate:false,wildShieldArmed:false,
       goldSpent:run.goldSpent+(buying?price:0),
       treasuryEvents:buying?treasuryEvent(run,'relic:'+nextIndex,-price):run.treasuryEvents,
       relicIds:buying?[...run.relicIds,command.relicId]:run.relicIds,
       offeredRelicIds:[],
       encounter:dealFor(run.runSeed,nextIndex,run.equippedRoyals,run.levelNumber||1)};
   }
-  if(run.phase!=='playing'||command.type!=='PLAY'||!command.action)return run;
-  const old=run.encounter,engine=stepOverswing(old.engineState,command.action,journeyRules(run));
+  if(run.phase!=='playing')return run;
+  if(command.type==='USE_WILD'&&command.wildId!=='polarity'){
+    const id=command.wildId;
+    if(!journeyCanUseWild(run,id))return run;
+    const events=wildEvent(run,id,-1,'use:'+run.encounterIndex);
+    if(id==='shield')return {...run,wildEvents:events,wildUsedGate:true,
+      wildShieldArmed:true};
+    if(id==='shuffle'){
+      const seed=journeySeed(run.runSeed,run.encounterIndex,
+        'wild-shuffle:'+run.retryCount+':'+run.encounter.engineState.deal.pos);
+      const engine=shuffleWildHand(run.encounter.engineState,seed);
+      if(engine===run.encounter.engineState)return run;
+      return {...run,wildEvents:events,wildUsedGate:true,
+        encounter:{...run.encounter,engineState:engine}};
+    }
+    return run;
+  }
+  const polarity=command.type==='USE_WILD'&&command.wildId==='polarity';
+  if(polarity&&(!journeyCanUseWild(run,'polarity')||
+      !Number.isInteger(command.index)||
+      !(run.encounter.engineState.deal.hand[command.index]<40)))return run;
+  if(!polarity&&(command.type!=='PLAY'||!command.action))return run;
+  const action=polarity?{type:'steer',index:command.index}:command.action;
+  const old=run.encounter;
+  const engine=stepOverswing(old.engineState,action,{
+    ...journeyRules(run),polarityReverse:polarity,
+    shieldNextFlip:run.wildShieldArmed&&action.type==='flip'});
   if(engine===old.engineState)return run;
+  const nextWildEvents=polarity?
+    wildEvent(run,'polarity',-1,'use:'+run.encounterIndex):run.wildEvents;
+  const pendingShield=run.wildShieldArmed&&action.type!=='flip';
   const triggered=engine.lastAction?.modifiersApplied||[];
   const uses={...old.relicUses};
   for(const id of triggered)if(run.relicIds.includes(id))uses[id]=(uses[id]||0)+1;
@@ -184,16 +246,18 @@ export function stepJourney(run,command){
     campaignLevel(run.levelNumber||1).targetScale)+
     (objective?.type==='snap_target_tax'?snapCount*objective.pointsPerSnap:0);
   const encounter={...old,engineState:engine,relicUses:uses,snapCount,effectiveTarget};
-  if(engine.status!=='over')return {...run,encounter};
+  const advanced={...run,encounter,wildEvents:nextWildEvents,
+    wildUsedGate:run.wildUsedGate||polarity,wildShieldArmed:pendingShield};
+  if(engine.status!=='over')return advanced;
   const finalScore=overswingFinal(engine);
   const result={id:content.id,finalScore,target:effectiveTarget,
     snaps:snapCount,passed:finalScore>=effectiveTarget};
   const completedEncounters=[...run.completedEncounters,result];
-  if(!result.passed)return {...run,encounter,phase:'retry_offer',completedEncounters};
-  const credited={...run,encounter,completedEncounters,
+  if(!result.passed)return {...advanced,phase:'retry_offer',completedEncounters};
+  const credited={...advanced,completedEncounters,
     treasuryEvents:treasuryEvent(run,'gate:'+run.encounterIndex,finalScore,finalScore)};
   if(run.encounterIndex===LAST_FLAME.encounters.length-1){
-    return {...credited,phase:'won'};
+    return {...credited,phase:run.wildRewardAvailable?'choosing_wild':'won'};
   }
   const draft={...credited,phase:'choosing_relic'};
   return {...draft,offeredRelicIds:offerJourneyRelics(draft)};
@@ -201,6 +265,7 @@ export function stepJourney(run,command){
 export const EMPTY_JOURNEY_PROGRESS=Object.freeze({
   schemaVersion:JOURNEY_SCHEMA,totalRuns:0,wins:0,bestRunScore:0,
   lifetimeGold:0,ownedRoyalIds:[],equippedRoyalIds:[],
+  wildInventory:{shuffle:0,polarity:0,shield:0},creditedWildEventIds:[],
   creditedTreasuryEventIds:[],seenRoyalIds:[],
   discoveredRelicIds:[],unlockedStartingStyles:[],clearedChapterIds:[],
   recordedRunIds:[]
@@ -211,6 +276,9 @@ export function validJourneyProgress(value){
     Array.isArray(value.discoveredRelicIds)&&
     Number.isSafeInteger(value.lifetimeGold)&&value.lifetimeGold>=0&&
     Array.isArray(value.creditedTreasuryEventIds)&&
+    Array.isArray(value.creditedWildEventIds)&&
+    WILD_IDS.every(id=>Number.isSafeInteger(value.wildInventory?.[id])&&
+      value.wildInventory[id]>=0)&&
     Array.isArray(value.ownedRoyalIds)&&Array.isArray(value.equippedRoyalIds);
 }
 // Upgrade both legacy save formats. Historical lifetimeGold is THE starting
@@ -218,10 +286,13 @@ export function validJourneyProgress(value){
 // Royals previously gained through milestones remain permanently owned.
 export function restoreJourneyProgress(value,oldRun=null){
   if(validJourneyProgress(value))return value;
-  if(!value||![1,2].includes(value.schemaVersion)||
+  if(!value||![1,2,3].includes(value.schemaVersion)||
      !Number.isInteger(value.totalRuns)||
      !Array.isArray(value.recordedRunIds)||!Array.isArray(value.discoveredRelicIds))
     return EMPTY_JOURNEY_PROGRESS;
+  if(value.schemaVersion===3)return {...EMPTY_JOURNEY_PROGRESS,...value,
+    schemaVersion:JOURNEY_SCHEMA,wildInventory:wildInventory(value.wildInventory),
+    creditedWildEventIds:[]};
   const oldGold=Math.max(0,value.lifetimeGold||0);
   const owned=ROYAL_NAMES.filter((_,i)=>oldGold>=[40000,100000,180000][i]);
   // V2 credits successful gates but did not charge relics and retries against
@@ -238,7 +309,7 @@ export function restoreJourneyProgress(value,oldRun=null){
 }
 export function restoreJourneyRun(value,progress=EMPTY_JOURNEY_PROGRESS){
   if(isValidJourney(value))return value;
-  if(!value||![1,2].includes(value.schemaVersion)||
+  if(!value||![1,2,3].includes(value.schemaVersion)||
      !Number.isSafeInteger(value.runSeed)||!campaignLevel(value.levelNumber??1)||
      !Array.isArray(value.completedEncounters)||!Array.isArray(value.relicIds)||
      !value.encounter)return null;
@@ -252,9 +323,14 @@ export function restoreJourneyRun(value,progress=EMPTY_JOURNEY_PROGRESS){
     .reduce((sum,e)=>sum+e.amount,0);
   const goldStart=Math.max(0,progress.lifetimeGold-settledSum);
   const migration={...value,schemaVersion:JOURNEY_SCHEMA,
-    goldStart,equippedRoyals:selected,retryCount:value.retryCount||0,
-    retryGoldSpent:value.retryGoldSpent||0,treasuryEvents:oldEvents,
-    goldSpent:value.goldSpent||0};
+    goldStart:value.schemaVersion===3?value.goldStart:goldStart,
+    equippedRoyals:value.schemaVersion===3?value.equippedRoyals:selected,
+    retryCount:value.retryCount||0,retryGoldSpent:value.retryGoldSpent||0,
+    treasuryEvents:value.schemaVersion===3?value.treasuryEvents:oldEvents,
+    goldSpent:value.goldSpent||0,
+    wildInventoryStart:wildInventory(progress.wildInventory),
+    wildEvents:[],wildUsedGate:false,wildShieldArmed:false,
+    wildRewardAvailable:false,wildRewardId:null};
   delete migration.treasuryStart;
   return isValidJourney(migration)?migration:null;
 }
@@ -281,12 +357,17 @@ export function toggleRoyalEquipped(progress,id){
 export function recordJourneyGold(progress,run){
   if(!isValidJourney(run))return progress;
   const old=restoreJourneyProgress(progress);
-  const seen=new Set(old.creditedTreasuryEventIds);
-  const pending=run.treasuryEvents.filter(e=>!seen.has(e.id));
-  if(!pending.length)return old;
+  const seenGold=new Set(old.creditedTreasuryEventIds);
+  const seenWild=new Set(old.creditedWildEventIds);
+  const pendingGold=run.treasuryEvents.filter(e=>!seenGold.has(e.id));
+  const pendingWild=run.wildEvents.filter(e=>!seenWild.has(e.id));
+  if(!pendingGold.length&&!pendingWild.length)return old;
   return {...old,
-    lifetimeGold:Math.max(0,old.lifetimeGold+pending.reduce((sum,e)=>sum+e.amount,0)),
-    creditedTreasuryEventIds:[...old.creditedTreasuryEventIds,...pending.map(e=>e.id)]};
+    lifetimeGold:Math.max(0,old.lifetimeGold+
+      pendingGold.reduce((sum,e)=>sum+e.amount,0)),
+    creditedTreasuryEventIds:[...old.creditedTreasuryEventIds,...pendingGold.map(e=>e.id)],
+    wildInventory:wildBalance(old.wildInventory,pendingWild),
+    creditedWildEventIds:[...old.creditedWildEventIds,...pendingWild.map(e=>e.id)]};
 }
 // Idempotent: a completed run may be observed repeatedly across React render or reload.
 export function recordJourneyProgress(progress,run){

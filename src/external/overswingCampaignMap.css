@@ -40,3 +40,18 @@
   .ocm-detail{min-height:0}
   .ocm-actions button{min-height:34px!important}
 }
+
+
+/* Gentle idle map activity; conquered locations never block input. */
+.ocm-node.ocm-next:not(:disabled){
+  animation:ocm-idle-next 2.8s steps(7,end) infinite;
+  will-change:filter;
+}
+.ocm-node.ocm-cleared span{animation:ocm-idle-cleared 5s steps(7,end) infinite}
+@keyframes ocm-idle-next{0%,100%{filter:brightness(1)}50%{filter:brightness(1.35)}}
+@keyframes ocm-idle-cleared{0%,88%,100%{opacity:1}94%{opacity:.65}}
+@media(prefers-reduced-motion:reduce){
+ .ocm-node.ocm-next:not(:disabled),.ocm-node.ocm-cleared span{
+   animation:none!important;will-change:auto!important
+ }
+}

@@ -322,7 +322,7 @@ test('legacy lifetime Gold becomes the sole balance; owned Royals are grandfathe
   const upgraded=restoreJourneyProgress(legacy);
   assert.equal(upgraded.lifetimeGold,100000);
   assert.equal(upgraded.treasuryGold,undefined);
-  assert.equal(upgraded.schemaVersion,3);
+  assert.equal(upgraded.schemaVersion,4);
   assert.deepEqual(upgraded.ownedRoyalIds,['J','Q']);
   assert.deepEqual(upgraded.equippedRoyalIds,['J','Q']);
   assert.equal(upgraded.creditedBankIds,undefined);

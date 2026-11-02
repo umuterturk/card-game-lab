@@ -9,9 +9,10 @@ import {
   EMPTY_JOURNEY_PROGRESS,validJourneyProgress,journeyRunScore,recordJourneyGold,
   journeyGoldBalance,journeyRelicPrice,journeyEarnedGold,journeyRetryPrice,
   journeyCanRetry,RETRY_PRICE_RATES,restoreJourneyProgress,restoreJourneyRun,
-  buyRoyal,toggleRoyalEquipped
+  journeyWildBalance,buyRoyal,toggleRoyalEquipped
 } from './overswingJourney.js';
 import {ROYAL_RULES,ROYAL_NAMES,ROYAL_PRICES} from './overswingRoyals.js';
+import {WILD_IDS,WILD_RULES} from './overswingWilds.js';
 import './overswingJourney.css';
 
 const RUN_KEY='card-game-lab.overswing.journey.v1';
@@ -50,6 +51,34 @@ function RoyalWorkshop({progress,onBuy,onToggle,disabled=false}){
     </div>
     {disabled&&<small>Royal purchases and loadout changes are available between journeys.</small>}
   </section>;
+}
+function WildInventory({inventory}){
+  return <section className="oj-wild-inventory" aria-label="Wild Card inventory">
+    <span>WILD CARDS</span>
+    <div>{WILD_IDS.map(id=><div className="oj-wild-stock" key={id}
+      title={WILD_RULES[id].description}>
+      <strong aria-hidden="true">{WILD_RULES[id].symbol}</strong>
+      <small>{WILD_RULES[id].name.replace('WILD ','')}</small>
+      <b>×{inventory?.[id]||0}</b>
+    </div>)}</div>
+  </section>;
+}
+function WildReward({run,onPick}){
+  return <main className="oj-shell oj-reward"><section className="oj-panel oj-recap">
+    <div className="oj-rune" aria-hidden="true">✦</div>
+    <p className="oj-eyebrow">LOCATION {run.levelNumber} CONQUERED</p>
+    <h2>CHOOSE A WILD CARD</h2>
+    <p>First-clear reward: choose one Wild Card for your permanent inventory.
+      It can be saved for a later journey. No bonus Gold is awarded.</p>
+    <div className="oj-wild-reward-options">{WILD_IDS.map(id=>
+      <button type="button" key={id} className="oj-wild-reward-option"
+        onClick={()=>onPick(id)}>
+        <span className="oj-wild-reward-symbol" aria-hidden="true">{WILD_RULES[id].symbol}</span>
+        <strong>{WILD_RULES[id].name}</strong>
+        <small>{WILD_RULES[id].description}</small>
+        <b>CLAIM ×1</b>
+      </button>)}</div>
+  </section></main>;
 }
 function RoyalReveal({id,onContinue}){
   const royal=ROYAL_RULES[id];
@@ -159,14 +188,25 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
     }
   },[run?.phase,run?.runId]);
   const begin=(level=selectedLevel)=>{
-    const settled=run?recordJourneyGold(progress,run):progress;
+    const paid=run?recordJourneyGold(progress,run):progress;
+    const settled=run?recordJourneyProgress(paid,run):paid;
     const next=campaignNextLevel(settled.clearedChapterIds);
     if(level>next||!campaignLevel(level))return;
+    const firstClear=!settled.clearedChapterIds.includes(campaignLevel(level).id)&&
+      !(level===1&&settled.clearedChapterIds.includes('last_flame_v1'));
     setProgress(settled);
-    setRun(startJourney(Date.now(),settled.lifetimeGold||0,level,settled.equippedRoyalIds||[]));
+    setRun(startJourney(Date.now(),settled.lifetimeGold||0,level,
+      settled.equippedRoyalIds||[],{
+        wildInventory:settled.wildInventory,
+        rewardAvailable:firstClear
+      }));
     setView('journey');
   };
   const play=action=>setRun(current=>current?stepJourney(current,{type:'PLAY',action}):current);
+  const useWild=(wildId,index)=>setRun(current=>current?
+    stepJourney(current,{type:'USE_WILD',wildId,index}):current);
+  const claimWild=wildId=>setRun(current=>current?
+    stepJourney(current,{type:'CHOOSE_WILD',wildId}):current);
   const buy=relicId=>setRun(current=>current?stepJourney(current,{type:'BUY_RELIC',relicId}):current);
   const skip=()=>setRun(current=>current?stepJourney(current,{type:'SKIP_RELIC'}):current);
   const buyRetry=()=>setRun(current=>current?stepJourney(current,{type:'BUY_RETRY'}):current);
@@ -187,6 +227,7 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
       <p className="oj-eyebrow">THE LAST FLAME · CAMPAIGN</p><h1>OVER<span>SWING</span></h1>
       <p className="oj-subtitle">FOLLOW THE FLAME TRAIL</p></header>
     <GoldProgress progress={progress}/>
+    <WildInventory inventory={progress.wildInventory}/>
     <RoyalWorkshop progress={progress} onBuy={purchaseRoyal} onToggle={equipRoyal}
       disabled={!!run&&!['won','lost','abandoned'].includes(run.phase)}/>
     <OverswingCampaignMap progress={progress} selected={selectedLevel}
@@ -196,8 +237,8 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
     <p className="oj-record">Runs {progress.totalRuns} · Victories {progress.wins} · Best {fmt(progress.bestRunScore)}</p>
   </main>;
   if(run.phase==='playing')return <div className="oj-shell oj-playing">
-    <OverswingPlay s={run.encounter.engineState} act={play} journey={run} fullView={fullView}
-      onBack={()=>setView('menu')}/>
+    <OverswingPlay s={run.encounter.engineState} act={play} onWild={useWild}
+      journey={run} fullView={fullView} onBack={()=>setView('menu')}/>
     <div className="oj-exit-row"><button type="button" onClick={()=>setView('menu')}>LEAVE BOARD</button></div>
   </div>;
   if(run.phase==='choosing_relic')return <main className="oj-shell oj-reward">
@@ -222,6 +263,7 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
       <p className="oj-hint">Relics cost Gold. Clearing a gate deposits all its BANKed points; a failed gate deposits nothing.</p>
     </div>
   </main>;
+  if(run.phase==='choosing_wild')return <WildReward run={run} onPick={claimWild}/>;
   if(run.phase==='retry_offer')return <RetryOffer run={run} onRetry={buyRetry} onDecline={acceptDefeat}/>;
   if(['won','lost','abandoned'].includes(run.phase))return <main className="oj-shell">
     <Recap run={run} progress={progress} onNew={()=>setView('map')} onMenu={()=>setView('map')}/>

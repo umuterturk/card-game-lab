@@ -6,6 +6,8 @@ import {OVERSWING_TUTORIAL_STEPS,OVERSWING_TUTORIAL_INTRO} from './overswingTuto
 import {LAST_FLAME,LAST_FLAME_RELICS} from './overswingJourneyContent.js';
 import {journeyRules,journeyActions} from './overswingJourney.js';
 import {campaignLevel,campaignRuleLabels} from './overswingCampaign.js';
+import {WILD_IDS,WILD_RULES} from './overswingWilds.js';
+import {journeyWildBalance,journeyCanUseWild} from './overswingJourney.js';
 import {swingImpactForAction} from './overswingImpact.js';
 
 const SUITS=['♥','♦','♠','♣'];
@@ -22,11 +24,13 @@ function Card({id,onClick,caption,chosen=false,mini=false}){
   </button>;
 }
 function Outcome({e}){
-  if(!e)return <>Choose a card to <b>STEER</b>, or <b>FLIP</b> a random card.</>;
+  if(!e)return <>Tap any hand card to <b>STEER</b>, or <b>FLIP</b> a random card.</>;
+  if(e.type==='wild')return <><b>WILD SHUFFLE!</b> Refreshed {e.replaced} ordinary hand cards.</>;
   if(e.type==='bank')return <><b>+{e.points.toLocaleString('en-US')} BANKED</b>{e.taxPaid>0?' · TAX −'+e.taxPaid+' G':''}{e.crownBonus?' · CROWN +'+e.crownBonus+'%':''} · Hand limit {e.oldCap} → {e.newCap}. {e.dropped!=null?name(e.dropped)+' discarded. ':''}{e.refilled?.length?'Hand refilled.':''}</>;
+  if(e.snap&&e.shielded)return <><b>EMBER SHIELD!</b> SNAP contained: <b>{name(e.card)}</b>. Pot saved, multipliers reset to ×1.</>;
   if(e.snap)return <><b>SNAP!</b> <b>{name(e.card)}</b>: {val(e.from)} → {val(e.to)}. Lost {e.lostPayout.toLocaleString('en-US')} potential points.</>;
   if(e.zeroBreak)return <><b>ZERO BREAK!</b> {name(e.card)}: {val(e.from)} → 0. <b>All multipliers reset to ×1.</b> Pot kept{e.refilled?.length?', hand refilled':''}.</>;
-  return <><b>{e.type==='flip'?'FLIP':'STEER'} {name(e.card)}</b> · {val(e.from)} → {val(e.to)} · <b>{target[e.destination]}</b>{e.scouted!=null?<b> · NEXT FLIP: {name(e.scouted)}</b>:null}{e.swung?<b> · SWING +{e.gain}</b>:null}{e.swingPenalty?<b> · SWING −1</b>:null} · total ×{e.multiplier.toLocaleString('en-US')}{e.refilled?.length?' · '+e.refilled.length+' cards refilled':''}</>;
+  return <><b>{e.polarityReversed?'POLARITY ':e.type==='flip'?'FLIP ':'STEER '}{name(e.card)}</b> · {val(e.from)} → {val(e.to)} · <b>{target[e.destination]}</b>{e.scouted!=null?<b> · NEXT FLIP: {name(e.scouted)}</b>:null}{e.swung?<b> · SWING +{e.gain}</b>:null}{e.swingPenalty?<b> · SWING −1</b>:null} · total ×{e.multiplier.toLocaleString('en-US')}{e.refilled?.length?' · '+e.refilled.length+' cards refilled':''}{e.shieldFaded?' · SHIELD SPENT':''}</>;
 }
 
 function FlameMeter({position,limit=10}){
@@ -129,10 +133,11 @@ function Factor({id,label,value,onClick,expanded}){
     <b>×{value.toLocaleString('en-US')}</b>
   </button>;
 }
-export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fullView=false}){
+export default function OverswingPlay({s,act,restart,onWild=null,journey=null,onBack=null,fullView=false}){
   const [discardPick,setDiscardPick]=useState(false);
   const [openFactor,setOpenFactor]=useState(null);
-  const [steerFocus,setSteerFocus]=useState(false);
+  const [wildOpen,setWildOpen]=useState(false);
+  const [polarityPick,setPolarityPick]=useState(false);
   const [helpOpen,setHelpOpen]=useState(false);
   const [queenPick,setQueenPick]=useState(null);
   const [impact,setImpact]=useState(null);
@@ -152,10 +157,18 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fu
   const payout=overswingPayout(s,rules),multiplier=overswingMultiplier(d);
   const total=s.dealTotals.reduce((a,b)=>a+b,0)+(s.status==='over'?0:d.T);
   const canFlip=legal.some(a=>a.type==='flip'),canBank=legal.some(a=>a.type==='bank');
+  const wildCounts=isJourney?journeyWildBalance(journey):null;
+  const canWild=isJourney&&WILD_IDS.some(id=>journeyCanUseWild(journey,id));
   const nextCap=Math.max(2,d.handCap-(isJourney?journeyRules(journey).bankCapacityLoss:1)),mustDiscard=d.hand.filter(id=>royalRank(id)!=='K').length>nextCap;
   useEffect(()=>{setDiscardPick(false);setQueenPick(null);},[s.dealIndex,d.bankCount,s.status]);
+  useEffect(()=>{setWildOpen(false);setPolarityPick(false);},
+    [journey?.encounterIndex,journey?.retryCount,s.dealIndex]);
+  const triggerWild=(wildId,index)=>{
+    if(!journeyCanUseWild(journey,wildId))return;
+    onWild?.(wildId,index);
+    setWildOpen(false);setPolarityPick(false);
+  };
   const doSteer=index=>{
-    setSteerFocus(false);
     if(discardPick){
       if(legal.some(a=>a.type==='bank'&&a.dropIndex===index)){
         act({type:'bank',dropIndex:index});setDiscardPick(false);
@@ -171,17 +184,18 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fu
   };
   const guidedActionFirst=tutorial&&s.tutorialIntroDone&&(tutorialStep?.type==='flip'||tutorialStep?.type==='bank');
   const actionButtons=<>
-    <div className="os8-actions">
+    <div className={'os8-actions '+(isJourney?'os8-actions-journey':'os8-actions-quick')}>
       <button type="button" disabled={!canFlip||discardPick}
         className={'os8-flip '+(tutorial&&canFlip?'os8-guide-action':'')}
         onClick={()=>act({type:'flip'})}>
         <span className="os8-action-icon">▣?</span><b>FLIP</b><small>{rules.maxFlips?'USED '+d.flips+'/'+rules.maxFlips:'RANDOM CARD'}</small>
       </button>
-      <button type="button" disabled={discardPick||!legal.some(a=>a.type==='steer')}
-        className={'os8-steer '+(steerFocus?'os8-steer-focus':'')}
-        onClick={()=>setSteerFocus(v=>!v)}>
-        <span className="os8-action-icon">⇄</span><b>STEER</b><small>{steerFocus?'CHOOSE A CARD':'FROM YOUR HAND'}</small>
-      </button>
+      {isJourney&&<button type="button" disabled={!canWild||discardPick}
+        className="os8-wild-action" onClick={()=>{setWildOpen(true);setPolarityPick(false);}}>
+        <span className="os8-action-icon">✦</span><b>WILD</b>
+        <small>{journey.wildUsedGate?'USED THIS GATE':
+          (wildCounts.shuffle+wildCounts.polarity+wildCounts.shield)+' SAVED'}</small>
+      </button>}
       <button type="button" disabled={!canBank||discardPick}
         className={'os8-bank '+(tutorial&&canBank?'os8-guide-action':'')} onClick={bank}>
         <span className="os8-action-icon">♛</span><b>BANK</b><small>+{payout.toLocaleString('en-US')} PTS</small>
@@ -249,6 +263,9 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fu
       <div><small>× MULTIPLIER</small><b>×{multiplier.toLocaleString('en-US')}</b></div>
       <div><small>♛ BANK NOW</small><b>+{payout.toLocaleString('en-US')}</b></div>
     </div>
+    {isJourney&&journey.wildShieldArmed&&<div className="os8-wild-armed" role="status">
+      ◇ EMBER SHIELD ARMED · NEXT FLIP PROTECTED
+    </div>}
     {d.scoutNext!=null&&<div className="os8-scout-preview" role="status">✦ SCOUT · NEXT FLIP: <b>{name(d.scoutNext)} ({val(signed(d.scoutNext))})</b></div>}
     <section className="os8-meter" aria-label={'Swing '+val(d.S)}>
       <FlameMeter position={d.S} limit={limit}/>
@@ -282,7 +299,7 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fu
       <div className="os8-potcards">{(fullView?d.pot.slice(-6):d.pot).map(c=><Card key={c} id={c} mini/>)}{fullView&&d.pot.length>6&&<span className="os8-pot-overflow" aria-label={(d.pot.length-6)+' more cards'}>+{d.pot.length-6}</span>}{!d.pot.length&&<span className="os8-empty">EMPTY</span>}</div>
     </section>
     <section className="os8-hand">
-      <div className="os8-section-heading"><h3>{discardPick?'BANK · REMOVE 1 CARD':'YOUR HAND'}</h3><span>{d.hand.length}/{d.handCap} cards · after BANK: {nextCap}</span></div>
+      <div className="os8-section-heading"><h3>{discardPick?'BANK · REMOVE 1 CARD':'YOUR HAND · STEER'}</h3><span>{d.hand.length}/{d.handCap} cards · after BANK: {nextCap}</span></div>
       {discardPick&&<p className="os8-attention">Hand limit {d.handCap} → {nextCap}. {tutorial?'Remove only the highlighted card.':'Tap the card to discard.'} <button type="button" onClick={()=>setDiscardPick(false)}>CANCEL</button></p>}
       <div className="os8-handcards">
         {d.hand.map((id,index)=>{
@@ -290,7 +307,7 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fu
           const royal=royalRank(id);
           const caption=discardPick?'REMOVE':royal==='K'?'CROWN +'+(d.crownBonus||0)+'%':royal==='J'?'SCOUT':royal==='Q'?'±12':o.snap?'SNAP':d.S!==0&&o.S===0?'ZERO BREAK':d.plays===0||o.swung?'POT +'+rank(id):d.W>0?'SWING −1':'DISCARD';
           const allowed=discardPick?legal.some(a=>a.type==='bank'&&a.dropIndex===index):legal.some(a=>a.type==='steer'&&a.index===index);
-          const highlighted=(tutorial||steerFocus)&&allowed;
+          const highlighted=tutorial&&allowed;
           return <Card key={id} id={id} chosen={highlighted||(!tutorial&&discardPick)} onClick={allowed?()=>doSteer(index):null} caption={caption}/>;
         })}
         {!d.hand.length&&<p className="os8-empty">No cards in hand. It refills automatically when deck cards remain.</p>}
@@ -310,6 +327,39 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fu
         <p>An empty hand refills automatically from the remaining deck, up to its capacity.</p>
       </details>
     </footer>
+    {wildOpen&&isJourney&&<div className="os8-wild-overlay" role="presentation">
+      <div className="os8-wild-modal" role="dialog" aria-modal="true" aria-label="Use a Wild Card">
+        <div className="os8-wild-heading">
+          <h3>{polarityPick?'POLARITY SWITCH':'YOUR WILD CARDS'}</h3>
+          <button type="button" onClick={()=>{setWildOpen(false);setPolarityPick(false);}}
+            aria-label="Close Wild Card selection">✕</button>
+        </div>
+        {polarityPick?<><p>Choose one ordinary card. Its sign reverses for an immediate STEER.</p>
+          <div className="os8-wild-polarity-cards">
+            {d.hand.map((id,index)=>id<40&&
+              <button key={id} type="button" onClick={()=>triggerWild('polarity',index)}
+                aria-label={'Reverse and STEER '+name(id)}>
+                <strong>{name(id)}</strong>
+                <span>{val(signed(id))} → {val(-signed(id))}</span>
+                <small>{Math.abs(d.S-signed(id))>limit?'SNAP':
+                  d.S-signed(id)===0&&d.S!==0?'ZERO BREAK':'STEER'}</small>
+              </button>)}
+          </div>
+          <button className="os8-wild-cancel" type="button" onClick={()=>setPolarityPick(false)}>BACK</button>
+        </>:<>
+          <p>One Wild Card per gate, including retries. Inventory carries across journeys.</p>
+          <div className="os8-wild-options">{WILD_IDS.map(id=>
+            <button key={id} type="button"
+              disabled={!journeyCanUseWild(journey,id)}
+              onClick={()=>id==='polarity'?setPolarityPick(true):triggerWild(id)}>
+              <strong className="os8-wild-icon" aria-hidden="true">{WILD_RULES[id].symbol}</strong>
+              <span className="os8-wild-copy"><b>{WILD_RULES[id].name}</b>
+                <small>{WILD_RULES[id].description}</small></span>
+              <strong className="os8-wild-quantity">×{wildCounts[id]}</strong>
+            </button>)}</div>
+        </>}
+      </div>
+    </div>}
     {queenPick!==null&&<div className="os8-queen-overlay" role="presentation">
       <div className="os8-queen-modal" role="dialog" aria-modal="true" aria-label="Choose Queen direction">
         <h3>Q · THE MIRROR</h3><p>Choose the pendulum direction. A safe crossing adds 12 Pot points.</p>
