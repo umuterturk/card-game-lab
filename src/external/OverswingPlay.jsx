@@ -136,7 +136,6 @@ function FlameMeter({position,limit=10,action=null}){
       <text x={Math.min(350,Math.max(8,x-23))+24} y={Math.max(29,y-43)+22}
         textAnchor="middle" fill="#fff4df" fontSize="21" fontWeight="900">{n}</text>
     </svg>
-    <div className="os8-meter-ends"><span>SHADOW · −</span><strong>♨ THE PENDULUM ♨</strong><span>+ · FLAME</span></div>
   </div>;
 }
 
@@ -375,7 +374,11 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,j
       }
     }else if(royalRank(d.hand[index])==='Q'){
       saveSteerSource(index,element);
-      setQueenPick(index);
+      const safeDirections=legal.filter(a=>a.type==='steer'&&
+        a.index===index&&Math.abs(d.S+a.direction*12)<=limit);
+      if(safeDirections.length===1){
+        dispatch({type:'steer',index,direction:safeDirections[0].direction});
+      }else setQueenPick(index);
     }else if(legal.some(a=>a.type==='steer'&&a.index===index)){
       saveSteerSource(index,element);
       dispatch({type:'steer',index});
@@ -388,13 +391,21 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,j
     setQueenPick(null);
   };
   const guidedActionFirst=tutorial&&s.tutorialIntroDone&&(tutorialStep?.type==='flip'||tutorialStep?.type==='bank');
+  const scoutedFlip=canFlip?d.scoutNext:null;
+  const deckRemaining=Math.max(0,d.deck.length-d.pos);
   const actionButtons=<div className="os8-controls">
     <div className="os8-actions os8-actions-primary">
       <button type="button" ref={flipButtonRef} disabled={!canFlip||discardPick}
         className={'os8-flip '+(tutorial&&canFlip?'os8-guide-action':'')}
         onClick={()=>dispatch({type:'flip'})}>
-        <span className="os8-action-icon">▣?</span><b>FLIP</b>
-        <small>{rules.maxFlips?'USED '+d.flips+'/'+rules.maxFlips:'RANDOM CARD'}</small>
+        {scoutedFlip!=null?
+          <span className={'os8-next-flip-card '+(suit(scoutedFlip)<2?'os8-next-red':'os8-next-black')}
+            aria-label={'Next FLIP: '+name(scoutedFlip)+' '+val(signed(scoutedFlip))}>
+            <strong>{name(scoutedFlip)}</strong><span>{val(signed(scoutedFlip))}</span>
+          </span>:
+          <span className="os8-action-icon" aria-hidden="true">▣?</span>}
+        <b>FLIP</b>
+        <small>{scoutedFlip!=null?'SCOUTED · NEXT CARD':rules.maxFlips?'USED '+d.flips+'/'+rules.maxFlips:'RANDOM CARD'}</small>
       </button>
       <button type="button" ref={bankButtonRef} disabled={!canBank||discardPick}
         className={'os8-bank '+(tutorial&&canBank?'os8-guide-action':'')} onClick={bank}>
@@ -505,7 +516,6 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,j
     {isJourney&&journey.wildShieldArmed&&<div className="os8-wild-armed" role="status">
       ◇ EMBER SHIELD ARMED · NEXT FLIP PROTECTED
     </div>}
-    {d.scoutNext!=null&&<div className="os8-scout-preview" role="status">✦ SCOUT · NEXT FLIP: <b>{name(d.scoutNext)} ({val(signed(d.scoutNext))})</b></div>}
     <section className="os8-meter" ref={meterRef} aria-label={'Swing '+val(d.S)}>
       <DoomFire className="os8-meter-fire" width={92} height={36}/>
       <FlameMeter position={d.S} limit={limit} action={s.lastAction}/>
@@ -546,7 +556,7 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,j
       </div>
     </section>
     <section className="os8-hand">
-      <div className="os8-section-heading"><h3>{discardPick?'BANK · REMOVE 1 CARD':'YOUR HAND · STEER'}</h3><span>{d.hand.length}/{d.handCap} cards · after BANK: {nextCap}</span></div>
+      <div className="os8-section-heading"><h3>{discardPick?'BANK · REMOVE 1 CARD':'YOUR HAND · STEER'}</h3><span>DECK {deckRemaining} · HAND {d.hand.length}/{d.handCap}{discardPick?' · BANK CAP '+nextCap:''}</span></div>
       {discardPick&&<p className="os8-attention">Hand limit {d.handCap} → {nextCap}. {tutorial?'Remove only the highlighted card.':'Tap the card to discard.'} <button type="button" onClick={()=>setDiscardPick(false)}>CANCEL</button></p>}
       <div className="os8-handcards" ref={handContainerRef}>
         {d.hand.map((id,index)=>{
@@ -568,7 +578,7 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,j
         <p>Start with up to 8 cards. Hearts and diamonds move right (+); spades and clubs move left (−). Exceed the level's SNAP limit and lose the Pot.</p>
         <p>FLIP draws a random card into the Pot. Consecutive safe FLIPs grow FLIP: ×2, ×3, ×4… Crossing zero counts.</p>
         <p>Crossing zero with FLIP raises SWING and adds +1 JACKPOT tier. A noncrossing FLIP lowers SWING by 1 and keeps JACKPOT unchanged.</p>
-        <p>ZERO BREAK: Land exactly on zero to reset all multipliers to ×1, but keep the Pot. SNAP: Go outside ±10 and lose the Pot.</p>
+        <p>ZERO BREAK: Land exactly on zero to reset all multipliers to ×1, but keep the Pot. SNAP: Go outside ±{limit} and lose the Pot.</p>
         <p>STEER ends the current FLIP streak but preserves FLIP and JACKPOT tiers. Every noncrossing FLIP or STEER costs 1 SWING tier (minimum ×1).</p>
         <p>The first STEER of a Pot, crossing STEER, and ZERO BREAK STEER enter the Pot; other STEER cards are discarded.</p>
         <p>BANK becomes available after at least 2 card actions. Each BANK reduces hand capacity from 8 toward 2 (unless a relic prevents it). Choose which card to discard if necessary.</p>
