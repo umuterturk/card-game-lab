@@ -25,3 +25,50 @@ export function flipFlightPoints(source,target,viewport){
     '--flip-center-x':x(middle),'--flip-center-y':y(middle),
     '--flip-end-x':x(end),'--flip-end-y':y(end)};
 }
+
+// STEER is a hand-card action, not a random draw. It can land in the Pot,
+// be discarded on a non-crossing move, or break at the meter on SNAP.
+export function steerFlightResult(action){
+  if(action?.type!=='steer'||!Number.isInteger(action.card))return null;
+  return {
+    card:action.card,
+    destination:action.snap?'snap':action.destination==='pot'?'pot':'discard',
+    shielded:false,
+    zeroBreak:!!action.zeroBreak,
+    kind:'steer',
+    reversed:!!action.polarityReversed
+  };
+}
+export function cardFlightResult(action){
+  const flip=flipFlightResult(action);
+  return flip?{...flip,kind:'flip'}:steerFlightResult(action);
+}
+// Deliberately bounded particle budgets: very large BANKs feel bigger, but
+// never allocate hundreds of DOM nodes on small phones.
+export function bankCoinCount(points){
+  if(!Number.isFinite(points)||points<=0)return 0;
+  if(points<10)return 3;
+  if(points<100)return 5;
+  if(points<1000)return 9;
+  if(points<10000)return 14;
+  if(points<100000)return 20;
+  return 28;
+}
+export function bankCoinBurst(action){
+  if(action?.type!=='bank')return null;
+  const amount=Number(action.points);
+  const count=bankCoinCount(amount);
+  return count?{amount,count}:null;
+}
+
+// Particle centers are derived from actual mounted controls, never fixed pixels.
+export function bankBurstPoints(source,target){
+  const finite=r=>r&&[r.left,r.top,r.width,r.height].every(Number.isFinite);
+  if(!finite(source)||!finite(target))throw new TypeError('Invalid BANK coin bounds');
+  const x=r=>Math.round(r.left+r.width/2-11)+'px';
+  const y=r=>Math.round(r.top+r.height/2-11)+'px';
+  return {
+    '--bank-start-x':x(source),'--bank-start-y':y(source),
+    '--bank-end-x':x(target),'--bank-end-y':y(target)
+  };
+}

@@ -169,6 +169,7 @@ function RetryOffer({run,onRetry,onDecline}){
 }
 export default function OverswingJourney({quickState,quickAct,quickRestart,fullView=false}){
   const [view,setView]=useState('journey');
+  const [bankTransition,setBankTransition]=useState(false);
   const [progress,setProgress]=useState(()=>
     restoreJourneyProgress(readSaved(PROFILE_KEY),readSaved(RUN_KEY)));
   const [run,setRun]=useState(()=>restoreJourneyRun(
@@ -177,6 +178,13 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
     campaignNextLevel(readSaved(PROFILE_KEY)?.clearedChapterIds));
   useEffect(()=>setSelectedLevel(campaignNextLevel(progress.clearedChapterIds)),
     [progress.clearedChapterIds]);
+  // Keep the board visible for the coin fountain before entering a gate shop
+  // or final result. It doesn't delay scoring, persistence, or game rules.
+  useEffect(()=>{
+    if(!bankTransition)return;
+    const timer=window.setTimeout(()=>setBankTransition(false),1450);
+    return ()=>window.clearTimeout(timer);
+  },[bankTransition,run?.encounter?.engineState?.lastAction]);
   useEffect(()=>{try{
     if(run)localStorage.setItem(RUN_KEY,JSON.stringify(run));
     else localStorage.removeItem(RUN_KEY);
@@ -205,7 +213,10 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
       }));
     setView('journey');
   };
-  const play=action=>setRun(current=>current?stepJourney(current,{type:'PLAY',action}):current);
+  const play=action=>{
+    if(action?.type==='bank')setBankTransition(true);
+    setRun(current=>current?stepJourney(current,{type:'PLAY',action}):current);
+  };
   const useWild=(wildId,index)=>setRun(current=>current?
     stepJourney(current,{type:'USE_WILD',wildId,index}):current);
   const claimWild=wildId=>setRun(current=>current?
@@ -268,7 +279,10 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
       onQuick={()=>setView('quick')}
       activeRun={run&&!['won','lost','abandoned'].includes(run.phase)?()=>setView('journey'):null}/>
   </main>;
-  if(run.phase==='playing')return <div className="oj-shell oj-playing">
+  if(run.phase==='playing'||(bankTransition&&
+     ['choosing_relic','choosing_wild','won'].includes(run.phase)&&
+     run.encounter?.engineState?.lastAction?.type==='bank'))
+    return <div className="oj-shell oj-playing">
     <OverswingPlay s={run.encounter.engineState} act={play} onWild={useWild}
       journey={run} fullView={fullView} onBack={()=>setView('menu')}/>
     <div className="oj-exit-row"><button type="button" onClick={()=>setView('menu')}>LEAVE BOARD</button></div>

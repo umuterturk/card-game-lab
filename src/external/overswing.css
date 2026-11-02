@@ -813,3 +813,105 @@
  .os8-full .os8-scoreline b:has(.os-gold-amount){font-size:clamp(12px,3.7vw,17px)}
  .os8-journey-top .os-gold-coin{font-size:11px}
 }
+
+/* Hand STEER mirrors the FLIP reveal, but begins at the touched card.
+   A non-crossing STEER visibly flies to Played Cards rather than the Pot. */
+.os8-steer-flight.os8-flip-flight-pot{animation-name:os8-steer-to-pot;animation-duration:990ms}
+.os8-steer-flight.os8-flip-flight-snap{animation-name:os8-steer-to-snap;animation-duration:970ms}
+.os8-flip-flight-discard{animation-name:os8-steer-to-discard;animation-duration:950ms}
+.os8-steer-flight .os8-flip-face{box-shadow:inset 0 0 0 3px #d1aa6b,5px 5px #140e15,
+  0 0 0 3px #30172a,0 0 20px #fdac538a}
+@keyframes os8-steer-to-pot{
+  0%{transform:translate3d(var(--flip-start-x),var(--flip-start-y),0) scale(.68) rotate(-6deg);opacity:.92}
+  22%{transform:translate3d(var(--flip-center-x),var(--flip-center-y),0) scale(1.52) rotate(5deg);opacity:1}
+  36%,53%{transform:translate3d(var(--flip-center-x),var(--flip-center-y),0) scale(1.64);opacity:1}
+  89%{transform:translate3d(var(--flip-end-x),var(--flip-end-y),0) scale(.46);opacity:1}
+  100%{transform:translate3d(var(--flip-end-x),var(--flip-end-y),0) scale(.38);opacity:0}
+}
+@keyframes os8-steer-to-discard{
+  0%{transform:translate3d(var(--flip-start-x),var(--flip-start-y),0) scale(.68);opacity:1}
+  27%{transform:translate3d(var(--flip-center-x),var(--flip-center-y),0) scale(1.38) rotate(7deg);opacity:1}
+  45%,56%{transform:translate3d(var(--flip-center-x),var(--flip-center-y),0) scale(1.48);opacity:1}
+  88%{transform:translate3d(var(--flip-end-x),var(--flip-end-y),0) scale(.45) rotate(-15deg);opacity:1}
+  100%{transform:translate3d(var(--flip-end-x),var(--flip-end-y),0) scale(.2) rotate(-24deg);opacity:0}
+}
+@keyframes os8-steer-to-snap{
+  0%{transform:translate3d(var(--flip-start-x),var(--flip-start-y),0) scale(.68);opacity:1}
+  22%{transform:translate3d(var(--flip-center-x),var(--flip-center-y),0) scale(1.49);opacity:1}
+  36%,54%{transform:translate3d(var(--flip-center-x),var(--flip-center-y),0) scale(1.64);opacity:1}
+  81%{transform:translate3d(var(--flip-end-x),var(--flip-end-y),0) scale(.9) rotate(-15deg);opacity:1}
+  100%{transform:translate3d(var(--flip-end-x),var(--flip-end-y),0) scale(.1) rotate(65deg);opacity:0}
+}
+.os8-flip-flight-discard .os8-flip-face-tag{color:#985044}
+
+/* BANK: counted coin fountain from the BANK button into the Gold score. */
+.os8-bank-burst{position:fixed;inset:0;z-index:1060;pointer-events:none;overflow:hidden;
+  animation:os8-bank-burst-lifetime 1400ms linear both}
+.os8-bank-flying-coin{
+  position:absolute;left:0;top:0;display:block;
+  font-size:clamp(19px,5vw,25px);will-change:transform,opacity;
+  transform:translate3d(var(--bank-start-x),var(--bank-start-y),0);
+  animation:os8-bank-coin-flight 910ms steps(13,end) var(--bank-delay,0ms) both;
+  filter:drop-shadow(0 0 7px #ffbf53b5)
+}
+.os8-bank-flying-coin .os-gold-coin{font-size:inherit}
+.os8-bank-burst-label{
+  position:absolute;left:0;top:0;padding:6px 9px 4px;
+  border:3px solid #d9a54e;border-radius:2px;
+  background:#26141ce8;color:#ffe69d;text-shadow:2px 2px 0 #471b0a;
+  box-shadow:0 5px 0 #120a10,0 0 20px #ffb33c75;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  font:24px 'VT323',monospace;white-space:nowrap;
+  animation:os8-bank-reward-pop 1110ms steps(12,end) both;
+  will-change:transform,opacity
+}
+.os8-bank-burst-label .os-gold-coin{font-size:23px}
+.os8-bank-burst-label>span:last-child{
+  color:#ffbf5e;font:13px/1.1 var(--pixel);
+}
+@keyframes os8-bank-coin-flight{
+  0%{opacity:0;transform:translate3d(var(--bank-start-x),var(--bank-start-y),0) scale(.5)}
+  10%{opacity:1}
+  35%{opacity:1;transform:translate3d(
+    calc(var(--bank-start-x) + var(--fan-x)),
+    calc(var(--bank-start-y) - 58px - var(--fan-y)),0) scale(1.5)}
+  68%{opacity:1;transform:translate3d(
+    calc(var(--bank-end-x) + var(--fan-x-quarter)),
+    calc(var(--bank-end-y) - 27px),0) scale(1.15)}
+  95%{opacity:1;transform:translate3d(var(--bank-end-x),var(--bank-end-y),0) scale(.65)}
+  100%{opacity:0;transform:translate3d(var(--bank-end-x),var(--bank-end-y),0) scale(.25)}
+}
+@keyframes os8-bank-reward-pop{
+  0%,27%{opacity:0;transform:translate3d(var(--bank-end-x),var(--bank-end-y),0) scale(.4)}
+  38%,72%{opacity:1;transform:translate3d(
+    calc(var(--bank-end-x) - 18px),calc(var(--bank-end-y) - 51px),0) scale(1.3)}
+  91%{opacity:.9;transform:translate3d(
+    calc(var(--bank-end-x) - 18px),calc(var(--bank-end-y) - 58px),0) scale(1.1)}
+  100%{opacity:0;transform:translate3d(
+    calc(var(--bank-end-x) - 18px),calc(var(--bank-end-y) - 64px),0) scale(.9)}
+}
+@keyframes os8-bank-burst-lifetime{0%,98%{opacity:1}100%{opacity:0}}
+/* Audio choices are explicit, compact, and separate from the game score. */
+.os8-head .os8-settings button.os8-audio-toggle,
+.os8-full .os8-settings button.os8-audio-toggle{
+  min-width:32px;min-height:29px;padding:2px 3px!important;line-height:1;
+  font:18px/1 'VT323',monospace;
+  display:inline-flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1px
+}
+.os8-audio-toggle span{font:9px/1 'VT323',monospace;letter-spacing:0}
+.os8-settings .os8-audio-toggle.on{border-color:#d79e4d;background:#4d2d17;color:#ffe8a4}
+.os8-settings .os8-audio-toggle.off{opacity:.63;background:#18141b;color:#bda99e}
+.os8-settings .os8-audio-toggle:focus-visible{outline:2px solid #ffdc81;outline-offset:2px}
+@media(max-width:390px){
+ .os8-head .os8-settings button.os8-audio-toggle,
+ .os8-full .os8-settings button.os8-audio-toggle{
+   min-width:25px;min-height:25px;padding:1px 2px!important;font-size:15px
+ }
+ .os8-audio-toggle span{font-size:8px}
+ .os8-full .os8-settings{gap:2px}
+}
+@media(prefers-reduced-motion:reduce){
+ .os8-steer-flight,.os8-bank-burst,.os8-bank-flying-coin,
+ .os8-bank-burst-label{animation:none!important;display:none!important}
+}
