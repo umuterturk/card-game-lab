@@ -4,6 +4,7 @@ import OverswingPlay from './OverswingPlay.jsx';
 import OverswingCampaignMap from './OverswingCampaignMap.jsx';
 import DoomFire from './DoomFire.jsx';
 import HellPendulum from './HellPendulum.jsx';
+import {RoyalPortrait} from './RoyalPortrait.jsx';
 import useOverswingSound from './useOverswingSound.js';
 import OverswingSoundControls from './OverswingSoundControls.jsx';
 import {potCrackForAction} from './overswingFeedback.js';
@@ -41,7 +42,9 @@ function RoyalWorkshop({progress,onBuy,onToggle,disabled=false}){
       {ROYAL_NAMES.map(id=>{
         const has=owned.includes(id),price=ROYAL_PRICES[id],selected=equipped.includes(id);
         return <div className={'oj-royal-option'+(selected?' oj-royal-equipped':'')} key={id}>
-          <div className="oj-royal-symbol">{id}</div>
+          <div className={'oj-royal-symbol oj-royal-symbol-'+id.toLowerCase()}>
+            <RoyalPortrait rank={id} size="workshop"/>
+          </div>
           <div className="oj-royal-option-name"><strong>{ROYAL_RULES[id].title}</strong>
             <span>{ROYAL_RULES[id].description}</span></div>
           {has?<button type="button" className={selected?'oj-royal-toggle selected':'oj-royal-toggle'}
@@ -91,7 +94,10 @@ function RoyalReveal({id,onContinue}){
   return createPortal(<div className="oj-royal-overlay" role="presentation">
     <section className="oj-royal-modal" role="dialog" aria-modal="true" aria-labelledby="oj-royal-name">
       <p className="oj-eyebrow">ROYAL CARD OWNED FOREVER</p>
-      <div className="oj-royal-card" aria-hidden="true"><span>{id}</span><strong>{royal.value}</strong><small>ROYAL</small></div>
+      <div className={'oj-royal-card oj-royal-card-'+id.toLowerCase()} aria-hidden="true">
+          <span>{id}</span><RoyalPortrait rank={id} size="reveal"/>
+          <strong>{royal.value}</strong><small>ROYAL</small>
+        </div>
       <h2 id="oj-royal-name">{royal.title}</h2>
       <p>{royal.description}</p>
       <p className="oj-royal-note">Hand-only. Never drawn by FLIP. Equip this Royal before starting a journey.</p>

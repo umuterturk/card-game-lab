@@ -1,7 +1,11 @@
-/* JACKPOT and ordinary multiplier gains. Localized to multiplier row. */
+/* Reward overlay is portaled into document.body, outside the board's
+   isolated stacking context. Match the flying card's centered reveal position.
+   Layer order: flying cards (1040) < coins (1060) < rewards (1070)
+   < Pot fracture (1080) < selection dialogs (1100+). */
 .os8-factors{position:relative;isolation:isolate}
 .os8-multiplier-burst{
-  position:absolute;inset:-8px 0 -16px;z-index:9;pointer-events:none;
+  position:fixed;left:50%;top:44%;width:min(94vw,430px);height:150px;
+  transform:translate(-50%,-50%);z-index:1070;pointer-events:none;
   display:grid;place-items:center;overflow:visible;
   animation:os8-multiplier-life 970ms steps(1,end) both;
 }

@@ -51,6 +51,10 @@ test('card history marks public discard, hand, and Pot without leaking unseen de
   assert.deepEqual(history.royalsOut,[40]);
   assert.equal(Object.hasOwn(history,'deck'),false);
   assert.equal(Object.hasOwn(history,'remainingCards'),false);
+  assert.equal(history.revealed,8);
+  assert.deepEqual(history.groups.discard,[6,16,40]);
+  assert.deepEqual(history.groups.pot,[5,7]);
+  assert.deepEqual(history.groups.hand,[2,12,royalId('J',0)]);
   assert.throws(()=>cardHistory(null),TypeError);
 });
 test('history tracks real engine after BANK and after SNAP',()=>{
@@ -85,9 +89,21 @@ test('gameplay has exactly two primary actions and the four secondary abilities'
   assert.match(controls,/WILD_IDS\.map/);
   assert.match(controls,/os8-history-button/);
   assert.ok(controls.indexOf('os8-actions-primary')<controls.indexOf('os8-abilities'));
-  assert.match(jsx,/function PlayedCards/);
-  assert.match(jsx,/cardHistory\(deal\)/);
-  assert.match(source('overswing.css'),/os8-history-out/);
+  assert.match(jsx,/import RevealedCards from '\.\/RevealedCards\.jsx'/);
+  assert.match(jsx,/<RevealedCards deal=\{d\}/);
+  assert.match(jsx,/Show revealed cards/);
+  assert.match(jsx,/<span>REVEALED<\/span>/);
+  const gallery=source('RevealedCards.jsx');
+  assert.match(gallery,/REVEALED CARDS/);
+  assert.match(gallery,/cardHistory\(deal\)/);
+  assert.match(gallery,/className="os8-revealed-gallery"/);
+  assert.match(gallery,/RoyalPortrait id=\{id\} size="history"/);
+  assert.doesNotMatch(gallery,/CARD_RANKS\.map/);
+  assert.doesNotMatch(gallery,/os8-history-suits/);
+  const galleryCss=source('revealedCards.css');
+  assert.match(galleryCss,/aspect-ratio:0\.69/);
+  assert.match(galleryCss,/os8-revealed-red/);
+  assert.match(galleryCss,/os8-revealed-black/);
   const css=source('overswing.css');
   assert.match(css,/os8-actions-primary/);
   assert.match(css,/os8-abilities/);

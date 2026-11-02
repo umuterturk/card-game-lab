@@ -444,3 +444,30 @@ button.oj-relic:disabled .oj-relic-pick{color:#b09e8a}
  .oj-recap-rows>div>strong{font-size:14px}
  .oj-recap-rows .os-gold-coin{font-size:12px}
 }
+
+/* Actual character portraits in the Royal shop and ownership reveal. */
+.oj-royal-option{grid-template-columns:40px minmax(0,1fr) 101px;gap:6px}
+.oj-royal-symbol{
+  width:39px;height:46px;padding:1px;border:2px solid #b68847;
+  display:grid;place-items:center;background:#382333;overflow:hidden
+}
+.oj-royal-symbol .os-royal-portrait-workshop{width:32px;height:39px}
+.oj-royal-symbol-j{border-color:#986caa}
+.oj-royal-symbol-q{border-color:#83b9be}
+.oj-royal-symbol-k{border-color:#e4a84c}
+.oj-royal-card{height:183px;width:121px;gap:2px;justify-content:space-evenly;
+  padding:5px 0}
+.oj-royal-card>span:not(.os-royal-portrait){
+  font:25px var(--oj-pixel);line-height:1
+}
+.oj-royal-card .os-royal-portrait-reveal{width:69px;height:86px}
+.oj-royal-card strong{font-size:27px}
+.oj-royal-card small{font-size:8px}
+.oj-royal-card-j{border-color:#9b69a3}
+.oj-royal-card-q{border-color:#719fac}
+.oj-royal-card-k{border-color:#dc9a45}
+@media(max-width:350px){
+  .oj-royal-option{grid-template-columns:30px minmax(0,1fr) 81px;gap:4px}
+  .oj-royal-symbol{width:29px;height:38px}
+  .oj-royal-symbol .os-royal-portrait-workshop{width:25px;height:33px}
+}

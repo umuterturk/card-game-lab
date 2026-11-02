@@ -12,6 +12,12 @@ export function cardHistory(deal){
     discarded:deal.discard.length,potCount:deal.pot.length,
     handCount:deal.hand.length,
     unseen:Math.max(0,deal.deck.length-deal.pos),
+    revealed:new Set([...deal.discard,...deal.pot,...deal.hand]).size,
+    groups:{
+      discard:[...deal.discard].sort((a,b)=>a-b),
+      pot:[...deal.pot].sort((a,b)=>a-b),
+      hand:[...deal.hand].sort((a,b)=>a-b)
+    },
     states,
     royalsOut:deal.discard.filter(id=>id>=40)
   };

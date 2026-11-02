@@ -974,3 +974,50 @@
   70%{opacity:1;transform:translate(-50%,-40%) scale(.75)}
   100%{opacity:0;transform:translate(-50%,-20%) scale(.35)}
 }
+
+/* Suit-color correctness for Royals: rank never overrides the actual suit.
+   Portraits are crisp illustrative SVGs embedded in playable cards. */
+.os8-card.os8-royal.os8-red{
+  color:#aa271f;border-color:#c36a50;
+  background:linear-gradient(150deg,#fff1d0,#e9c99c 65%,#d6ad81);
+}
+.os8-card.os8-royal.os8-black{
+  color:#24303d;border-color:#71818c;
+  background:linear-gradient(150deg,#faf0d8,#dcccb2 65%,#b8b9b4);
+}
+.os8-card.os8-royal.os8-red .os8-card-top{color:#b83125}
+.os8-card.os8-royal.os8-black .os8-card-top{color:#263443}
+.os8-hand .os8-card.os8-royal{
+  gap:0;padding:2px 1px 1px;justify-content:space-between
+}
+.os8-hand .os8-card.os8-royal .os8-card-top{
+  align-self:center;margin:0;font-size:clamp(12px,3.2vw,16px);line-height:1
+}
+.os8-hand .os8-card.os8-royal .os-royal-portrait-card{
+  width:clamp(20px,6vw,28px);height:clamp(23px,5.3dvh,33px);
+  min-height:0;margin:1px auto
+}
+.os8-hand .os8-card.os8-royal>strong{
+  font-size:clamp(14px,3.9vw,19px);line-height:1
+}
+.os8-hand .os8-card.os8-royal>small{display:none}
+.os8-flip-flight-red .os8-flip-face .os-royal-portrait-flight{
+  border-color:#c35c40
+}
+.os8-flip-flight-black .os8-flip-face .os-royal-portrait-flight{
+  border-color:#77838d
+}
+.os8-flip-flight .os-royal-portrait-flight{height:56px;width:45px}
+.os8-flip-flight .os8-flip-face:has(.os-royal-portrait){
+  gap:2px;padding-top:6px;padding-bottom:8px
+}
+.os8-flip-flight .os8-flip-face:has(.os-royal-portrait) .os8-flip-face-value{
+  font-size:22px
+}
+/* The ability label is long; keep REVEALED readable in the four-column row. */
+.os8-ability.os8-history-button span{font-size:clamp(7px,1.95vw,10px);letter-spacing:.02em}
+@media(max-height:690px){
+  .os8-hand .os8-card.os8-royal .os-royal-portrait-card{
+    height:clamp(20px,4.8dvh,27px);width:23px
+  }
+}

@@ -1,0 +1,72 @@
+/* Illustrated playing cards replace the former dull 4×10 counting matrix. */
+.os8-revealed-dialog{max-width:470px}
+.os8-revealed-dialog .os8-history-head h3{font-size:clamp(10px,3.5vw,15px)}
+.os8-revealed-sections{display:flex;flex-direction:column;gap:11px;margin-top:7px}
+.os8-revealed-section{border:1px solid #6c4d3d;
+  padding:8px;background:linear-gradient(135deg,#271b23,#1c1720)}
+.os8-revealed-section-discard{border-color:#a16a4e}
+.os8-revealed-section-pot{border-color:#d09b54}
+.os8-revealed-section-hand{border-color:#698d83}
+.os8-revealed-section-title{display:flex;align-items:baseline;
+  justify-content:space-between;gap:7px;flex-wrap:wrap;margin-bottom:7px}
+.os8-revealed-section-title h4{
+  margin:0;font:clamp(9px,2.6vw,12px)/1.4 var(--pixel,monospace);color:#ffe4b4}
+.os8-revealed-section-title h4 span{color:#f5a86c;font:16px 'VT323',monospace}
+.os8-revealed-section-title small{font:13px 'VT323',monospace;color:#cba88f}
+.os8-revealed-gallery{
+  display:grid;grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:5px;align-items:start
+}
+.os8-revealed-card{
+  position:relative;display:flex;flex-direction:column;align-items:center;
+  justify-content:space-between;min-width:0;width:100%;aspect-ratio:0.69;
+  border:2px solid #816858;background:linear-gradient(145deg,
+    #fff0d7,#edd6b8 67%,#c8a984);color:#24212a;
+  padding:2px;
+  box-shadow:inset 1px 1px 0 #fff8e9,
+    inset -2px -2px 0 #c09c79,2px 3px 0 #09070c;
+  image-rendering:pixelated;overflow:hidden
+}
+.os8-revealed-card.os8-revealed-red{color:#ac2926;border-color:#b46b55}
+.os8-revealed-card.os8-revealed-black{color:#202631;border-color:#7d7471}
+.os8-revealed-card.os8-revealed-discard{
+  filter:saturate(.82);box-shadow:inset 0 0 0 1px #8b574e,
+  2px 3px 0 #09070c}
+.os8-revealed-card.os8-revealed-pot{
+  outline:1px solid #ebae58;outline-offset:-1px
+}
+.os8-revealed-card.os8-revealed-hand{
+  outline:1px solid #639785;outline-offset:-1px
+}
+.os8-revealed-corner{
+  align-self:flex-start;display:flex;align-items:center;gap:1px;
+  font:clamp(14px,3.5vw,19px)/1 'VT323',monospace;
+  white-space:nowrap;max-width:100%;z-index:1
+}
+.os8-revealed-corner b{font-weight:700}
+.os8-revealed-corner small{font:clamp(12px,3.2vw,16px)/1 'VT323',monospace}
+.os8-revealed-pip{
+  display:block;line-height:1;font:clamp(25px,6vw,37px)/1 'VT323',monospace;
+  align-self:center;margin:auto 0;
+  text-shadow:1px 1px #e7c59a
+}
+.os8-revealed-footer{
+  align-self:flex-end;font:14px/1 'VT323',monospace
+}
+.os8-revealed-card.os8-revealed-royal{
+  background:linear-gradient(145deg,#ffedc6,#e5c99b 57%,#af7750);
+  border-width:2px;border-color:#b18a54
+}
+.os8-revealed-card.os8-revealed-royal.os8-revealed-red{color:#b32f27;border-color:#be5840}
+.os8-revealed-card.os8-revealed-royal.os8-revealed-black{color:#27323d;border-color:#687783}
+.os8-revealed-royal .os8-revealed-corner{font-size:16px}
+.os8-revealed-royal .os8-revealed-footer{font-size:12px}
+.os8-revealed-royal .os-royal-portrait-history{
+  flex:1;min-height:0;margin:auto;object-fit:contain}
+.os8-revealed-empty{padding:8px 2px;margin:0!important;color:#ae927d!important}
+.os8-revealed-dialog .os8-history-note{margin:10px 1px 8px}
+@media(max-width:370px){
+  .os8-revealed-gallery{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+  .os8-revealed-section{padding:6px}
+  .os8-revealed-section-title small{font-size:12px}
+}

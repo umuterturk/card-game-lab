@@ -13,7 +13,10 @@ export function MultiplierBurst({feedback}){
   if(!feedback)return null;
   const jackpot=feedback.kind==='jackpot',swing=feedback.kind==='swing';
   const label=jackpot?'JACKPOT!':swing?'SWING UP':'FLIP UP';
-  return <div className={'os8-multiplier-burst os8-multiplier-burst-'+feedback.kind}
+  // Render alongside FLIP/STEER flight portals, outside the board's isolated
+  // stacking context. CSS puts the reward ABOVE cards but BELOW modal dialogs
+  // and the separate Pot-loss glass fracture.
+  return createPortal(<div className={'os8-multiplier-burst os8-multiplier-burst-'+feedback.kind}
     key={feedback.serial} aria-hidden="true">
     {jackpot&&<div className="os8-multiplier-crown" aria-hidden="true">
       <svg viewBox="0 0 80 52" shapeRendering="crispEdges" focusable="false">
@@ -32,7 +35,7 @@ export function MultiplierBurst({feedback}){
       <span>{jackpot?'JACKPOT ×'+feedback.factor:
         swing?'SWING +'+feedback.gain:'FLIP ×'+feedback.factor}</span>
     </div>
-  </div>;
+  </div>,document.body);
 }
 
 // Additional translucent glass fracture layered above the already-existing

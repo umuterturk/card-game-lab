@@ -12,7 +12,8 @@ import {journeyWildBalance,journeyCanUseWild} from './overswingJourney.js';
 import {swingImpactForAction} from './overswingImpact.js';
 import DoomFire from './DoomFire.jsx';
 import GoldAmount,{GoldCoin} from './GoldCoin.jsx';
-import {cardHistory} from './overswingHistory.js';
+import RevealedCards from './RevealedCards.jsx';
+import {RoyalPortrait} from './RoyalPortrait.jsx';
 import {pixelPendulumFrame,PENDULUM_FPS,PENDULUM_REGULAR_MS,PENDULUM_SNAP_MS} from './overswingPendulum.js';
 import {cardFlightResult,flipFlightPoints,bankCoinBurst,bankBurstPoints} from './overswingFlipFlight.js';
 import OverswingSoundControls from './OverswingSoundControls.jsx';
@@ -30,6 +31,7 @@ function Card({id,onClick,caption,chosen=false,mini=false,potCard=false,handCard
     className={'os8-card '+(suit(id)<2?'os8-red':'os8-black')+(royalRank(id)?' os8-royal':'')+(chosen?' os8-selected':'')+(mini?' os8-mini':'')+(flightHidden?' os8-pot-flight-hidden':'')}
     aria-label={name(id)+' '+val(signed(id))+(caption?' '+caption:'')}>
     <span className="os8-card-top">{name(id)}</span>
+    {!mini&&royalRank(id)&&<RoyalPortrait id={id} size="card"/>}
     {!mini&&<strong>{val(signed(id))}</strong>}
     {!mini&&<small>{caption}</small>}
   </button>;
@@ -176,55 +178,6 @@ function SwingImpact({impact}){
 }
 
 
-const CARD_RANKS=['A','2','3','4','5','6','7','8','9','10'];
-function PlayedCards({deal,onClose}){
-  const history=cardHistory(deal),classification=id=>history.states[id];
-  const royalDiscard=history.royalsOut,unseen=history.unseen;
-  return <div className="os8-history-overlay" role="presentation">
-    <section className="os8-history-dialog" role="dialog" aria-modal="true"
-      aria-labelledby="os8-history-title">
-      <div className="os8-history-head">
-        <h3 id="os8-history-title">PLAYED CARDS</h3>
-        <button type="button" onClick={onClose} aria-label="Close played cards">✕</button>
-      </div>
-      <div className="os8-history-stats">
-        <span><strong>{history.discarded}</strong> OUT</span>
-        <span><strong>{history.potCount}</strong> POT</span>
-        <span><strong>{history.handCount}</strong> HAND</span>
-        <span><strong>{unseen}</strong> UNSEEN</span>
-      </div>
-      <p>Current deal, by suit. Lit cards have been played or are visible to you.</p>
-      <div className="os8-history-legend" aria-label="Card history legend">
-        <span>■ OUT</span><span>■ POT</span><span>■ HAND</span><span>□ UNKNOWN</span>
-      </div>
-      <div className="os8-history-suits">
-        {SUITS.map((symbol,suitIndex)=><div className="os8-history-suit-row" key={symbol}>
-          <strong className={suitIndex<2?'os8-history-red':''}>{symbol}</strong>
-          <div className="os8-history-cards">
-            {CARD_RANKS.map((display,r)=>{
-              const id=suitIndex*10+r,state=classification(id);
-              return <span key={id} className={'os8-history-card os8-history-'+state+
-                (suitIndex<2?' os8-history-red':'')}
-                aria-label={display+symbol+' '+(state==='out'?'discarded':state==='pot'?'in Pot':state==='hand'?'in hand':'not revealed')}>
-                {display}
-              </span>;
-            })}
-          </div>
-        </div>)}
-      </div>
-      {royalDiscard.length>0&&<div className="os8-history-royals">
-        Royals out of play: {royalDiscard.map(name).join(' · ')}
-      </div>}
-      <p className="os8-history-note">
-        Unmarked cards are not confirmed to remain in the deck: equipped Royals
-        can replace ordinary cards. The next FLIP order stays hidden.
-      </p>
-      <button type="button" className="os8-history-close" onClick={onClose}>BACK TO GAME</button>
-    </section>
-  </div>;
-}
-
-
 // FLIP and STEER share one pixel card reveal, but STEER originates from the
 // exact touched hand card. A non-crossing STEER flies to the discard tracker.
 
@@ -245,7 +198,9 @@ function FlipFlight({flight,onFinish}){
       aria-hidden="true">
       <div className="os8-flip-face">
         <span className="os8-flip-face-corner">{face}</span>
-        <strong className="os8-flip-face-suit">{SUITS[suit(flight.card)]}</strong>
+        {royalRank(flight.card)?
+          <RoyalPortrait id={flight.card} size="flight"/>:
+          <strong className="os8-flip-face-suit">{SUITS[suit(flight.card)]}</strong>}
         <b className="os8-flip-face-value">{val(signed(flight.card))}</b>
         <span className="os8-flip-face-tag">{isSnap?'SNAP!':isDiscard?'DISCARDED':isSteer?'STEERED':'FLIPPED'}</span>
       </div>
@@ -438,7 +393,7 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
       </button>
     </div>
     <div className={'os8-abilities '+(isJourney?'os8-abilities-journey':'os8-abilities-quick')}
-      aria-label="Wild Cards and card history">
+      aria-label="Wild Cards and revealed cards">
       {isJourney&&WILD_IDS.map(id=><button type="button" key={id}
         className={'os8-ability os8-wild-action os8-ability-'+id}
         title={WILD_RULES[id].description}
@@ -450,9 +405,9 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
         <b>{journey.wildUsedGate?'USED':'×'+wildCounts[id]}</b>
       </button>)}
       <button type="button" ref={discardTargetRef} className="os8-ability os8-history-button"
-        onClick={()=>setHistoryOpen(true)} aria-label="Show played cards">
+        onClick={()=>setHistoryOpen(true)} aria-label="Show revealed cards">
         <strong className="os8-ability-icon" aria-hidden="true">▤</strong>
-        <span>PLAYED</span><b>{d.discard.length}</b>
+        <span>REVEALED</span><b>{new Set([...d.discard,...d.pot,...d.hand]).size}</b>
       </button>
     </div>
   </div>;
@@ -611,7 +566,7 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
       setCoinBurst(current=>current?.serial===serial?null:current)}/>}
     {potCrack&&<PotCrack key={potCrack.serial} crack={potCrack} onFinish={serial=>
       setPotCrack(current=>current?.serial===serial?null:current)}/>}
-    {historyOpen&&<PlayedCards deal={d} onClose={()=>setHistoryOpen(false)}/>}
+    {historyOpen&&<RevealedCards deal={d} onClose={()=>setHistoryOpen(false)}/>}
     {polarityPick&&isJourney&&<div className="os8-wild-overlay" role="presentation">
       <div className="os8-wild-modal" role="dialog" aria-modal="true"
         aria-labelledby="os8-polarity-title">
