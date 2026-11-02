@@ -47,12 +47,11 @@ export function cardFlightResult(action){
 // never allocate hundreds of DOM nodes on small phones.
 export function bankCoinCount(points){
   if(!Number.isFinite(points)||points<=0)return 0;
-  if(points<10)return 3;
-  if(points<100)return 5;
-  if(points<1000)return 9;
-  if(points<10000)return 14;
-  if(points<100000)return 20;
-  return 28;
+  // Frequent small BANKs should feel different, not fall into wide buckets.
+  // A square-root curve awards 50 coins at 10K without over-rewarding 10 Gold.
+  if(points<=10000)return Math.round(2+48*Math.sqrt(points/10000));
+  // Rare large BANKs continue growing, but cap the DOM particle count at 60.
+  return 50+Math.round(10*Math.min(1,(points-10000)/20000));
 }
 export function bankCoinBurst(action){
   if(action?.type!=='bank')return null;

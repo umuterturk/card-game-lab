@@ -48,13 +48,25 @@ test('STEER flies from the chosen hand card to Pot, discard, or SNAP',()=>{
     {card:12,destination:'pot',shielded:false,zeroBreak:false,kind:'steer',reversed:true});
 });
 
-test('BANK coin fountain grows with Gold earned and stays capped',()=>{
-  const amounts=[0,1,9,10,99,100,999,1000,9999,10000,99999,100000,1e12];
+test('BANK coin fountain grows granularly below 10K, reaches 50 at 10K and caps at 60',()=>{
+  const amounts=[0,1,9,10,25,50,99,100,250,500,999,1000,
+    2500,5000,5600,7500,9999,10000,15000,20000,30000,110000,1e12];
   const counts=amounts.map(bankCoinCount);
-  assert.deepEqual(counts,[0,3,3,5,5,9,9,14,14,20,20,28,28]);
-  assert.ok(counts.every(x=>x<=28));
-  assert.deepEqual(bankCoinBurst({type:'bank',points:5600}),{amount:5600,count:14});
-  assert.deepEqual(bankCoinBurst({type:'bank',points:110000}),{amount:110000,count:28});
+  assert.deepEqual(counts,[0,2,3,4,4,5,7,7,10,13,17,17,
+    26,36,38,44,50,50,53,55,60,60,60]);
+  assert.ok(counts.every(x=>x>=0&&x<=60));
+  assert.ok(counts.every((x,i)=>i===0||x>=counts[i-1]),'particle counts are monotonic');
+  for(let amount=1;amount<=100000;amount+=17){
+    const next=bankCoinCount(amount);
+    assert.ok(next>=2&&next<=60);
+    assert.ok(next>=bankCoinCount(amount-1));
+  }
+  assert.equal(bankCoinCount(NaN),0);
+  assert.equal(bankCoinCount(-50),0);
+  assert.equal(bankCoinCount(Infinity),0);
+  assert.deepEqual(bankCoinBurst({type:'bank',points:5600}),{amount:5600,count:38});
+  assert.deepEqual(bankCoinBurst({type:'bank',points:10000}),{amount:10000,count:50});
+  assert.deepEqual(bankCoinBurst({type:'bank',points:110000}),{amount:110000,count:60});
   assert.equal(bankCoinBurst({type:'bank',points:0}),null);
   assert.equal(bankCoinBurst({type:'flip',points:1000000}),null);
   assert.deepEqual(bankBurstPoints(
