@@ -157,8 +157,9 @@ function Recap({run,onNew,onMenu,progress}){
     <div className="oj-recap-rows">{run.completedEncounters.map(row=>
       <div key={row.id}><span>{LAST_FLAME.encounters.find(e=>e.id===row.id)?.title}</span>
         <strong className={row.passed?'oj-passed':'oj-failed'}><GoldAmount value={row.finalScore}/> / <GoldAmount value={row.target}/></strong></div>)}</div>
-    {run.relicIds.length>0&&<><p className="oj-eyebrow">YOUR RELICS</p>
-      <div className="oj-owned-relics">{run.relicIds.map(id=><Relic id={id} key={id}/>)}</div></>}
+    {(run.purchasedRelicIds||run.relicIds).length>0&&<><p className="oj-eyebrow">RELICS PURCHASED · EXPIRED AFTER EACH GATE</p>
+      <div className="oj-owned-relics">{(run.purchasedRelicIds||run.relicIds).map((id,index)=>
+        <Relic id={id} key={id+'-'+index}/>)}</div></>}
     <p className="oj-record">Your record · {progress.wins} victories · Best <GoldAmount value={Math.max(progress.bestRunScore,journeyRunScore(run))}/></p>
     <div className="oj-choices"><button className="oj-primary" onClick={onNew}>{won?'NEXT LEVEL · MAP':'RETRY · MAP'}</button>
       <button className="oj-secondary" onClick={onMenu}>MENU</button></div>
@@ -172,7 +173,7 @@ function RetryOffer({run,onRetry,onDecline}){
     <p className="oj-eyebrow">LEVEL {run.levelNumber} · GATE {run.encounterIndex+1} OF 3</p>
     <h2>THE FLAME FADES</h2>
     <p>{LAST_FLAME.encounters[run.encounterIndex].title}: <GoldAmount value={last.finalScore}/> / <GoldAmount value={last.target}/></p>
-    <p>Gold BANKed in this failed gate is lost. Earlier cleared gates and relics remain yours.</p>
+    <p>Gold BANKed in this failed gate is lost. Earlier cleared gates remain credited. A relic purchased for this gate also remains active for its retries.</p>
     <div className="oj-shop-wallet">
       <span>AVAILABLE GOLD <strong><GoldAmount value={journeyGoldBalance(run)}/></strong></span>
       <span>RETRIES LEFT <strong>{remaining} / {RETRY_PRICE_RATES.length}</strong></span>
@@ -251,7 +252,8 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
     setRun(startJourney(Date.now(),settled.lifetimeGold||0,level,
       settled.equippedRoyalIds||[],{
         wildInventory:settled.wildInventory,
-        rewardAvailable:firstClear
+        rewardAvailable:firstClear,
+        shopBeforeFirstGate:true
       }));
     setView('journey');
   };
@@ -354,22 +356,25 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
   </div>;
   if(run.phase==='choosing_relic')return <main className="oj-shell oj-reward">
     <div className="oj-panel">
-      <p className="oj-eyebrow">LEVEL {run.levelNumber||1} · GATE {run.encounterIndex+1} OF 3 CLEARED</p>
-      <h2>FLAME RESTORED</h2>
-      <p className="oj-gate-score"><GoldAmount value={run.completedEncounters.at(-1).finalScore} size="lg"/> <small>/ <GoldAmount value={run.completedEncounters.at(-1).target}/> REQUIRED</small></p>
-      <Route run={run}/>
+      <p className="oj-eyebrow">LEVEL {run.levelNumber||1} · GATE {(run.shopForGate??run.encounterIndex+1)+1} OF 3 · PREPARATION</p>
+      <h2>{run.completedEncounters.length?'FLAME RESTORED':'THE FIRST GATE'}</h2>
+      {run.completedEncounters.length>0&&<p className="oj-gate-score">
+        <GoldAmount value={run.completedEncounters.at(-1).finalScore} size="lg"/>
+        <small> / <GoldAmount value={run.completedEncounters.at(-1).target}/> REQUIRED</small>
+      </p>}
+      <Route run={{...run,encounterIndex:run.shopForGate??run.encounterIndex+1}}/>
       <h3>RELIC SHOP</h3>
       <div className="oj-shop-wallet">
         <span>AVAILABLE GOLD <strong><GoldAmount value={journeyGoldBalance(run)}/></strong></span>
         <span>RELIC PRICE <strong><GoldAmount value={journeyRelicPrice(run)}/></strong></span>
       </div>
-      <p>Each relic costs 20% of the next gate's target. Buy one or save your Gold.</p>
+      <p>Choose one relic for this gate only, or enter without one. It expires after this gate; the next gate offers a new purchase.</p>
       <div className="oj-relic-options">{run.offeredRelicIds.map(id=>
         <Relic id={id} key={id} price={journeyRelicPrice(run)}
           affordable={journeyGoldBalance(run)>=journeyRelicPrice(run)}
           onClick={()=>buy(id)}/>)}</div>
       <button className="oj-shop-skip oj-secondary" type="button" onClick={skip}>
-        SKIP · SAVE GOLD
+        SKIP · ENTER GATE
       </button>
       <p className="oj-hint">Relics cost Gold. Clearing a gate deposits all its BANKed points; a failed gate deposits nothing.</p>
     </div>
