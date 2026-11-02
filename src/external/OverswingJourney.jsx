@@ -35,12 +35,19 @@ function GoldProgress({progress,compact=false}){
   </section>;
 }
 function RoyalWorkshop({progress,onBuy,onToggle,disabled=false}){
+  const [expanded,setExpanded]=useState(false);
   const owned=progress.ownedRoyalIds||[],equipped=progress.equippedRoyalIds||[];
   return <section className="oj-royal-workshop" aria-label="Buy and equip Royal cards">
-    <div className="oj-royal-heading"><strong>ROYAL CARDS</strong>
-      <span>EQUIPPED {equipped.length}/2</span></div>
+    <button type="button" className="oj-royal-heading oj-royal-expand"
+      onClick={()=>setExpanded(value=>!value)}
+      aria-expanded={expanded} aria-controls="oj-royal-options">
+      <strong>ROYAL CARDS</strong>
+      <span>{equipped.length}/2 EQUIPPED · {owned.length}/3 OWNED</span>
+      <b aria-hidden="true">{expanded?'−':'+'}</b>
+    </button>
+    {expanded&&<>
     <p>Buy once, own forever. Equip up to two before a journey.</p>
-    <div className="oj-royal-options">
+    <div className="oj-royal-options" id="oj-royal-options">
       {ROYAL_NAMES.map(id=>{
         const has=owned.includes(id),price=ROYAL_PRICES[id],selected=equipped.includes(id);
         return <div className={'oj-royal-option'+(selected?' oj-royal-equipped':'')} key={id}>
@@ -61,6 +68,7 @@ function RoyalWorkshop({progress,onBuy,onToggle,disabled=false}){
       })}
     </div>
     {disabled&&<small>Royal purchases and loadout changes are available between journeys.</small>}
+    </>}
   </section>;
 }
 function WildInventory({inventory}){
@@ -291,9 +299,20 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
         <strong>LEVEL {selectedLevel} · {level.title}</strong>
       </header>
       <GoldProgress progress={progress}/>
-      <div className="oj-prepare-rules">
-        {campaignRuleLabels(level).map(rule=><span key={rule}>{rule}</span>)}
-      </div>
+      <section className="oj-prepare-rules" aria-label="Level rules">
+        <h3>LEVEL {selectedLevel} · RULES</h3>
+        <div className="oj-prepare-snap">
+          <span>SNAP LIMIT</span>
+          <strong>±{level.rules.snapLimit??10}</strong>
+          <small>Exceed this swing and lose your Pot</small>
+        </div>
+        <div className="oj-prepare-rule-chips">
+          {campaignRuleLabels(level).filter(rule=>!rule.startsWith('SNAP ')).map(rule=><span key={rule}>{rule}</span>)}
+          <span>HAND {level.rules.maxHandSize??8}</span>
+          <span>FLIP {level.rules.maxFlips??'∞'}</span>
+          <span>BANK TAX {level.rules.bankTax??0}%</span>
+        </div>
+      </section>
       <RoyalWorkshop progress={progress} onBuy={purchaseRoyal}
         onToggle={equipRoyal} disabled={activeJourney}/>
       <WildInventory inventory={progress.wildInventory}/>
