@@ -299,3 +299,124 @@ button.oj-relic:disabled .oj-relic-pick{color:#b09e8a}
 .oj-title>*:not(.os8-doom-fire){position:relative;z-index:1}
 @media(max-height:690px){.oj-title-doom-fire{height:105px;top:-10px}}
 @media(prefers-reduced-motion:reduce){.oj-title-doom-fire{opacity:.42}}
+
+
+/* Hellish, restrained campaign home: title, flame, Gold, and the map only. */
+.oj-map-home{
+  background:
+    radial-gradient(ellipse 70% 30% at 50% 12%,#c0411b2a,transparent 80%),
+    linear-gradient(180deg,#0b0912e6,#130b13e7 54%,#2d1110d1),
+    url('./overswing-stage.svg') center top/cover no-repeat,
+    linear-gradient(#130c14,#251015);
+  box-shadow:inset 0 0 65px #050407a8,0 0 0 1px #3b2018;
+}
+.oj-map-home::after{
+  content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(ellipse 85% 23% at 50% 98%,#fa4d1b2f,transparent 75%),
+    repeating-linear-gradient(125deg,transparent 0 21px,#f04c1310 22px 23px,transparent 24px 49px);
+}
+.oj-map-home .oj-title{margin:0 auto 12px}
+.oj-map-home .oj-title h1{
+  margin:4px auto 1px;letter-spacing:-1.6px;
+  text-shadow:3px 3px #a02312,6px 7px #32090f,0 0 21px #ec4b1a80;
+}
+.oj-map-home .oj-subtitle{font:clamp(12px,3vw,16px)/1.2 'VT323',monospace;
+  letter-spacing:4px;color:#a86d55;margin:0}
+.oj-map-home .oj-gold-compact{
+  max-width:260px;margin:9px auto 12px;
+  padding:5px 10px;text-align:center;
+  border:1px solid #6a3b25;background:#170f15e8;
+  box-shadow:inset 0 0 0 1px #3c2118,0 0 16px #c24c1724;
+}
+.oj-map-home .oj-gold-compact>div:first-child{display:block;font:18px 'VT323',monospace}
+.oj-map-home .oj-gold-compact strong{color:#ffe1a2;font-weight:500;letter-spacing:1px}
+.overswing-fullscreen .oj-map-home{padding-top:6px}
+.overswing-fullscreen .oj-map-home .oj-title{margin:0 auto 6px}
+.overswing-fullscreen .oj-map-home .oj-gold-compact{margin:5px auto 7px;padding:3px 7px}
+/* Royal inventory is intentionally not part of the campaign map. */
+.oj-prepare{
+  background:linear-gradient(180deg,#100b13f5,#201117f0 65%,#330f12ee),
+  url('./overswing-stage.svg') center top/cover no-repeat,#130b14;
+}
+.oj-prepare-back{display:block;margin:0 0 5px;text-align:left}
+.oj-prepare-heading{position:relative;isolation:isolate;overflow:hidden;
+  text-align:center;padding:15px 7px 12px;border-bottom:2px solid #7e3e24;
+  background:radial-gradient(ellipse at 50% 100%,#a6341e33,transparent 74%)}
+.oj-prepare-heading>:not(.os8-doom-fire){position:relative;z-index:1}
+.oj-prepare-fire{position:absolute;left:20%;width:60%;top:0;height:100%;
+  opacity:.32;mask-image:linear-gradient(to top,#000 10%,transparent 92%)}
+.oj-prepare-heading .oj-eyebrow{margin:0 0 11px;color:#d89460}
+.oj-prepare-heading h2{margin:3px 0 8px;color:#ffe0a0;
+  font:clamp(13px,3.9vw,19px)/1.5 var(--oj-pixel);
+  text-shadow:2px 3px #9d361a,0 0 20px #ff743c65}
+.oj-prepare-heading>strong{display:block;
+  font:17px/1.3 'VT323',monospace;color:#e0aa78;letter-spacing:1px}
+.oj-prepare .oj-gold-progress{max-width:440px;margin:10px auto 5px}
+.oj-prepare-rules{display:flex;justify-content:center;flex-wrap:wrap;gap:5px;
+  margin:6px auto 8px}
+.oj-prepare-rules span{border:1px solid #8b492c;background:#39211c;
+  padding:4px 7px;color:#efb47e;font:14px 'VT323',monospace}
+.oj-prepare .oj-royal-workshop{margin:8px auto}
+.oj-prepare .oj-wild-inventory{margin:8px auto}
+.oj-prepare-actions{max-width:440px;margin:12px auto 5px}
+.oj-prepare-actions button{width:100%}
+.oj-prepare-notice{font:17px/1.15 'VT323',monospace;color:#edbb93;
+  padding:8px;border:1px solid #88512b;background:#3b241db5;margin:0}
+@media(max-height:700px){
+ .oj-prepare-heading{padding:8px 5px}
+ .oj-prepare-heading .oj-eyebrow{margin-bottom:4px}
+ .oj-prepare .oj-royal-option{padding:3px}
+ .oj-prepare-actions{margin:7px auto 4px}
+}
+@media(prefers-reduced-motion:reduce){
+ .oj-prepare-fire{opacity:.20}
+}
+
+/* Hellish homepage insignia: a burning pixel pendulum at ~10 stepped poses/s.
+   Stays ornamental, requires no frame timer, and adds no home-page controls. */
+.oj-map-home .oj-hell-pendulum{
+  display:block;position:relative;width:clamp(176px,51vw,240px);
+  height:clamp(79px,13dvh,112px);margin:0 auto -2px;
+  image-rendering:pixelated;overflow:visible;
+  filter:drop-shadow(0 0 10px #eb512d7a);
+  pointer-events:none;z-index:1
+}
+.oj-map-home .oj-hell-pendulum-arm{
+  transform-box:view-box;transform-origin:120px 15px;
+  animation:oj-hell-pendulum-swing 3.2s steps(15,end) infinite;
+  will-change:transform
+}
+.oj-map-home .oj-hell-pendulum-flame{
+  animation:oj-hell-pendulum-fire 1.1s steps(5,end) infinite;
+}
+.oj-map-home .oj-hell-pendulum-sparks{
+  animation:oj-hell-pendulum-sparks 2.8s steps(7,end) infinite;
+}
+.oj-map-home .oj-title-doom-fire{
+  width:clamp(166px,48vw,235px);height:clamp(105px,17dvh,144px);
+  top:7px;opacity:.60
+}
+@keyframes oj-hell-pendulum-swing{
+  0%,100%{transform:rotate(-24deg)}
+  50%{transform:rotate(24deg)}
+}
+@keyframes oj-hell-pendulum-fire{
+  0%,100%{opacity:.88;filter:brightness(1)}
+  33%{opacity:1;filter:brightness(1.2)}
+  67%{opacity:.9;filter:brightness(.91)}
+}
+@keyframes oj-hell-pendulum-sparks{
+  0%,100%{opacity:.7;transform:translateY(0)}
+  50%{opacity:1;transform:translateY(-7px)}
+}
+@media(max-height:680px){
+  .oj-map-home .oj-hell-pendulum{height:74px;width:172px}
+  .oj-map-home .oj-title-doom-fire{height:95px}
+}
+@media(prefers-reduced-motion:reduce){
+  .oj-map-home .oj-hell-pendulum-arm,
+  .oj-map-home .oj-hell-pendulum-flame,
+  .oj-map-home .oj-hell-pendulum-sparks{
+    animation:none!important;will-change:auto!important
+  }
+}

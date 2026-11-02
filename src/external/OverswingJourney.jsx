@@ -3,7 +3,8 @@ import {createPortal} from 'react-dom';
 import OverswingPlay from './OverswingPlay.jsx';
 import OverswingCampaignMap from './OverswingCampaignMap.jsx';
 import DoomFire from './DoomFire.jsx';
-import {campaignNextLevel,campaignLevel} from './overswingCampaign.js';
+import HellPendulum from './HellPendulum.jsx';
+import {campaignNextLevel,campaignLevel,campaignRuleLabels} from './overswingCampaign.js';
 import {LAST_FLAME,LAST_FLAME_RELICS} from './overswingJourneyContent.js';
 import {
   startJourney,stepJourney,isValidJourney,recordJourneyProgress,
@@ -20,10 +21,11 @@ const RUN_KEY='card-game-lab.overswing.journey.v1';
 const PROFILE_KEY='card-game-lab.overswing.journey-profile.v1';
 const fmt=n=>Number(n).toLocaleString('en-US');
 const fmtGold=n=>fmt(n)+' GOLD';
-function GoldProgress({progress}){
-  return <section className="oj-gold-progress" aria-label="Spendable Gold balance">
-    <div><strong>✦ GOLD · {fmt(progress.lifetimeGold||0)}</strong>
-      <span>ONE CURRENCY · EARN AT CLEARED GATES</span></div>
+function GoldProgress({progress,compact=false}){
+  return <section className={'oj-gold-progress'+(compact?' oj-gold-compact':'')}
+    aria-label="Spendable Gold balance">
+    <div><strong>✦ {fmt(progress.lifetimeGold||0)} GOLD</strong>
+      {!compact&&<span>EARN AT CLEARED GATES</span>}</div>
   </section>;
 }
 function RoyalWorkshop({progress,onBuy,onToggle,disabled=false}){
@@ -214,6 +216,7 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
   const acceptDefeat=()=>setRun(current=>current?stepJourney(current,{type:'ACCEPT_DEFEAT'}):current);
   const purchaseRoyal=id=>setProgress(current=>buyRoyal(current,id));
   const equipRoyal=id=>setProgress(current=>toggleRoyalEquipped(current,id));
+  const activeJourney=!!run&&!['won','lost','abandoned'].includes(run.phase);
   const newRoyal=(progress.ownedRoyalIds||[]).find(id=>!(progress.seenRoyalIds||[]).includes(id));
   const reveal=newRoyal?<RoyalReveal id={newRoyal} onContinue={()=>setProgress(old=>({
     ...old,seenRoyalIds:[...(old.seenRoyalIds||[]),newRoyal]
@@ -223,21 +226,47 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
     <button type="button" className="oj-back" onClick={()=>setView('journey')}>‹ JOURNEY MENU</button>
     <OverswingPlay s={quickState} act={quickAct} restart={quickRestart} fullView={fullView}/>
   </div>;
+  if(view==='prepare'){
+    const level=campaignLevel(selectedLevel);
+    return <main className="oj-shell oj-prepare">
+      <button type="button" className="oj-back oj-prepare-back"
+        onClick={()=>setView('map')}>‹ BACK TO MAP</button>
+      <header className="oj-prepare-heading">
+        <DoomFire className="oj-prepare-fire" width={62} height={30}/>
+        <p className="oj-eyebrow">THE LAST FLAME · BEFORE THE DESCENT</p>
+        <h2>PREPARE YOUR JOURNEY</h2>
+        <strong>LEVEL {selectedLevel} · {level.title}</strong>
+      </header>
+      <GoldProgress progress={progress}/>
+      <div className="oj-prepare-rules">
+        {campaignRuleLabels(level).map(rule=><span key={rule}>{rule}</span>)}
+      </div>
+      <RoyalWorkshop progress={progress} onBuy={purchaseRoyal}
+        onToggle={equipRoyal} disabled={activeJourney}/>
+      <WildInventory inventory={progress.wildInventory}/>
+      <div className="oj-choices oj-prepare-actions">
+        {activeJourney?<><p className="oj-prepare-notice">
+          A journey is already active. Finish it before changing your Royal loadout.
+        </p><button type="button" className="oj-primary"
+          onClick={()=>setView('journey')}>RESUME JOURNEY</button></>:
+        <button type="button" className="oj-primary"
+          onClick={()=>begin(selectedLevel)}>ENTER LEVEL {selectedLevel}</button>}
+        <button type="button" className="oj-secondary"
+          onClick={()=>setView('map')}>BACK TO MAP</button>
+      </div>
+    </main>;
+  }
   if(!run||view==='menu'||view==='map')return <main className="oj-shell oj-home oj-map-home">
     <header className="oj-title">
       <DoomFire className="oj-title-doom-fire" width={62} height={34}/>
-      <span className="oj-flame" aria-hidden="true">♨</span>
-      <p className="oj-eyebrow">THE LAST FLAME · CAMPAIGN</p><h1>OVER<span>SWING</span></h1>
-      <p className="oj-subtitle">FOLLOW THE FLAME TRAIL</p></header>
-    <GoldProgress progress={progress}/>
-    <WildInventory inventory={progress.wildInventory}/>
-    <RoyalWorkshop progress={progress} onBuy={purchaseRoyal} onToggle={equipRoyal}
-      disabled={!!run&&!['won','lost','abandoned'].includes(run.phase)}/>
+      <HellPendulum/>
+      <h1>OVER<span>SWING</span></h1>
+      <p className="oj-subtitle">THE LAST FLAME</p></header>
+    <GoldProgress progress={progress} compact/>
     <OverswingCampaignMap progress={progress} selected={selectedLevel}
-      onSelect={setSelectedLevel} onStart={()=>begin(selectedLevel)}
+      onSelect={setSelectedLevel} onStart={()=>setView('prepare')}
       onQuick={()=>setView('quick')}
       activeRun={run&&!['won','lost','abandoned'].includes(run.phase)?()=>setView('journey'):null}/>
-    <p className="oj-record">Runs {progress.totalRuns} · Victories {progress.wins} · Best {fmt(progress.bestRunScore)}</p>
   </main>;
   if(run.phase==='playing')return <div className="oj-shell oj-playing">
     <OverswingPlay s={run.encounter.engineState} act={play} onWild={useWild}

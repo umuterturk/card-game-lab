@@ -50,7 +50,7 @@ export default function OverswingCampaignMap({progress,selected,onSelect,onStart
     </div>
     <div className="oj-choices ocm-actions">
       {activeRun&&<button className="oj-secondary" type="button" onClick={activeRun}>RESUME CURRENT JOURNEY</button>}
-      <button className="oj-primary" type="button" onClick={onStart}>PLAY LEVEL {selected}</button>
+      <button className="oj-primary" type="button" onClick={onStart}>PREPARE · LEVEL {selected}</button>
       <button className="oj-secondary" type="button" onClick={onQuick}>QUICK PLAY · TUTORIAL</button>
     </div>
   </section>;
