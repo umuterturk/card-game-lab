@@ -6,6 +6,7 @@ import {OVERSWING_TUTORIAL_STEPS,OVERSWING_TUTORIAL_INTRO} from './overswingTuto
 import {LAST_FLAME,LAST_FLAME_RELICS} from './overswingJourneyContent.js';
 import {journeyRules,journeyActions} from './overswingJourney.js';
 import {campaignLevel,campaignRuleLabels} from './overswingCampaign.js';
+import {swingImpactForAction} from './overswingImpact.js';
 
 const SUITS=['♥','♦','♠','♣'];
 const name=id=>label(id);
@@ -75,6 +76,46 @@ function FlameMeter({position,limit=10}){
   </div>;
 }
 
+
+// Twelve-column, low-resolution sprites. Each lit cell becomes a crisp 4px pixel.
+const IMPACT_GLYPHS={
+  zero:[
+    '000011110000','000111111000','001110011100','011100001110',
+    '011000000110','011000000110','011000000110','011000000110',
+    '011100001110','001110011100','000111111000','000011110000'
+  ],
+  snap:[
+    '110000000011','111000000111','011100001110','001110011100',
+    '000111111000','000011110000','000011110000','000111111000',
+    '001110011100','011100001110','111000000111','110000000011'
+  ]
+};
+const IMPACT_RAYS=Array.from({length:12},(_,i)=>({
+  '--ray':(i*30)+'deg','--travel':(45+(i%3)*16)+'px'
+}));
+function SwingImpact({impact}){
+  if(!impact)return null;
+  const snap=impact.kind==='snap';
+  return <div className={'os8-impact os8-impact-'+impact.kind+' os8-impact-'+impact.side}
+    aria-hidden="true">
+    <div className="os8-impact-flash"/>
+    <div className="os8-impact-shockwave"/>
+    <div className="os8-impact-split"/>
+    {IMPACT_RAYS.map((vars,i)=><i className="os8-impact-spark" key={i} style={vars}/>)}
+    <svg className="os8-impact-glyph" viewBox="0 0 48 48" shapeRendering="crispEdges"
+      focusable="false" aria-hidden="true">
+      {IMPACT_GLYPHS[impact.kind].flatMap((line,y)=>[...line].map((bit,x)=>
+        bit==='1'?<rect key={y+'-'+x} x={x*4} y={y*4} width="4" height="4"
+          fill={snap?(y%3===0?'#fff4c4':'#ff6d44'):(y%3===0?'#fff4c4':'#ffd575')}/>:null
+      ))}
+    </svg>
+    <div className="os8-impact-caption">
+      <strong>{snap?'SNAP!':'ZERO BREAK'}</strong>
+      <span>{snap?'POT LOST':'MULTIPLIERS RESET'}</span>
+    </div>
+  </div>;
+}
+
 const FACTOR_HELP={
   swing:{title:'SWING',text:'Cross zero to gain SWING. Any safe noncrossing FLIP or STEER loses 1 SWING tier (minimum ×1).'},
   flip:{title:'FLIP',text:'Each consecutive safe FLIP builds ×2, ×3, ×4… even when it crosses zero. STEER ends the streak but preserves earned FLIP.'},
@@ -94,6 +135,13 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fu
   const [steerFocus,setSteerFocus]=useState(false);
   const [helpOpen,setHelpOpen]=useState(false);
   const [queenPick,setQueenPick]=useState(null);
+  const [impact,setImpact]=useState(null);
+  // A new action object means a new event. Use an increasing key so successive
+  // ZERO BREAKs or SNAPs always restart their CSS animations.
+  useEffect(()=>{
+    const event=swingImpactForAction(s.lastAction);
+    setImpact(previous=>event?{...event,serial:(previous?.serial||0)+1}:null);
+  },[s.lastAction,s.seed,s.dealIndex]);
   useEffect(()=>setHelpOpen(false),[s.mode,s.dealIndex]);
   const tutorial=s.mode==='tutorial';
   const isJourney=!!journey;
@@ -204,6 +252,7 @@ export default function OverswingPlay({s,act,restart,journey=null,onBack=null,fu
     {d.scoutNext!=null&&<div className="os8-scout-preview" role="status">✦ SCOUT · NEXT FLIP: <b>{name(d.scoutNext)} ({val(signed(d.scoutNext))})</b></div>}
     <section className="os8-meter" aria-label={'Swing '+val(d.S)}>
       <FlameMeter position={d.S} limit={limit}/>
+      {impact&&<SwingImpact key={impact.serial} impact={impact}/>}
       <div className="os8-zero-warning">ZERO BREAK = RESET MULTIPLIERS · CROSS ZERO = SWING</div>
     </section>
     {tutorial&&<section className="os8-tutorial" aria-live="polite" aria-label="Required tutorial step">

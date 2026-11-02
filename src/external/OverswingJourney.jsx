@@ -8,9 +8,10 @@ import {
   startJourney,stepJourney,isValidJourney,recordJourneyProgress,
   EMPTY_JOURNEY_PROGRESS,validJourneyProgress,journeyRunScore,recordJourneyGold,
   journeyGoldBalance,journeyRelicPrice,journeyEarnedGold,journeyRetryPrice,
-  journeyCanRetry,RETRY_PRICE_RATES,restoreJourneyProgress,restoreJourneyRun
+  journeyCanRetry,RETRY_PRICE_RATES,restoreJourneyProgress,restoreJourneyRun,
+  buyRoyal,toggleRoyalEquipped
 } from './overswingJourney.js';
-import {ROYAL_RULES,ROYAL_THRESHOLDS,unlockedRoyals,nextRoyal,targetScale} from './overswingRoyals.js';
+import {ROYAL_RULES,ROYAL_NAMES,ROYAL_PRICES} from './overswingRoyals.js';
 import './overswingJourney.css';
 
 const RUN_KEY='card-game-lab.overswing.journey.v1';
@@ -18,27 +19,47 @@ const PROFILE_KEY='card-game-lab.overswing.journey-profile.v1';
 const fmt=n=>Number(n).toLocaleString('en-US');
 const fmtGold=n=>fmt(n)+' GOLD';
 function GoldProgress({progress}){
-  const gold=progress.lifetimeGold||0,next=nextRoyal(gold);
-  const index=next?['J','Q','K'].indexOf(next):-1;
-  const previous=index>0?ROYAL_THRESHOLDS[index-1]:0;
-  const target=index>=0?ROYAL_THRESHOLDS[index]:ROYAL_THRESHOLDS.at(-1);
-  const percent=Math.max(0,Math.min(100,100*(gold-previous)/(target-previous)));
-  return <section className="oj-gold-progress" aria-label="Lifetime Gold and Royal progress">
-    <div><strong>✦ TREASURY · {fmt(progress.treasuryGold||0)} G</strong><span>LIFETIME · {fmt(gold)} G</span></div>
-    <div><small>{next?'NEXT ROYAL: '+next+' · '+fmtGold(target):'ALL ROYALS UNLOCKED'}</small></div>
-    <div className="oj-gold-track"><span style={{width:percent+'%'}}/></div>
-    <small>Royals: {unlockedRoyals(gold).join(' · ')||'LOCKED'} · Gate targets ×{targetScale(unlockedRoyals(gold).length).toFixed(2)}</small>
+  return <section className="oj-gold-progress" aria-label="Spendable Gold balance">
+    <div><strong>✦ GOLD · {fmt(progress.lifetimeGold||0)}</strong>
+      <span>ONE CURRENCY · EARN AT CLEARED GATES</span></div>
+  </section>;
+}
+function RoyalWorkshop({progress,onBuy,onToggle,disabled=false}){
+  const owned=progress.ownedRoyalIds||[],equipped=progress.equippedRoyalIds||[];
+  return <section className="oj-royal-workshop" aria-label="Buy and equip Royal cards">
+    <div className="oj-royal-heading"><strong>ROYAL CARDS</strong>
+      <span>EQUIPPED {equipped.length}/2</span></div>
+    <p>Buy once, own forever. Equip up to two before a journey.</p>
+    <div className="oj-royal-options">
+      {ROYAL_NAMES.map(id=>{
+        const has=owned.includes(id),price=ROYAL_PRICES[id],selected=equipped.includes(id);
+        return <div className={'oj-royal-option'+(selected?' oj-royal-equipped':'')} key={id}>
+          <div className="oj-royal-symbol">{id}</div>
+          <div className="oj-royal-option-name"><strong>{ROYAL_RULES[id].title}</strong>
+            <span>{ROYAL_RULES[id].description}</span></div>
+          {has?<button type="button" className={selected?'oj-royal-toggle selected':'oj-royal-toggle'}
+            onClick={()=>onToggle(id)} disabled={disabled}
+            aria-pressed={selected} aria-label={(selected?'Unequip ':'Equip ')+ROYAL_RULES[id].title}>
+            {selected?'EQUIPPED':'EQUIP'}</button>:
+          <button type="button" className="oj-royal-buy" onClick={()=>onBuy(id)}
+            disabled={disabled||progress.lifetimeGold<price}
+            aria-label={'Buy '+ROYAL_RULES[id].title+' for '+fmt(price)+' Gold'}>
+            BUY {fmt(price)} G</button>}
+        </div>;
+      })}
+    </div>
+    {disabled&&<small>Royal purchases and loadout changes are available between journeys.</small>}
   </section>;
 }
 function RoyalReveal({id,onContinue}){
   const royal=ROYAL_RULES[id];
   return createPortal(<div className="oj-royal-overlay" role="presentation">
     <section className="oj-royal-modal" role="dialog" aria-modal="true" aria-labelledby="oj-royal-name">
-      <p className="oj-eyebrow">ROYAL CARD DISCOVERED</p>
+      <p className="oj-eyebrow">ROYAL CARD OWNED FOREVER</p>
       <div className="oj-royal-card" aria-hidden="true"><span>{id}</span><strong>{royal.value}</strong><small>ROYAL</small></div>
       <h2 id="oj-royal-name">{royal.title}</h2>
       <p>{royal.description}</p>
-      <p className="oj-royal-note">Hand-only. Never drawn by FLIP. A Royal replaces a normal card in future journeys.</p>
+      <p className="oj-royal-note">Hand-only. Never drawn by FLIP. Equip this Royal before starting a journey.</p>
       <button type="button" className="oj-primary" onClick={onContinue} autoFocus>CONTINUE</button>
     </section>
   </div>,document.body);
@@ -58,14 +79,14 @@ function Relic({id,selected=false,used=false,onClick,price=0,affordable=true}){
     <button className={'oj-relic '+(selected?'oj-relic-selected':'')} type="button" onClick={onClick} disabled={!affordable} aria-label={'Buy '+r.title+' for '+fmt(price)+' Gold'}>{content}</button>:
     <div className={'oj-relic '+(used?'oj-relic-used':'')}>{content}</div>;
 }
-function Route({run,compact=false,tier=0}){
+function Route({run,compact=false}){
   const current=run?.encounterIndex??0;
   return <div className={'oj-route '+(compact?'oj-route-compact':'')} aria-label="Three-gate journey">
     {LAST_FLAME.encounters.map((e,index)=><React.Fragment key={e.id}>
       {index>0&&<div className="oj-route-line" aria-hidden="true"/>}
       <div className={'oj-route-node '+(index===current?'oj-route-current':'')+(index<current?' oj-route-done':'')}>
         <span className="oj-route-icon">{e.symbol}</span>
-        {!compact&&<><strong>{e.title}</strong><small>{fmt(Math.round(e.target*targetScale(run?.royalTier??tier)*campaignLevel(run?.levelNumber||1).targetScale))}+ GOLD</small></>}
+        {!compact&&<><strong>{e.title}</strong><small>{fmt(Math.round(e.target*campaignLevel(run?.levelNumber||1).targetScale))}+ GOLD</small></>}
       </div>
     </React.Fragment>)}
   </div>;
@@ -81,7 +102,7 @@ function Recap({run,onNew,onMenu,progress}){
       'The gate demanded more fire than you could bank.'}</p>
     <div className="oj-recap-total"><small>RUN GOLD · AFTER PURCHASES</small><strong>{fmt(journeyRunScore(run))}</strong></div>
     <p className="oj-gold-accounting">Cleared gates {fmt(journeyEarnedGold(run))} G · Relics {fmt(run.goldSpent-run.retryGoldSpent)} G · Retries {fmt(run.retryGoldSpent)} G</p>
-    <p className="oj-gold-accounting">Treasury: {fmt(journeyGoldBalance(run))} G</p>
+    <p className="oj-gold-accounting">Gold balance: {fmt(journeyGoldBalance(run))} G</p>
     <div className="oj-recap-rows">{run.completedEncounters.map(row=>
       <div key={row.id}><span>{LAST_FLAME.encounters.find(e=>e.id===row.id)?.title}</span>
         <strong className={row.passed?'oj-passed':'oj-failed'}>{fmt(row.finalScore)} / {fmt(row.target)}</strong></div>)}</div>
@@ -102,23 +123,24 @@ function RetryOffer({run,onRetry,onDecline}){
     <p>{LAST_FLAME.encounters[run.encounterIndex].title}: {fmt(last.finalScore)} / {fmt(last.target)} Gold</p>
     <p>Gold BANKed in this failed gate is lost. Earlier cleared gates and relics remain yours.</p>
     <div className="oj-shop-wallet">
-      <span>TREASURY <strong>{fmt(journeyGoldBalance(run))} G</strong></span>
+      <span>GOLD <strong>{fmt(journeyGoldBalance(run))} G</strong></span>
       <span>RETRIES LEFT <strong>{remaining} / {RETRY_PRICE_RATES.length}</strong></span>
     </div>
     {remaining>0?<div className="oj-choices">
       <button className="oj-primary" type="button" onClick={onRetry} disabled={!available}>
         RETRY GATE · {fmt(price)} GOLD ({Math.round(RETRY_PRICE_RATES[run.retryCount]*100)}%)
       </button>
-      {!available&&<p className="oj-hint">Not enough Treasury Gold for another attempt.</p>}
+      {!available&&<p className="oj-hint">Not enough Gold for another attempt.</p>}
     </div>:<p className="oj-hint">All three retries for this gate have been used.</p>}
     <button className="oj-secondary" type="button" onClick={onDecline}>ACCEPT DEFEAT</button>
   </div></main>;
 }
 export default function OverswingJourney({quickState,quickAct,quickRestart,fullView=false}){
   const [view,setView]=useState('journey');
-  const [progress,setProgress]=useState(()=>restoreJourneyProgress(readSaved(PROFILE_KEY)));
+  const [progress,setProgress]=useState(()=>
+    restoreJourneyProgress(readSaved(PROFILE_KEY),readSaved(RUN_KEY)));
   const [run,setRun]=useState(()=>restoreJourneyRun(
-    readSaved(RUN_KEY),restoreJourneyProgress(readSaved(PROFILE_KEY)).treasuryGold));
+    readSaved(RUN_KEY),restoreJourneyProgress(readSaved(PROFILE_KEY),readSaved(RUN_KEY))));
   const [selectedLevel,setSelectedLevel]=useState(()=>
     campaignNextLevel(readSaved(PROFILE_KEY)?.clearedChapterIds));
   useEffect(()=>setSelectedLevel(campaignNextLevel(progress.clearedChapterIds)),
@@ -141,7 +163,7 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
     const next=campaignNextLevel(settled.clearedChapterIds);
     if(level>next||!campaignLevel(level))return;
     setProgress(settled);
-    setRun(startJourney(Date.now(),settled.lifetimeGold||0,level,settled.treasuryGold||0));
+    setRun(startJourney(Date.now(),settled.lifetimeGold||0,level,settled.equippedRoyalIds||[]));
     setView('journey');
   };
   const play=action=>setRun(current=>current?stepJourney(current,{type:'PLAY',action}):current);
@@ -149,7 +171,9 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
   const skip=()=>setRun(current=>current?stepJourney(current,{type:'SKIP_RELIC'}):current);
   const buyRetry=()=>setRun(current=>current?stepJourney(current,{type:'BUY_RETRY'}):current);
   const acceptDefeat=()=>setRun(current=>current?stepJourney(current,{type:'ACCEPT_DEFEAT'}):current);
-  const newRoyal=unlockedRoyals(progress.lifetimeGold||0).find(id=>!(progress.seenRoyalIds||[]).includes(id));
+  const purchaseRoyal=id=>setProgress(current=>buyRoyal(current,id));
+  const equipRoyal=id=>setProgress(current=>toggleRoyalEquipped(current,id));
+  const newRoyal=(progress.ownedRoyalIds||[]).find(id=>!(progress.seenRoyalIds||[]).includes(id));
   const reveal=newRoyal?<RoyalReveal id={newRoyal} onContinue={()=>setProgress(old=>({
     ...old,seenRoyalIds:[...(old.seenRoyalIds||[]),newRoyal]
   }))}/>:null;
@@ -163,6 +187,8 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
       <p className="oj-eyebrow">THE LAST FLAME · CAMPAIGN</p><h1>OVER<span>SWING</span></h1>
       <p className="oj-subtitle">FOLLOW THE FLAME TRAIL</p></header>
     <GoldProgress progress={progress}/>
+    <RoyalWorkshop progress={progress} onBuy={purchaseRoyal} onToggle={equipRoyal}
+      disabled={!!run&&!['won','lost','abandoned'].includes(run.phase)}/>
     <OverswingCampaignMap progress={progress} selected={selectedLevel}
       onSelect={setSelectedLevel} onStart={()=>begin(selectedLevel)}
       onQuick={()=>setView('quick')}
@@ -193,7 +219,7 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
       <button className="oj-shop-skip oj-secondary" type="button" onClick={skip}>
         SKIP · SAVE GOLD
       </button>
-      <p className="oj-hint">Relics cost Treasury Gold. Purchases lower net run score, but never undo a cleared gate or reduce lifetime Royal progress.</p>
+      <p className="oj-hint">Relics cost Gold. Clearing a gate deposits all its BANKed points; a failed gate deposits nothing.</p>
     </div>
   </main>;
   if(run.phase==='retry_offer')return <RetryOffer run={run} onRetry={buyRetry} onDecline={acceptDefeat}/>;

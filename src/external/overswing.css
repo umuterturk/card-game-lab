@@ -456,3 +456,100 @@
   font:12px/1.2 'VT323',monospace;padding:2px 5px;white-space:nowrap}
 .os8-full .os8-campaign-rules{gap:3px;margin:2px 0}
 .os8-full .os8-campaign-rules span{font-size:11px;padding:1px 4px}
+
+
+/* Non-blocking pixel impacts anchored to the pendulum: no extra portrait height. */
+.os8-meter{position:relative;isolation:isolate}
+.os8-impact{
+  --os8-impact-ink:#ffe3a1;--os8-impact-core:#ffc04c;--os8-impact-glow:#fd9d37;
+  position:absolute;inset:0;z-index:6;overflow:hidden;pointer-events:none;
+  animation:os8-impact-life 1180ms steps(1,end) both;
+}
+.os8-impact-snap{
+  --os8-impact-ink:#ffe2ce;--os8-impact-core:#ff4837;--os8-impact-glow:#df261e;
+}
+.os8-impact-flash{
+  position:absolute;inset:0;opacity:0;
+  background:repeating-linear-gradient(0deg,transparent 0 8px,#ffe3b021 8px 12px),
+    radial-gradient(ellipse at 50% 42%,#ffcb5a88 0%,#e8862450 25%,transparent 65%);
+  animation:os8-impact-flash 400ms steps(3,end) both;
+}
+.os8-impact-snap .os8-impact-flash{
+  background:repeating-linear-gradient(0deg,transparent 0 8px,#ff391d39 8px 12px),
+    radial-gradient(ellipse at 50% 42%,#ff5336b0 0%,#b1191b7a 30%,transparent 70%);
+}
+.os8-impact-shockwave{
+  position:absolute;left:50%;top:42%;width:16px;height:16px;
+  border:5px solid var(--os8-impact-core);box-shadow:0 0 0 4px #220e13;
+  transform:translate(-50%,-50%) scale(.5);
+  animation:os8-impact-wave 680ms steps(7,end) both;
+}
+.os8-impact-split{
+  position:absolute;left:15%;right:15%;top:42%;height:6px;
+  background:repeating-linear-gradient(90deg,var(--os8-impact-core) 0 13px,transparent 13px 20px);
+  box-shadow:0 4px 0 #2c1119;opacity:0;
+  animation:os8-impact-split 720ms steps(6,end) both;
+}
+.os8-impact-spark{
+  position:absolute;left:calc(50% - 4px);top:calc(42% - 4px);
+  width:8px;height:8px;background:var(--os8-impact-ink);
+  box-shadow:8px 0 var(--os8-impact-core),0 8px var(--os8-impact-glow);
+  opacity:0;transform-origin:4px 4px;
+  animation:os8-impact-spark 900ms steps(8,end) both;
+}
+.os8-impact-glyph{
+  position:absolute;left:50%;top:42%;width:clamp(42px,15%,66px);height:auto;
+  overflow:visible;image-rendering:pixelated;
+  filter:drop-shadow(4px 4px 0 #2d0e17) drop-shadow(-3px -3px 0 #2d0e17);
+  animation:os8-impact-glyph 750ms steps(5,end) both;
+}
+.os8-impact-caption{
+  position:absolute;left:4%;right:4%;bottom:12%;display:flex;flex-direction:column;
+  align-items:center;gap:5px;text-align:center;
+  animation:os8-impact-caption 900ms steps(5,end) both;
+}
+.os8-impact-caption strong{
+  padding:5px 8px 3px;background:#180f17eb;border:3px solid var(--os8-impact-core);
+  box-shadow:3px 3px 0 #09070c,0 0 0 2px #1a0a10;
+  font:clamp(10px,3vw,17px)/1.5 var(--pixel,'Press Start 2P',monospace);
+  letter-spacing:0;color:var(--os8-impact-ink);text-shadow:2px 2px #40101a;
+}
+.os8-impact-caption span{
+  background:#190f17e8;padding:3px 7px;color:var(--os8-impact-ink);
+  font:clamp(11px,3.8vw,17px)/1 'VT323',monospace;letter-spacing:1px;
+}
+@keyframes os8-impact-life{0%,82%{opacity:1}100%{opacity:0}}
+@keyframes os8-impact-flash{0%{opacity:0}15%,35%{opacity:1}23%,65%,100%{opacity:0}}
+@keyframes os8-impact-wave{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}
+  20%{opacity:1}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(10)}
+}
+@keyframes os8-impact-split{
+  0%{opacity:0;transform:scaleX(.1)}
+  18%{opacity:1;transform:scaleX(1)}
+  100%{opacity:0;transform:scaleX(1.45)}
+}
+@keyframes os8-impact-spark{
+  0%{opacity:0;transform:rotate(var(--ray)) translateY(0) scale(.4)}
+  16%{opacity:1}
+  80%{opacity:1}
+  100%{opacity:0;transform:rotate(var(--ray)) translateY(calc(-1 * var(--travel))) scale(.6)}
+}
+@keyframes os8-impact-glyph{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.2)}
+  25%{opacity:1;transform:translate(-50%,-50%) scale(1.45)}
+  60%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(.8)}
+}
+@keyframes os8-impact-caption{
+  0%,15%{opacity:0;transform:translateY(10px)}
+  28%,80%{opacity:1;transform:translateY(0)}
+  100%{opacity:0;transform:translateY(-5px)}
+}
+@media(prefers-reduced-motion:reduce){
+  .os8-impact{animation:os8-impact-life 1000ms steps(1,end) both!important}
+  .os8-impact-flash,.os8-impact-shockwave,.os8-impact-split,.os8-impact-spark{display:none}
+  .os8-impact-glyph{animation:none;opacity:1;transform:translate(-50%,-50%)}
+  .os8-impact-caption{animation:none;opacity:1;transform:none}
+}

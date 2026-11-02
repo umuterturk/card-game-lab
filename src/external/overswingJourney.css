@@ -193,3 +193,47 @@ button.oj-relic:disabled .oj-relic-pick{color:#b09e8a}
 .overswing-fullscreen .oj-shop-wallet strong{font-size:18px}
 .overswing-fullscreen .oj-shop-skip{min-height:34px;padding:5px;font-size:9px;margin:5px 0}
 .overswing-fullscreen .oj-relic-pick strong{font-size:17px}
+
+
+/* Compact permanent Royal shop and loadout, displayed only on the map screen. */
+.oj-royal-workshop{
+  max-width:440px;margin:7px auto 13px;padding:9px;
+  border:2px solid #9a6730;background:linear-gradient(150deg,#251822,#130f15);
+  color:#f6dabb;text-align:left
+}
+.oj-royal-heading{display:flex;align-items:center;justify-content:space-between;gap:5px;
+  font:clamp(8px,2.4vw,11px) var(--oj-pixel);color:#ffda91}
+.oj-royal-heading span{color:#d0a98b;font:15px 'VT323',monospace}
+.oj-royal-workshop p,.oj-royal-workshop>small{
+  font:15px/1.1 'VT323',monospace;color:#d6b690;margin:5px 0 8px
+}
+.oj-royal-options{display:flex;flex-direction:column;gap:5px}
+.oj-royal-option{
+  display:grid;grid-template-columns:32px minmax(0,1fr) 101px;
+  align-items:center;gap:6px;padding:6px;
+  border:1px solid #684636;background:#1b141b
+}
+.oj-royal-option.oj-royal-equipped{border-color:#e3aa54;background:#302017}
+.oj-royal-symbol{
+  display:grid;place-items:center;width:31px;height:40px;
+  border:2px solid #d1a355;background:#e8c78c;
+  font:20px var(--oj-pixel);color:#3c211b
+}
+.oj-royal-option-name{display:flex;flex-direction:column;gap:4px;min-width:0}
+.oj-royal-option-name strong{font:8px/1.2 var(--oj-pixel);color:#ffd69e}
+.oj-royal-option-name span{font:14px/1.05 'VT323',monospace;color:#cda987}
+.oj-royal-option button{
+  min-height:37px;border:2px solid #ad8039;border-radius:1px;
+  background:#5d361b;color:#ffe3a8;
+  font:clamp(8px,2.1vw,10px)/1.2 'VT323',monospace
+}
+.oj-royal-option button.selected{border-color:#fad47a;background:#88501c}
+.oj-royal-option button:disabled{opacity:.45;filter:grayscale(.6);cursor:not-allowed}
+.overswing-fullscreen .oj-royal-workshop{margin:5px auto;padding:6px}
+.overswing-fullscreen .oj-royal-option{padding:4px}
+@media(max-width:350px){
+ .oj-royal-option{grid-template-columns:28px minmax(0,1fr) 81px;gap:4px;padding:4px}
+ .oj-royal-symbol{width:27px;height:36px;font-size:16px}
+ .oj-royal-option-name strong{font-size:7px}
+ .oj-royal-option-name span{font-size:12px}
+}

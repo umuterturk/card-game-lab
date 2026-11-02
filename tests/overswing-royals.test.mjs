@@ -2,24 +2,27 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {newOverswing,stepOverswing,overswingActions,overswingPayout,rank,label} from '../src/external/engines.js';
 import {startJourney,recordJourneyGold,EMPTY_JOURNEY_PROGRESS,stepJourney} from '../src/external/overswingJourney.js';
-import {ROYAL_THRESHOLDS,royalTier,pickRoyalCards,royalRank,royalId,KING_INITIAL_BANK_BONUS,KING_DECAY_PER_MOVE,ROYAL_RULES} from '../src/external/overswingRoyals.js';
+import {ROYAL_PRICES,royalCardsForLoadout,pickRoyalCards,royalRank,royalId,KING_INITIAL_BANK_BONUS,KING_DECAY_PER_MOVE,ROYAL_RULES} from '../src/external/overswingRoyals.js';
 
-test('lifetime Gold unlock thresholds and journey targets are immutable during the run',()=>{
-  assert.deepEqual(ROYAL_THRESHOLDS,[40000,100000,180000]);
-  for(const [gold,tier] of [[0,0],[39999,0],[40000,1],[99999,1],[100000,2],[179999,2],[180000,3]])
-    assert.equal(royalTier(gold),tier);
-  assert.equal(startJourney(7).encounter.effectiveTarget,800);
-  assert.equal(startJourney(7,40000).encounter.effectiveTarget,840);
-  assert.equal(startJourney(7,100000).encounter.effectiveTarget,880);
-  assert.equal(startJourney(7,180000).encounter.effectiveTarget,920);
-});
-test('fully unlocked King is guaranteed on the first gate and all three ranks appear across the journey',()=>{
-  for(let seed=1;seed<=50;seed++){
-    const gates=[0,1,2].map(i=>pickRoyalCards(3,seed,i).map(royalRank));
-    assert.ok(gates[0].includes('K'));
-    assert.deepEqual([...new Set(gates.flat())].sort(),['J','K','Q']);
-    assert.ok(gates.every(ids=>ids.length===2));
+test('Royal cards are permanent purchases, never wealth-based auto-unlocks or difficulty scaling',()=>{
+  assert.deepEqual(ROYAL_PRICES,{J:40000,Q:100000,K:180000});
+  for(const balance of [0,39999,40000,100000,180000,999999]){
+    assert.equal(startJourney(7,balance).encounter.effectiveTarget,800);
+    assert.equal(startJourney(7,balance).encounter.engineState.deal.hand.filter(id=>id>=40).length,0,
+      'Gold balance alone must never inject Royal cards');
   }
+});
+test('player-selected Royal loadout appears in every encounter, never in FLIP deck',()=>{
+  for(let seed=1;seed<=50;seed++){
+    const cards=royalCardsForLoadout(['K','Q'],seed,0).map(royalRank);
+    assert.deepEqual(cards,['K','Q']);
+    const a=startJourney(seed,10000,1,['K','Q']);
+    assert.deepEqual(a.equippedRoyals,['K','Q']);
+    assert.deepEqual(a.encounter.engineState.deal.hand.filter(id=>id>=40).map(royalRank),['K','Q']);
+    assert.ok(a.encounter.engineState.deal.deck.every(c=>c<40));
+    assert.equal(a.encounter.engineState.deal.deck.length,38);
+  }
+  assert.throws(()=>royalCardsForLoadout(['J','J'],42,0),TypeError);
 });
 test('Royal hand replaces ordinary cards but FLIP is exclusively A–10',()=>{
   for(const tier of [0,1,2,3]){
