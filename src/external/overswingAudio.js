@@ -62,18 +62,27 @@ export function scoreNoteAt(step,trackId=0){
 export function createOverswingAudio(host=typeof window!=='undefined'?window:null){
   let context=null,master=null,musicBus=null,sfxBus=null,timer=null,trackBuses=null;
   let nextStep=0,nextAt=0,musicOn=false,sfxOn=true,noise=null;
-  let musicVolume=0,sfxVolume=100;
+  let musicVolume=0,sfxVolume=100,backgrounded=false;
   let targetTension=.12,smoothedTension=.12,activeGroove=0;
   let currentTempo=60,musicLevel=0;
   let selectedTrack=0,requestedTrack=0,crossfade=null,goalResolved=false;
   const TRACK_FADE_SECONDS=1.8;
   const canPlay=()=>!!(host&&(host.AudioContext||host.webkitAudioContext));
   const ctx=()=>{
+    // iOS may close a context during a long sleep or an audio interruption.
+    // Recreate its nodes on the next gesture, keeping the user's mix/track.
+    if(context?.state==='closed'){
+      clearScheduler();
+      context=null;master=null;musicBus=null;sfxBus=null;
+      trackBuses=null;noise=null;crossfade=null;
+      selectedTrack=requestedTrack;
+    }
     if(context||!canPlay())return context;
     const AudioContext=host.AudioContext||host.webkitAudioContext;
     context=new AudioContext();
     master=context.createGain();master.gain.value=.32;
-    musicBus=context.createGain();musicBus.gain.value=0;
+    musicBus=context.createGain();
+    musicBus.gain.value=musicOn?musicGainForVolume(musicVolume):0;
     sfxBus=context.createGain();sfxBus.gain.value=sfxGainForVolume(sfxVolume);
     // Each track has its own channel under the music bus. The outgoing and
     // incoming themes are rendered simultaneously only during a crossfade.
@@ -95,12 +104,44 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     let seed=0x18F1C4;
     for(let i=0;i<data.length;i++){seed=(Math.imul(seed,1664525)+1013904223)>>>0;data[i]=(seed/4294967296)*2-1;}
     noise=buffer;
+    const active=context;
+    // Safari can change to "interrupted" without a visibility event.
+    // Re-arm the clock when the browser restores the context itself.
+    active.onstatechange=()=>{
+      if(context!==active)return;
+      if(active.state==='running')startScheduler();
+      else clearScheduler();
+    };
     return context;
   };
-  function unlock(){
+  function clearScheduler(){
+    if(timer!==null){host?.clearInterval(timer);timer=null;}
+  }
+  function startScheduler(){
+    if(!context||!musicOn||backgrounded||context.state!=='running'||
+      timer!==null)return;
+    // Discard any old lookahead after sleep: never burst all missed notes.
+    nextAt=context.currentTime+.05;
+    schedule();
+    timer=host.setInterval(schedule,80);
+  }
+  function wakeContext(){
     const audio=ctx();
-    if(audio?.state==='suspended')audio.resume().catch(()=>{});
-    return !!audio;
+    if(!audio)return false;
+    if(audio.state==='running')startScheduler();
+    else if(audio.state==='suspended'||audio.state==='interrupted'){
+      try{
+        Promise.resolve(audio.resume()).then(()=>{
+          // A pending resume may settle after unmount, suspension or recreation.
+          if(context===audio&&audio.state==='running')startScheduler();
+        }).catch(()=>{});
+      }catch{/* Another gesture can retry an iOS-blocked resume. */}
+    }
+    return true;
+  }
+  function unlock(){
+    backgrounded=false;
+    return wakeContext();
   }
   function tone(frequency,time,duration,volume,type='square',bus=sfxBus,slide=null){
     if(!context||!bus)return;
@@ -278,7 +319,7 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
   }
   function stopMusic(){
     musicOn=false;musicLevel=0;musicVolume=0;
-    if(timer!==null){host?.clearInterval(timer);timer=null;}
+    clearScheduler();
     // OFF cancels any pending fade; next ON starts cleanly on the requested
     // theme without leaving muted channels running in the background.
     crossfade=null;selectedTrack=requestedTrack;
@@ -298,6 +339,7 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     const normalized=clampAudioVolume(value);
     if(normalized===0){stopMusic();return 0;}
     if(!unlock())return 0;
+    const wasMusicOn=musicOn;
     musicOn=true;musicVolume=normalized;
     musicLevel=normalized<=50?1:2;
     musicBus.gain.cancelScheduledValues(context.currentTime);
@@ -305,12 +347,12 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     // continues. 50% equals the former ON gain; 100% equals former LOUD.
     musicBus.gain.setTargetAtTime(musicGainForVolume(normalized),
       context.currentTime,.06);
-    if(timer===null){
-      nextStep=0;nextAt=context.currentTime+.05;
+    if(!wasMusicOn){
+      nextStep=0;
       activeGroove=grooveForTension(targetTension);
       smoothedTension=targetTension;
       currentTempo=tempoForGroove(activeGroove);
-      selectedTrack=requestedTrack;
+      selectedTrack=requestedTrack;crossfade=null;
       if(trackBuses){
         for(let i=0;i<trackBuses.length;i++){
           const p=trackBuses[i].gain;
@@ -318,9 +360,8 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
           p.setValueAtTime(i===selectedTrack?1:0,context.currentTime);
         }
       }
-      schedule();
-      timer=host.setInterval(schedule,80);
     }
+    startScheduler();
     return musicVolume;
   }
   // Preserve API compatibility for older callers and existing game tests.
@@ -441,20 +482,25 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     }
   }
   function suspend(){
-    if(timer!==null){host?.clearInterval(timer);timer=null;}
-    if(context&&context.state==='running')context.suspend().catch(()=>{});
+    backgrounded=true;
+    clearScheduler();
+    if(context&&context.state==='running'){
+      try{Promise.resolve(context.suspend()).catch(()=>{});}catch{}
+    }
   }
   function resume(){
-    if(!context)return;
-    if(context.state==='suspended')context.resume().then(()=>{
-      if(musicOn&&timer===null){
-        nextAt=context.currentTime+.05;timer=host.setInterval(schedule,80);
-      }
-    }).catch(()=>{});
+    if(!context)return; // No autoplay on page load or before a gesture.
+    backgrounded=false;
+    // A closed context must be recreated by the next user gesture.
+    if(context.state!=='closed')wakeContext();
   }
   function dispose(){
+    backgrounded=true;
     stopMusic();
-    if(context&&context.state!=='closed')context.close().catch(()=>{});
+    if(context&&context.state!=='closed'){
+      try{Promise.resolve(context.close()).catch(()=>{});}catch{}
+    }
+    if(context)context.onstatechange=null;
     context=null;master=null;musicBus=null;sfxBus=null;noise=null;
     trackBuses=null;crossfade=null;
   }
