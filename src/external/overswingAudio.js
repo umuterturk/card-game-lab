@@ -3,6 +3,7 @@
 // Audio starts solely after a player's gesture and is cleaned up on unmount.
 import {multiplierFeedbackForAction,potCrackForAction} from './overswingFeedback.js';
 import {musicLayerMix} from './overswingTension.js';
+import {grooveForTension,nextGroove,grooveEvents,MUSIC_GROOVES} from './overswingGrooves.js';
 
 export const AUDIO_CUES=Object.freeze(['flip','steer','zero','snap','bank']);
 export const BONUS_AUDIO_CUES=Object.freeze(['jackpot','swing','flipTier','potCrack']);
@@ -38,7 +39,7 @@ export function scoreNoteAt(step){
 export function createOverswingAudio(host=typeof window!=='undefined'?window:null){
   let context=null,master=null,musicBus=null,sfxBus=null,timer=null;
   let nextStep=0,nextAt=0,musicOn=false,sfxOn=true,noise=null;
-  let targetTension=.12,smoothedTension=.12;
+  let targetTension=.12,smoothedTension=.12,activeGroove=0;
   const canPlay=()=>!!(host&&(host.AudioContext||host.webkitAudioContext));
   const ctx=()=>{
     if(context||!canPlay())return context;
@@ -87,39 +88,70 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     source.start(time);source.stop(time+duration+.001);
     source.onended=()=>{source.disconnect();filter.disconnect();gain.disconnect();};
   }
-  // Original descending battle riff with a pulse, a low distorted-sounding
-  // square bass, an organ-like harmony, and synthesized drums.
+  // The original riff NEVER changes pitch sequence, tempo or timeline.
+  // Only the supporting arrangement changes: half-time -> driving rock ->
+  // pursuit -> double-time. Groove shifts happen on bar downbeats and move
+  // at most one tier per bar, even if danger spikes instantly.
   function scheduleStep(step,time){
-    // Change the arrangement, NEVER the melody or playback position.
-    // One-pole smoothing prevents abrupt tension shifts between two beats.
     smoothedTension+=.09*(targetTension-smoothedTension);
+    const local=step%16,bar=Math.floor(step/16);
+    if(local===0)activeGroove=nextGroove(activeGroove,targetTension);
+    const groove=grooveEvents(activeGroove,step,bar);
     const layers=musicLayerMix(smoothedTension);
-    const note=scoreNoteAt(step),local=step%16,bar=Math.floor(step/16);
-    const eighth=60/MUSIC_TEMPO/2;
+    const note=scoreNoteAt(step);
+    const beat=60/MUSIC_TEMPO;
+    const sixteenth=beat/4;
+    const root=PITCH[['E','E','C','B'][bar%4]];
+
+    // Always-on theme, same original 64-note grid and melody volume.
     if(note){
-      tone(note,time,eighth*.86,.085,'sawtooth',musicBus,note*.995);
-      tone(note*.5,time,eighth*.72,.065*layers.bass,'square',musicBus);
-      if(local%4===2)tone(note*.5,time+.025,eighth*.42,
-        .026*layers.menace,'sawtooth',musicBus);
-      if(local===0||local===8)
-        tone(note*2,time,eighth*3,.022,'triangle',musicBus);
+      tone(note,time,(beat/2)*.86,.085,'sawtooth',musicBus,note*.995);
     }
-    if(local%4===0){
-      tone(110,time,.145,.21,'sine',musicBus,45);
-      blast(time,.07,.048*layers.percussion,musicBus,170);
+    // New rhythms, not extra volume: pulse changes bass note timing and
+    // shortened chugs appear only in riskier passages.
+    if(groove.bass){
+      const duration=activeGroove<2?beat*.72:beat*.30;
+      tone(root,time,duration,.060*layers.bass,'square',musicBus,root*.99);
+      tone(root*.5,time,duration*.83,.023*layers.bass,'sine',musicBus);
     }
-    if(local===4||local===12){
-      blast(time,.12,.085*layers.percussion,musicBus,1850);
-      tone(180,time,.07,.025,'triangle',musicBus,90);
+    if(groove.chug)
+      tone(root*2,time,sixteenth*.84,.039*layers.menace,
+        'sawtooth',musicBus,root*1.91);
+    if(groove.chord){
+      // E minor, C minor-ish and B diminished shades: dark, recognizable
+      // accompaniment beneath the same riff. Minor third and fifth remain
+      // anchored to the bar's root, so changing grooves doesn't change key.
+      const hold=activeGroove===0?beat*2.5:beat*1.5;
+      tone(root*1.189,time,hold,.017,'triangle',musicBus);
+      tone(root*1.498,time,hold,.011,'triangle',musicBus);
     }
-    if(local%2===0)blast(time,.034,.024*layers.percussion,musicBus,6500);
-    // A near-silent syncopated hi-hat and subharmonic emerge as risk rises.
-    if(local%2===1)blast(time,.025,.018*layers.menace,musicBus,5000);
-    if((local===7||local===15)&&note!==null)
-      tone(note*.75,time,.14,.020*layers.menace,'sawtooth',musicBus);
-    if(local===14&&bar%4===3){
-      tone(PITCH.E*4,time,eighth*.6,.031,'triangle',musicBus,PITCH.D*4);
+    if(groove.echo&&note){
+      // Short same-note answer after the theme, not a new melody.
+      tone(note,time+sixteenth*.52,sixteenth*.43,.025*layers.menace,
+        'square',musicBus);
     }
+
+    // Kick, snare and hat patterns are the musical source of tension.
+    // Frequencies have an upper attack so phone speakers reproduce the beat.
+    if(groove.kick){
+      tone(120,time,.16,.14*layers.percussion,'sine',musicBus,44);
+      blast(time,.028,.034*layers.percussion,musicBus,2300);
+    }
+    if(groove.snare){
+      blast(time,.115,groove.fill?.105:.095,musicBus,1900);
+      tone(178,time,.084,.026,'triangle',musicBus,91);
+    }
+    if(groove.ghost)
+      blast(time,.062,.043,musicBus,1650);
+    if(groove.hat)
+      blast(time,.035,.026*layers.percussion,musicBus,5800);
+    if(groove.openHat)
+      blast(time,.11,.032,musicBus,7200);
+
+    // Small original motif at the end of the four-bar loop, retained
+    // for a seamless repeat in all four arrangements.
+    if(local===14&&bar%4===3)
+      tone(PITCH.E*4,time,sixteenth*.95,.031,'triangle',musicBus,PITCH.D*4);
   }
   function schedule(){
     if(!context||!musicOn||context.state!=='running')return;
@@ -147,6 +179,8 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     musicBus.gain.setTargetAtTime(.70,context.currentTime,.04);
     if(timer===null){
       nextStep=0;nextAt=context.currentTime+.05;
+      activeGroove=grooveForTension(targetTension);
+      smoothedTension=targetTension;
       schedule();
       timer=host.setInterval(schedule,80);
     }
@@ -252,5 +286,7 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
   }
   return {unlock,play,setMusic,setSfx,setTension,suspend,resume,dispose,
     get tension(){return targetTension;},
+    get grooveLevel(){return activeGroove;},
+    get grooveName(){return MUSIC_GROOVES[activeGroove].name;},
     get musicOn(){return musicOn;},get sfxOn(){return sfxOn;}};
 }

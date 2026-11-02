@@ -1,7 +1,8 @@
 import {rank,overswingMultiplier} from './engines.js';
 
-// One normalized danger score based ONLY on public state. No peeking.
-const clamp=n=>Math.max(0,Math.min(1,n));
+// Visible-board urgency. SNAP danger should be noticeable even when the Pot is
+// not enormous relative to the gate target. Does not read the hidden deck.
+const clamp=n=>Math.max(0,Math.min(1,Number.isFinite(n)?n:0));
 export function overswingTension({deal,target=3000,limit=10,boss=false}={}){
   if(!deal)return .12;
   const safeLimit=Number.isFinite(limit)&&limit>0?limit:10;
@@ -16,16 +17,19 @@ export function overswingTension({deal,target=3000,limit=10,boss=false}={}){
   const progress=clamp((deal.T||0)/goal);
   const deckSize=Math.max(1,deal.deck?.length||40);
   const depletion=clamp((deal.pos||0)/deckSize);
-  // Pot risk matters most when its potential value is high. End-of-deck and
-  // boss pressure raise the stakes without modifying the melody.
+  // Always respect imminent SNAP. Exposed Gold, depleted draw chances and
+  // boss pressure make it worse, but a near-limit needle is never "calm".
   return Math.round(clamp(
-    .10+.30*needle*(.55+.45*exposed)+.24*exposed+
-    .15*depletion+.10*progress+(boss?.11:0)
+    .10+.40*needle+.24*exposed+
+    .10*depletion+.06*progress+(boss?.08:0)
   )*100)/100;
 }
 export function musicLayerMix(tension){
-  const t=clamp(Number.isFinite(tension)?tension:0);
-  return {bass:+(.25+.65*t).toFixed(4),
-    percussion:+(.20+.80*t).toFixed(4),
-    menace:+(t*t).toFixed(4),melody:1};
+  const t=clamp(tension);
+  // Tiny volume variation (<12%); the recognizable changes are grooves,
+  // double-time drums, rhythmic bass and minor supporting harmonies.
+  return {bass:+(.84+.10*t).toFixed(4),
+    percussion:+(.84+.10*t).toFixed(4),
+    menace:+(.78+.12*t).toFixed(4),
+    melody:1};
 }
