@@ -794,3 +794,22 @@
 @media(prefers-reduced-motion:reduce){
   .os8-flip-flight{animation:none!important;display:none}
 }
+
+/* All Gold totals and BANK values use the shared pixel coin. */
+.os8-scoreline b:has(.os-gold-amount){font-size:clamp(14px,4vw,23px);white-space:nowrap}
+.os8-full .os8-scoreline b:has(.os-gold-amount){font-size:clamp(13px,3.9vw,21px)}
+.os8-scoreline .os-gold-coin{font-size:clamp(13px,3.6vw,18px)}
+.os8-journey-top .os-gold-amount{font:inherit}
+.os8-journey-top .os-gold-coin{font-size:13px}
+.os8-actions-primary .os-gold-amount{font:inherit}
+.os8-actions-primary .os-gold-coin{font-size:15px}
+.os8-actions-primary .os-gold-amount-value{font-size:1.15em!important}
+.os8-event .os-gold-amount{font:inherit}
+.os8-event .os-gold-coin{font-size:14px}
+.os8-complete .os-gold-amount{font:inherit}
+.os8-complete .os-gold-coin{font-size:24px}
+@media(max-width:390px){
+ .os8-scoreline b:has(.os-gold-amount),
+ .os8-full .os8-scoreline b:has(.os-gold-amount){font-size:clamp(12px,3.7vw,17px)}
+ .os8-journey-top .os-gold-coin{font-size:11px}
+}

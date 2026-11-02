@@ -152,7 +152,7 @@ button.oj-relic:hover,button.oj-relic:focus-visible{border-color:#ffe088;backgro
 }
 
 
-/* Only cleared gates deposit Gold; lifetime Royal discoveries are not spent. */
+/* One spendable Gold balance; cleared gates deposit and purchases debit. */
 .oj-gold-progress{margin:12px auto;padding:9px 11px;max-width:440px;border:2px solid #85602c;background:#211722;color:#f4dca7;text-align:left}
 .oj-gold-progress>div:first-child{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;font:15px 'VT323',monospace}
 .oj-gold-progress strong{color:#ffe39b}
@@ -175,11 +175,11 @@ button.oj-relic:hover,button.oj-relic:focus-visible{border-color:#ffe088;backgro
 .overswing-fullscreen .oj-gold-progress>div:first-child{font-size:13px}
 .overswing-fullscreen .oj-gold-track{margin:4px 0}
 
-/* Relics and retries spend persistent Treasury Gold; only cleared gates fund it. */
+/* The same Gold coin represents available balance, relic costs and retries. */
 .oj-shop-wallet{display:flex;justify-content:space-between;gap:10px;margin:8px 0 9px;padding:9px 10px;
   border:2px solid #a06b30;background:#241918;color:#ddbb8b}
-.oj-shop-wallet span{display:flex;flex-direction:column;gap:6px;font:14px 'VT323',monospace;line-height:1.1}
-.oj-shop-wallet strong{color:#ffdc88;font:22px 'VT323',monospace;white-space:nowrap}
+.oj-shop-wallet > span{display:flex;flex-direction:column;gap:6px;font:14px 'VT323',monospace;line-height:1.1}
+.oj-shop-wallet > span > strong{color:#ffdc88;font:22px 'VT323',monospace;white-space:nowrap}
 .oj-relic-pick{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:65px;white-space:nowrap}
 .oj-relic-pick strong{font:19px 'VT323',monospace;color:#ffe29a}
 button.oj-relic:disabled{opacity:.48;filter:grayscale(.55);cursor:not-allowed}
@@ -189,13 +189,13 @@ button.oj-relic:disabled .oj-relic-pick{color:#b09e8a}
 .oj-shop-skip:hover,.oj-shop-skip:focus-visible{border-color:#ffde8a;background:#4b2b23}
 .oj-gold-accounting{text-align:center;color:#d6b58f!important;margin:8px auto;font:16px 'VT323',monospace!important}
 .overswing-fullscreen .oj-shop-wallet{padding:6px 8px;margin:5px 0}
-.overswing-fullscreen .oj-shop-wallet span{font-size:12px}
-.overswing-fullscreen .oj-shop-wallet strong{font-size:18px}
+.overswing-fullscreen .oj-shop-wallet > span{font-size:12px}
+.overswing-fullscreen .oj-shop-wallet > span > strong{font-size:18px}
 .overswing-fullscreen .oj-shop-skip{min-height:34px;padding:5px;font-size:9px;margin:5px 0}
 .overswing-fullscreen .oj-relic-pick strong{font-size:17px}
 
 
-/* Compact permanent Royal shop and loadout, displayed only on the map screen. */
+/* Compact permanent Royal shop and loadout, displayed in journey preparation. */
 .oj-royal-workshop{
   max-width:440px;margin:7px auto 13px;padding:9px;
   border:2px solid #9a6730;background:linear-gradient(150deg,#251822,#130f15);
@@ -419,4 +419,28 @@ button.oj-relic:disabled .oj-relic-pick{color:#b09e8a}
   .oj-map-home .oj-hell-pendulum-sparks{
     animation:none!important;will-change:auto!important
   }
+}
+
+/* Align reusable Gold coins on every balance, price and result screen. */
+.oj-gold-progress .os-gold-amount{align-items:center;font:21px 'VT323',monospace}
+.oj-gold-progress .os-gold-amount-hero{font-size:22px}
+.oj-gold-progress .os-gold-amount-lg{font-size:24px}
+.oj-map-home .oj-gold-compact .os-gold-amount{font-size:23px}
+.oj-shop-wallet .os-gold-amount{gap:3px;font:inherit}
+.oj-shop-wallet .os-gold-coin{font-size:18px}
+.oj-recap-total .os-gold-amount{font:inherit;color:inherit}
+.oj-recap-rows .os-gold-amount{font:inherit}
+.oj-recap-rows .os-gold-coin{font-size:15px}
+.oj-recap-rows>div>strong{display:flex;gap:3px;align-items:center;white-space:nowrap}
+.oj-relic-pick .os-gold-amount,.oj-royal-buy .os-gold-amount{font:inherit}
+.oj-gold-accounting .os-gold-coin{font-size:14px}
+.oj-gate-score .os-gold-amount{vertical-align:middle}
+.oj-gate-score .os-gold-coin{font-size:23px}
+.oj-gate-score small .os-gold-coin{font-size:14px}
+@media(max-width:390px){
+ .oj-shop-wallet > span > strong{font-size:19px}
+ .oj-shop-wallet .os-gold-coin{font-size:16px}
+ .oj-recap-rows>div{gap:4px}
+ .oj-recap-rows>div>strong{font-size:14px}
+ .oj-recap-rows .os-gold-coin{font-size:12px}
 }

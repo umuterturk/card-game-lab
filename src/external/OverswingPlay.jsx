@@ -11,6 +11,7 @@ import {WILD_IDS,WILD_RULES} from './overswingWilds.js';
 import {journeyWildBalance,journeyCanUseWild} from './overswingJourney.js';
 import {swingImpactForAction} from './overswingImpact.js';
 import DoomFire from './DoomFire.jsx';
+import GoldAmount from './GoldCoin.jsx';
 import {cardHistory} from './overswingHistory.js';
 import {pixelPendulumFrame,PENDULUM_FPS,PENDULUM_REGULAR_MS,PENDULUM_SNAP_MS} from './overswingPendulum.js';
 import {flipFlightResult,flipFlightPoints} from './overswingFlipFlight.js';
@@ -32,7 +33,7 @@ function Card({id,onClick,caption,chosen=false,mini=false,potCard=false,flightHi
 function Outcome({e}){
   if(!e)return <>Tap any hand card to <b>STEER</b>, or <b>FLIP</b> a random card.</>;
   if(e.type==='wild')return <><b>WILD SHUFFLE!</b> Refreshed {e.replaced} ordinary hand cards.</>;
-  if(e.type==='bank')return <><b>+{e.points.toLocaleString('en-US')} BANKED</b>{e.taxPaid>0?' · TAX −'+e.taxPaid+' G':''}{e.crownBonus?' · CROWN +'+e.crownBonus+'%':''} · Hand limit {e.oldCap} → {e.newCap}. {e.dropped!=null?name(e.dropped)+' discarded. ':''}{e.refilled?.length?'Hand refilled.':''}</>;
+  if(e.type==='bank')return <><b><GoldAmount value={e.points} prefix="+"/> BANKED</b>{e.taxPaid>0?<> · TAX <GoldAmount value={e.taxPaid} prefix="−"/></>:''}{e.crownBonus?' · CROWN +'+e.crownBonus+'%':''} · Hand limit {e.oldCap} → {e.newCap}. {e.dropped!=null?name(e.dropped)+' discarded. ':''}{e.refilled?.length?'Hand refilled.':''}</>;
   if(e.snap&&e.shielded)return <><b>EMBER SHIELD!</b> SNAP contained: <b>{name(e.card)}</b>. Pot saved, multipliers reset to ×1.</>;
   if(e.snap)return <><b>SNAP!</b> <b>{name(e.card)}</b>: {val(e.from)} → {val(e.to)}. Lost {e.lostPayout.toLocaleString('en-US')} potential points.</>;
   if(e.zeroBreak)return <><b>ZERO BREAK!</b> {name(e.card)}: {val(e.from)} → 0. <b>All multipliers reset to ×1.</b> Pot kept{e.refilled?.length?', hand refilled':''}.</>;
@@ -339,8 +340,8 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
       </button>
       <button type="button" disabled={!canBank||discardPick}
         className={'os8-bank '+(tutorial&&canBank?'os8-guide-action':'')} onClick={bank}>
-        <span className="os8-action-icon">♛</span><b>BANK</b>
-        <small>+{payout.toLocaleString('en-US')} PTS</small>
+        <span className="os8-action-icon" aria-hidden="true">▰</span><b>BANK</b>
+        <small><GoldAmount value={payout} prefix="+"/></small>
       </button>
     </div>
     <div className={'os8-abilities '+(isJourney?'os8-abilities-journey':'os8-abilities-quick')}
@@ -412,9 +413,9 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
     </header>
     {isJourney&&<section className="os8-journey-strip" aria-label="Current journey objective">
       <div className="os8-journey-top"><span>LEVEL {journey.levelNumber||1} · GATE {journey.encounterIndex+1}/3 · {LAST_FLAME.encounters[journey.encounterIndex].title}</span>
-        <strong>{d.T.toLocaleString('en-US')} / {journey.encounter.effectiveTarget.toLocaleString('en-US')}</strong></div>
+        <strong><GoldAmount value={d.T}/> / <GoldAmount value={journey.encounter.effectiveTarget}/></strong></div>
       <div className="os8-journey-track"><span style={{width:Math.min(100,d.T/journey.encounter.effectiveTarget*100)+'%'}}/></div>
-      <div className="os8-journey-bottom"><span>{journey.encounterIndex===2?'♛ BOSS · SNAP +200 GOAL':'♨ REACH THE GATE TARGET'}</span>
+      <div className="os8-journey-bottom"><span>{journey.encounterIndex===2?'BOSS · SNAP +200 GOAL':'♨ REACH THE GATE TARGET'}</span>
         <div>{journey.relicIds.map(id=><button key={id} type="button"
           title={LAST_FLAME_RELICS[id].description}
           className={'os8-relic-charge '+(journey.encounter.relicUses[id]?'os8-relic-spent':'')}
@@ -425,10 +426,10 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
     </section>}
     <div className="os8-legend"><span className="os8-redtext">♥ ♦ POSITIVE</span><span>♠ ♣ NEGATIVE</span><span>0 = RESET</span><span>±{limit} = SNAP</span></div>
     <div className="os8-scoreline">
-      <div><small>✦ {isJourney?'GATE GOLD':'GOLD'}</small><b>{total.toLocaleString('en-US')}</b></div>
+      <div><small>{isJourney?'GATE GOLD':'GOLD'}</small><b><GoldAmount value={total}/></b></div>
       <div><small>♨ POT</small><b>{pot}</b></div>
       <div><small>× MULTIPLIER</small><b>×{multiplier.toLocaleString('en-US')}</b></div>
-      <div><small>♛ BANK NOW</small><b>+{payout.toLocaleString('en-US')}</b></div>
+      <div><small>BANK NOW</small><b><GoldAmount value={payout} prefix="+"/></b></div>
     </div>
     {isJourney&&journey.wildShieldArmed&&<div className="os8-wild-armed" role="status">
       ◇ EMBER SHIELD ARMED · NEXT FLIP PROTECTED
@@ -539,6 +540,6 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
         <button type="button" className="os8-queen-cancel" onClick={()=>setQueenPick(null)}>CANCEL</button>
       </div>
     </div>}
-    {s.status==='over'&&<div className="os8-complete"><h3>GAME OVER</h3><b>{s.dealTotals.reduce((a,b)=>a+b,0).toLocaleString('en-US')} GOLD</b><button type="button" onClick={()=>restart(s.mode)}>PLAY AGAIN</button></div>}
+    {s.status==='over'&&<div className="os8-complete"><h3>GAME OVER</h3><b><GoldAmount value={s.dealTotals.reduce((a,b)=>a+b,0)} size="lg" showLabel/></b><button type="button" onClick={()=>restart(s.mode)}>PLAY AGAIN</button></div>}
   </div>;
 }

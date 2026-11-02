@@ -1,0 +1,43 @@
+/* Shared currency design. Pixelated stamped coin + infrequent stepped shine. */
+.os-gold-coin{
+  display:inline-grid;place-items:center;position:relative;vertical-align:middle;
+  width:1em;height:1em;min-width:1em;flex:0 0 auto;
+  isolation:isolate;overflow:hidden;
+  clip-path:polygon(30% 0,70% 0,87% 9%,96% 20%,100% 30%,100% 70%,96% 82%,
+    87% 91%,70% 100%,30% 100%,13% 91%,4% 82%,0 70%,0 30%,4% 20%,13% 9%);
+  filter:drop-shadow(1px 2px 0 #38150c);
+}
+.os-gold-coin svg{width:100%;height:100%;display:block;image-rendering:pixelated}
+.os-gold-coin-sm{font-size:18px}
+.os-gold-coin-lg{font-size:24px}
+.os-gold-coin-hero{font-size:29px}
+.os-gold-coin-shine::after{
+  content:"";position:absolute;inset:-28% -35%;z-index:1;pointer-events:none;
+  background:linear-gradient(115deg,transparent 29%,#fff8d900 36%,#fff9dbcc 47%,
+    #fff 50%,#fff5c9b3 53%,transparent 66%);
+  transform:translateX(-120%);
+  animation:os-gold-glint 5.6s steps(12,end) infinite;
+  mix-blend-mode:screen;opacity:.95;
+}
+@keyframes os-gold-glint{
+  0%,67%{transform:translateX(-120%);opacity:0}
+  69%{opacity:.9}
+  85%{transform:translateX(120%);opacity:.9}
+  87%,100%{transform:translateX(120%);opacity:0}
+}
+.os-gold-amount{
+  display:inline-flex!important;flex-direction:row!important;
+  align-items:center!important;justify-content:inherit;gap:.17em;
+  vertical-align:middle;white-space:nowrap;max-width:100%;
+  line-height:1.15;font:inherit;color:inherit;letter-spacing:inherit;
+  font-variant-numeric:tabular-nums;
+}
+.os-gold-amount-value{display:inline!important;font:inherit!important;line-height:inherit!important}
+.os-gold-amount-label{display:inline!important;font:inherit!important;
+  letter-spacing:inherit;opacity:.9;margin-left:.09em}
+.os-gold-amount-lg{gap:.23em}
+.os-gold-amount-hero{gap:.26em}
+.os-gold-amount-hero>.os-gold-amount-value{font-size:1.12em!important}
+@media(prefers-reduced-motion:reduce){
+  .os-gold-coin-shine::after{animation:none!important;opacity:0!important}
+}

@@ -4,6 +4,7 @@ import OverswingPlay from './OverswingPlay.jsx';
 import OverswingCampaignMap from './OverswingCampaignMap.jsx';
 import DoomFire from './DoomFire.jsx';
 import HellPendulum from './HellPendulum.jsx';
+import GoldAmount from './GoldCoin.jsx';
 import {campaignNextLevel,campaignLevel,campaignRuleLabels} from './overswingCampaign.js';
 import {LAST_FLAME,LAST_FLAME_RELICS} from './overswingJourneyContent.js';
 import {
@@ -20,11 +21,10 @@ import './overswingJourney.css';
 const RUN_KEY='card-game-lab.overswing.journey.v1';
 const PROFILE_KEY='card-game-lab.overswing.journey-profile.v1';
 const fmt=n=>Number(n).toLocaleString('en-US');
-const fmtGold=n=>fmt(n)+' GOLD';
 function GoldProgress({progress,compact=false}){
   return <section className={'oj-gold-progress'+(compact?' oj-gold-compact':'')}
     aria-label="Spendable Gold balance">
-    <div><strong>✦ {fmt(progress.lifetimeGold||0)} GOLD</strong>
+    <div><strong><GoldAmount value={progress.lifetimeGold||0} showLabel size={compact?'hero':'lg'}/></strong>
       {!compact&&<span>EARN AT CLEARED GATES</span>}</div>
   </section>;
 }
@@ -48,7 +48,7 @@ function RoyalWorkshop({progress,onBuy,onToggle,disabled=false}){
           <button type="button" className="oj-royal-buy" onClick={()=>onBuy(id)}
             disabled={disabled||progress.lifetimeGold<price}
             aria-label={'Buy '+ROYAL_RULES[id].title+' for '+fmt(price)+' Gold'}>
-            BUY {fmt(price)} G</button>}
+            BUY <GoldAmount value={price}/></button>}
         </div>;
       })}
     </div>
@@ -106,7 +106,7 @@ function Relic({id,selected=false,used=false,onClick,price=0,affordable=true}){
   const content=<><span className="oj-relic-symbol" aria-hidden="true">{r.symbol}</span>
     <span className="oj-relic-copy"><strong>{r.title}</strong>
       <small>{r.description}</small>{used&&<em>USED THIS GATE</em>}</span>
-    {onClick&&<span className="oj-relic-pick">{affordable?'BUY':'NEED'}<strong>{fmt(price)} G</strong></span>}</>;
+    {onClick&&<span className="oj-relic-pick">{affordable?'BUY':'NEED'}<strong><GoldAmount value={price}/></strong></span>}</>;
   return onClick?
     <button className={'oj-relic '+(selected?'oj-relic-selected':'')} type="button" onClick={onClick} disabled={!affordable} aria-label={'Buy '+r.title+' for '+fmt(price)+' Gold'}>{content}</button>:
     <div className={'oj-relic '+(used?'oj-relic-used':'')}>{content}</div>;
@@ -118,7 +118,7 @@ function Route({run,compact=false}){
       {index>0&&<div className="oj-route-line" aria-hidden="true"/>}
       <div className={'oj-route-node '+(index===current?'oj-route-current':'')+(index<current?' oj-route-done':'')}>
         <span className="oj-route-icon">{e.symbol}</span>
-        {!compact&&<><strong>{e.title}</strong><small>{fmt(Math.round(e.target*campaignLevel(run?.levelNumber||1).targetScale))}+ GOLD</small></>}
+        {!compact&&<><strong>{e.title}</strong><small><GoldAmount value={Math.round(e.target*campaignLevel(run?.levelNumber||1).targetScale)}/>+</small></>}
       </div>
     </React.Fragment>)}
   </div>;
@@ -132,15 +132,15 @@ function Recap({run,onNew,onMenu,progress}){
     <p>{won?'Level '+(run.levelNumber||1)+' cleared! The next path is open.':
       run.phase==='abandoned'?'You left the furnace. Your collected knowledge remains.':
       'The gate demanded more fire than you could bank.'}</p>
-    <div className="oj-recap-total"><small>RUN GOLD · AFTER PURCHASES</small><strong>{fmt(journeyRunScore(run))}</strong></div>
-    <p className="oj-gold-accounting">Cleared gates {fmt(journeyEarnedGold(run))} G · Relics {fmt(run.goldSpent-run.retryGoldSpent)} G · Retries {fmt(run.retryGoldSpent)} G</p>
-    <p className="oj-gold-accounting">Gold balance: {fmt(journeyGoldBalance(run))} G</p>
+    <div className="oj-recap-total"><small>RUN GOLD · AFTER PURCHASES</small><strong><GoldAmount value={journeyRunScore(run)} size="lg"/></strong></div>
+    <p className="oj-gold-accounting">Cleared gates <GoldAmount value={journeyEarnedGold(run)}/> · Relics <GoldAmount value={run.goldSpent-run.retryGoldSpent}/> · Retries <GoldAmount value={run.retryGoldSpent}/></p>
+    <p className="oj-gold-accounting">Gold balance: <GoldAmount value={journeyGoldBalance(run)}/></p>
     <div className="oj-recap-rows">{run.completedEncounters.map(row=>
       <div key={row.id}><span>{LAST_FLAME.encounters.find(e=>e.id===row.id)?.title}</span>
-        <strong className={row.passed?'oj-passed':'oj-failed'}>{fmt(row.finalScore)} / {fmt(row.target)}</strong></div>)}</div>
+        <strong className={row.passed?'oj-passed':'oj-failed'}><GoldAmount value={row.finalScore}/> / <GoldAmount value={row.target}/></strong></div>)}</div>
     {run.relicIds.length>0&&<><p className="oj-eyebrow">YOUR RELICS</p>
       <div className="oj-owned-relics">{run.relicIds.map(id=><Relic id={id} key={id}/>)}</div></>}
-    <p className="oj-record">Your record · {progress.wins} victories · Best {fmt(Math.max(progress.bestRunScore,journeyRunScore(run)))}</p>
+    <p className="oj-record">Your record · {progress.wins} victories · Best <GoldAmount value={Math.max(progress.bestRunScore,journeyRunScore(run))}/></p>
     <div className="oj-choices"><button className="oj-primary" onClick={onNew}>{won?'NEXT LEVEL · MAP':'RETRY · MAP'}</button>
       <button className="oj-secondary" onClick={onMenu}>MENU</button></div>
   </div>;
@@ -152,15 +152,15 @@ function RetryOffer({run,onRetry,onDecline}){
     <div className="oj-rune">✕</div>
     <p className="oj-eyebrow">LEVEL {run.levelNumber} · GATE {run.encounterIndex+1} OF 3</p>
     <h2>THE FLAME FADES</h2>
-    <p>{LAST_FLAME.encounters[run.encounterIndex].title}: {fmt(last.finalScore)} / {fmt(last.target)} Gold</p>
+    <p>{LAST_FLAME.encounters[run.encounterIndex].title}: <GoldAmount value={last.finalScore}/> / <GoldAmount value={last.target}/></p>
     <p>Gold BANKed in this failed gate is lost. Earlier cleared gates and relics remain yours.</p>
     <div className="oj-shop-wallet">
-      <span>GOLD <strong>{fmt(journeyGoldBalance(run))} G</strong></span>
+      <span>AVAILABLE GOLD <strong><GoldAmount value={journeyGoldBalance(run)}/></strong></span>
       <span>RETRIES LEFT <strong>{remaining} / {RETRY_PRICE_RATES.length}</strong></span>
     </div>
     {remaining>0?<div className="oj-choices">
       <button className="oj-primary" type="button" onClick={onRetry} disabled={!available}>
-        RETRY GATE · {fmt(price)} GOLD ({Math.round(RETRY_PRICE_RATES[run.retryCount]*100)}%)
+        RETRY GATE · <GoldAmount value={price}/> ({Math.round(RETRY_PRICE_RATES[run.retryCount]*100)}%)
       </button>
       {!available&&<p className="oj-hint">Not enough Gold for another attempt.</p>}
     </div>:<p className="oj-hint">All three retries for this gate have been used.</p>}
@@ -277,12 +277,12 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
     <div className="oj-panel">
       <p className="oj-eyebrow">LEVEL {run.levelNumber||1} · GATE {run.encounterIndex+1} OF 3 CLEARED</p>
       <h2>FLAME RESTORED</h2>
-      <p className="oj-gate-score">{fmt(run.completedEncounters.at(-1).finalScore)} <small>/ {fmt(run.completedEncounters.at(-1).target)} REQUIRED</small></p>
+      <p className="oj-gate-score"><GoldAmount value={run.completedEncounters.at(-1).finalScore} size="lg"/> <small>/ <GoldAmount value={run.completedEncounters.at(-1).target}/> REQUIRED</small></p>
       <Route run={run}/>
       <h3>RELIC SHOP</h3>
       <div className="oj-shop-wallet">
-        <span>AVAILABLE GOLD <strong>{fmt(journeyGoldBalance(run))} G</strong></span>
-        <span>RELIC PRICE <strong>{fmt(journeyRelicPrice(run))} G</strong></span>
+        <span>AVAILABLE GOLD <strong><GoldAmount value={journeyGoldBalance(run)}/></strong></span>
+        <span>RELIC PRICE <strong><GoldAmount value={journeyRelicPrice(run)}/></strong></span>
       </div>
       <p>Each relic costs 20% of the next gate's target. Buy one or save your Gold.</p>
       <div className="oj-relic-options">{run.offeredRelicIds.map(id=>
