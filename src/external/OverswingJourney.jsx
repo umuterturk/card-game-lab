@@ -102,7 +102,7 @@ function RoyalReveal({id,onContinue}){
         </div>
       <h2 id="oj-royal-name">{royal.title}</h2>
       <p>{royal.description}</p>
-      <p className="oj-royal-note">Hand-only. Never drawn by FLIP. Equip this Royal before starting a journey.</p>
+      <p className="oj-royal-note">Hand-only. Appears at a random later hand refill, never on FLIP or in the opening hand. Equip before a journey.</p>
       <button type="button" className="oj-primary" onClick={onContinue} autoFocus>CONTINUE</button>
     </section>
   </div>,document.body);

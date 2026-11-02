@@ -4,6 +4,24 @@ import {newOverswing,stepOverswing,overswingActions,overswingPayout,rank,label} 
 import {startJourney,recordJourneyGold,EMPTY_JOURNEY_PROGRESS,stepJourney} from '../src/external/overswingJourney.js';
 import {ROYAL_PRICES,royalCardsForLoadout,pickRoyalCards,royalRank,royalId,KING_INITIAL_BANK_BONUS,KING_DECAY_PER_MOVE,ROYAL_RULES} from '../src/external/overswingRoyals.js';
 
+// Forces a scheduled Royal into the hand for isolated J/Q/K ability tests.
+// Actual gameplay only introduces Royals through randomized refills.
+function withRoyalInHand(s,royal){
+  const d=s.deal;
+  assert.ok(d.pendingRoyals.some(x=>x.card===royal),
+    'Royal must be scheduled, not initially in the hand');
+  const ordinary=d.hand.at(-1);
+  return {...s,deal:{...d,
+    hand:[...d.hand.slice(0,-1),royal],
+    deck:[...d.deck,ordinary], // return displaced ordinary to unseen FLIP deck
+    pendingRoyals:d.pendingRoyals.filter(x=>x.card!==royal),
+    crownBonus:royalRank(royal)==='K'?KING_INITIAL_BANK_BONUS:d.crownBonus
+  }};
+}
+const royalReserve=d=>(d.pendingRoyals||[]).map(x=>x.card);
+const totalCards=d=>d.deck.length-d.pos+d.hand.length+d.pot.length+
+  d.discard.length+royalReserve(d).length;
+
 test('Royal cards are permanent purchases, never wealth-based auto-unlocks or difficulty scaling',()=>{
   assert.deepEqual(ROYAL_PRICES,{J:40000,Q:100000,K:180000});
   for(const balance of [0,39999,40000,100000,180000,999999]){
@@ -12,13 +30,15 @@ test('Royal cards are permanent purchases, never wealth-based auto-unlocks or di
       'Gold balance alone must never inject Royal cards');
   }
 });
-test('player-selected Royal loadout appears in every encounter, never in FLIP deck',()=>{
+test('player-selected Royal loadout is randomly reserved for refills, never FLIP or opening hand',()=>{
   for(let seed=1;seed<=50;seed++){
     const cards=royalCardsForLoadout(['K','Q'],seed,0).map(royalRank);
     assert.deepEqual(cards,['K','Q']);
     const a=startJourney(seed,10000,1,['K','Q']);
     assert.deepEqual(a.equippedRoyals,['K','Q']);
-    assert.deepEqual(a.encounter.engineState.deal.hand.filter(id=>id>=40).map(royalRank),['K','Q']);
+    assert.deepEqual(a.encounter.engineState.deal.hand.filter(id=>id>=40),[]);
+    assert.deepEqual(a.encounter.engineState.deal.pendingRoyals.map(x=>royalRank(x.card)).sort(),['K','Q']);
+    assert.ok(a.encounter.engineState.deal.pendingRoyals.every(x=>x.afterPos>=8));
     assert.ok(a.encounter.engineState.deal.deck.every(c=>c<40));
     assert.equal(a.encounter.engineState.deal.deck.length,38);
   }
@@ -31,13 +51,44 @@ test('Royal hand replaces ordinary cards but FLIP is exclusively A–10',()=>{
     assert.equal(d.hand.length,8);
     assert.equal(d.deck.length+royals.length,40);
     assert.ok(d.deck.every(c=>c<40));
-    assert.equal(d.deck.length-d.pos+d.hand.length,40);
+    assert.equal(totalCards(d),40);
     assert.equal(new Set([...d.deck,...royals]).size,40);
-    for(const id of royals)assert.ok(d.hand.includes(id));
+    assert.ok(d.hand.every(id=>id<40),'initial hand must always be ordinary');
+    assert.deepEqual(new Set(royalReserve(d)),new Set(royals));
   }
 });
+test('Royals arrive through randomized later refills, never ordinary FLIPs',()=>{
+  const schedules=new Set(),royals=[royalId('J',0),royalId('K',1)];
+  for(let seed=1;seed<=35;seed++){
+    let state=newOverswing({seed,royals});
+    const beginning=state.deal;
+    assert.ok(beginning.hand.every(id=>id<40));
+    assert.ok(beginning.deck.every(id=>id<40));
+    assert.equal(beginning.crownBonus,0,'King power starts on arrival');
+    schedules.add(beginning.pendingRoyals.map(x=>x.afterPos).join(','));
+    let seen=new Set(),steps=0;
+    while(state.status==='playing'&&steps++<125){
+      const actions=overswingActions(state);
+      const choice=actions.find(x=>x.type==='steer')||
+        actions.find(x=>x.type==='bank')||
+        actions.find(x=>x.type==='flip');
+      assert.ok(choice,'a queued Royal must not deadlock the deal');
+      const next=stepOverswing(state,choice);
+      assert.notStrictEqual(next,state);
+      if(choice.type==='flip')assert.ok(next.lastAction.card<40,
+        'FLIP must never reveal a Royal');
+      for(const card of next.lastRefill||[])if(card>=40)seen.add(card);
+      assert.equal(totalCards(next.deal),40);
+      state=next;
+    }
+    assert.equal(state.status,'over','seed '+seed+' must finish');
+    assert.deepEqual(seen,new Set(royals),'every Royal must eventually enter a refill');
+    assert.equal(state.deal.pendingRoyals.length,0);
+  }
+  assert.ok(schedules.size>10,'Royal timings should vary across seeded deals');
+});
 test('J is worth 11, crosses and reveals exactly the next FLIP card',()=>{
-  let s=newOverswing({seed:222,royals:[royalId('J',0)]});
+  let s=withRoyalInHand(newOverswing({seed:222,royals:[royalId('J',0)]}),royalId('J',0));
   assert.equal(label(s.deal.hand.at(-1)),'J♥');
   assert.equal(rank(s.deal.hand.at(-1)),11);
   s={...s,deal:{...s.deal,S:-5}};
@@ -50,7 +101,7 @@ test('J is worth 11, crosses and reveals exactly the next FLIP card',()=>{
 });
 test('Scout preview follows automatic hand refill rather than revealing a card moved to the hand',()=>{
   const j=royalId('J',0);
-  let s=newOverswing({seed:13,royals:[j]});
+  let s=withRoyalInHand(newOverswing({seed:13,royals:[j]}),j);
   s={...s,deal:{...s.deal,hand:[j],S:-5}};
   const before=s.deal.pos;
   s=stepOverswing(s,{type:'steer',index:0});
@@ -60,7 +111,7 @@ test('Scout preview follows automatic hand refill rather than revealing a card m
   assert.equal(s.lastAction.scouted,s.deal.scoutNext);
 });
 test('Q requires direction, adds 12 Pot on safe crossing and can SNAP',()=>{
-  let s=newOverswing({seed:222,royals:[royalId('Q',0)]});
+  let s=withRoyalInHand(newOverswing({seed:222,royals:[royalId('Q',0)]}),royalId('Q',0));
   const directions=overswingActions(s).filter(a=>a.type==='steer'&&a.index===7);
   assert.deepEqual(directions.map(x=>x.direction),[1,-1]);
   assert.strictEqual(stepOverswing(s,{type:'steer',index:7}),s);
@@ -74,7 +125,7 @@ test('Q requires direction, adds 12 Pot on safe crossing and can SNAP',()=>{
 });
 test('K offers an automatically decaying Crown or a dangerous ±13 STEER',()=>{
   const k=royalId('K',0);
-  let s=newOverswing({seed:555,royals:[k]});
+  let s=withRoyalInHand(newOverswing({seed:555,royals:[k]}),k);
   assert.equal(s.deal.crownBonus,100);
   assert.equal(KING_INITIAL_BANK_BONUS,100);
   assert.equal(KING_DECAY_PER_MOVE,10);
@@ -83,7 +134,7 @@ test('K offers an automatically decaying Crown or a dangerous ±13 STEER',()=>{
   const played=stepOverswing(s,{type:'steer',index:7});
   assert.equal(played.deal.S,5);assert.equal(played.lastAction.addedToPot,13);
   assert.equal(played.deal.crownBonus,0);
-  let held=newOverswing({seed:44,royals:[k]});
+  let held=withRoyalInHand(newOverswing({seed:44,royals:[k]}),k);
   held={...held,deal:{...held.deal,S:0,plays:2,pot:[0,1]}};
   assert.equal(overswingPayout(held),6); // 3 * 2
   const bank=stepOverswing(held,{type:'bank'});
@@ -91,7 +142,7 @@ test('K offers an automatically decaying Crown or a dangerous ±13 STEER',()=>{
   assert.equal(bank.lastAction.crownBonus,100);
   assert.equal(bank.deal.hand.length,7); // K consumed covers the capacity drop
   assert.ok(bank.deal.discard.includes(k));
-  let expiring=newOverswing({seed:1,royals:[k]});
+  let expiring=withRoyalInHand(newOverswing({seed:1,royals:[k]}),k);
   for(let i=0;i<10;i++){
     // A legal FLIP counts as a move even on SNAP.
     expiring=stepOverswing(expiring,{type:'flip'});
@@ -103,7 +154,7 @@ test('K offers an automatically decaying Crown or a dangerous ±13 STEER',()=>{
 });
 test('King BANK discards the selected non-K card, not the shifted index',()=>{
   const k=royalId('K',0);
-  let s=newOverswing({seed:1,royals:[k]});
+  let s=withRoyalInHand(newOverswing({seed:1,royals:[k]}),k);
   const hand=[k,...s.deal.hand.filter(c=>c!==k)];
   s={...s,deal:{...s.deal,hand,handCap:7,pot:[1],plays:2}};
   const actions=overswingActions(s).filter(a=>a.type==='bank');
@@ -129,7 +180,7 @@ test('full 40-card conservation and legal game termination with Royal combinatio
     let s=newOverswing({seed,royals:pickRoyalCards(tier,seed,0)});
     for(let turn=0;turn<120&&s.status==='playing';turn++){
       const d=s.deal;
-      assert.equal(d.deck.length-d.pos+d.hand.length+d.pot.length+d.discard.length,40);
+      assert.equal(totalCards(d),40);
       const actions=overswingActions(s);
       assert.ok(actions.length>0,'legal actions at seed '+seed+' turn '+turn);
       const banks=actions.filter(a=>a.type==='bank');
@@ -149,6 +200,6 @@ test('full 40-card conservation and legal game termination with Royal combinatio
       s=next;
     }
     assert.equal(s.status,'over','seed '+seed+' tier '+tier);
-    assert.equal(s.deal.deck.length-s.deal.pos+s.deal.hand.length+s.deal.pot.length+s.deal.discard.length,40);
+    assert.equal(totalCards(s.deal),40);
   }
 });

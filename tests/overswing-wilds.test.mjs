@@ -26,13 +26,17 @@ function finish(run,score){
 }
 function conserved(s){
   const d=s.deal;
-  return [...d.deck.slice(d.pos),...d.hand,...d.pot,...d.discard].sort((a,b)=>a-b);
+  return [...d.deck.slice(d.pos),...d.hand,...d.pot,...d.discard,
+    ...(d.pendingRoyals||[]).map(x=>x.card)].sort((a,b)=>a-b);
 }
 
 test('Wild Shuffle refreshes only ordinary hand, conserves cards and uses deterministic RNG',()=>{
   const run=start(314,'shuffle',{royals:['J']});
   assert.ok(journeyCanUseWild(run,'shuffle'));
-  const before=run.encounter.engineState,royal=before.deal.hand.find(id=>id>=40);
+  const before=run.encounter.engineState;
+  const royals=before.deal.pendingRoyals;
+  assert.equal(before.deal.hand.filter(id=>id>=40).length,0,
+    'Royal cards no longer enter the opening hand');
   const updated=stepJourney(run,{type:'USE_WILD',wildId:'shuffle'});
   const next=updated.encounter.engineState;
   assert.notStrictEqual(updated,run);
@@ -42,7 +46,8 @@ test('Wild Shuffle refreshes only ordinary hand, conserves cards and uses determ
   assert.equal(next.deal.hand.length,before.deal.hand.length);
   assert.equal(next.deal.pos,before.deal.pos);
   assert.equal(next.deal.deck.length,before.deal.deck.length);
-  assert.ok(next.deal.hand.includes(royal),'Royal must not move');
+  assert.deepEqual(next.deal.pendingRoyals,royals,
+    'SHUFFLE must not touch the future Royal hand queue');
   assert.equal(next.lastAction.wildId,'shuffle');
   assert.deepEqual(conserved(next),conserved(before),
     'Shuffle can neither create nor delete an ordinary or Royal card');

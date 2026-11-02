@@ -42,12 +42,18 @@ function dealSwing(rng,override,royals=[],handSize=8){
   const ordinary=override?override.slice():shuffle(all40(),rng);
   if(!Array.isArray(royals)||royals.length>2||new Set(royals).size!==royals.length||
      royals.some(id=>!isRoyal(id)))throw new TypeError('Invalid royal hand');
-  // Replace ordinary cards, without modifying the order of remaining FLIPs.
+  // Royal cards replace ordinary cards in the forty-card total, but do NOT
+  // belong to the FLIP deck and do NOT enter the opening hand. Each Royal is
+  // queued for a seeded, randomized future hand-refill position instead.
+  // Drawing/FLIPing ordinary cards never draws or exposes a queued Royal.
   const deck=royals.length?ordinary.slice(royals.length):ordinary;
-  const count=handSize-royals.length;
-  return {deck,pos:count,hand:[...ordinary.slice(royals.length,handSize),...royals],
+  const pendingRoyals=shuffle(royals,rng).map(card=>({
+    card,afterPos:handSize+Math.floor(rng()*Math.max(1,deck.length-handSize))
+  })).sort((a,b)=>a.afterPos-b.afterPos);
+  return {deck,pos:handSize,hand:deck.slice(0,handSize),
+    pendingRoyals,
     handCap:handSize,bankCount:0,scoutNext:null,
-    crownBonus:royals.some(id=>royalRank(id)==='K')?KING_INITIAL_BANK_BONUS:0,
+    crownBonus:0,
     pot:[],discard:[],S:0,W:0,T:0,swingNo:1,flips:0,plays:0,
     flipStreak:0,flipFactor:1,jackpotFactor:1};
 }
@@ -127,8 +133,19 @@ function clearSwing(d){
 function refillEmptyHand(d){
   const drawn=[];
   if(d.hand.length===0){
-    while(d.hand.length<d.handCap&&d.pos<d.deck.length){
-      const card=d.deck[d.pos++];
+    while(d.hand.length<d.handCap&&
+      (d.pos<d.deck.length||(d.pendingRoyals?.length||0)>0)){
+      const due=(d.pendingRoyals||[])[0];
+      let card;
+      // On a refill, a scheduled Royal joins the HAND, never the FLIP draw.
+      // If ordinary cards have run out, release any remaining Royals so a
+      // run can always finish instead of leaving cards stranded in the queue.
+      if(due&&(d.pos>=due.afterPos||d.pos>=d.deck.length)){
+        card=d.pendingRoyals.shift().card;
+        if(royalRank(card)==='K')d.crownBonus=KING_INITIAL_BANK_BONUS;
+      }else{
+        card=d.deck[d.pos++];
+      }
       d.hand.push(card);drawn.push(card);
     }
   }
@@ -142,7 +159,8 @@ export function stepOverswing(s,a,rules={}){
   if(!a||!overswingActions(s,effective).some(x=>x.type===a.type
       &&(x.type!=='steer'||x.index===a.index&&x.direction===a.direction)
       &&(x.type!=='bank'||x.dropIndex===a.dropIndex)))return s;
-  const d={...s.deal,hand:[...s.deal.hand],pot:[...s.deal.pot],discard:[...s.deal.discard]};
+  const d={...s.deal,hand:[...s.deal.hand],pot:[...s.deal.pot],discard:[...s.deal.discard],
+    pendingRoyals:(s.deal.pendingRoyals||[]).map(royal=>({...royal}))};
   let n={...s,deal:d,dealTotals:[...s.dealTotals],history:[...s.history]};
   let msg='',ended=false;
   const previousS=d.S,previousW=d.W,previousPot=d.pot.reduce((sum,c)=>sum+rank(c),0);
@@ -274,7 +292,7 @@ export function stepOverswing(s,a,rules={}){
     if(n.lastAction)n.lastAction={...n.lastAction,refilled:refill};
   }else n.lastRefill=[];
   // A deal is finished only after every card has been used (including hand cards).
-  if(d.pos>=d.deck.length&&!d.hand.length&&!d.pot.length){
+  if(d.pos>=d.deck.length&&!d.hand.length&&!d.pot.length&&!d.pendingRoyals.length){
     n.dealTotals.push(d.T);
     if(n.mode==='match'&&n.dealIndex<2){
       n.dealIndex++;

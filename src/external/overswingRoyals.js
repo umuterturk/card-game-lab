@@ -47,8 +47,9 @@ export function pickRoyalCards(tier,seed,index){
   });
 }
 
-// A purchased Royal is owned forever. The pre-journey loadout chooses which
-// zero, one or two ranks replace ordinary cards in every encounter's first hand.
+// A purchased Royal is owned forever. The pre-journey loadout chooses
+// up to two Royals per encounter. They enter at randomized future hand
+// refills, never in the initial hand or the ordinary FLIP deck.
 export function royalCardsForLoadout(equipped,seed,index){
   if(!Array.isArray(equipped)||equipped.length>2||
      new Set(equipped).size!==equipped.length||

@@ -10,10 +10,13 @@ import {newOverswing} from '../src/external/engines.js';
 
 const read=file=>readFileSync(new URL('../src/external/'+file,import.meta.url),'utf8');
 
-test('Five additional fully written original tracks accompany the existing riff',()=>{
-  assert.equal(MUSIC_TRACKS.length,6);
+test('Fifteen additional fully written original tracks accompany the existing riff',()=>{
+  assert.equal(MUSIC_TRACKS.length,16);
   assert.deepEqual(MUSIC_TRACKS.map(x=>x.name),[
-    'Iron Pulse','Night Drive','Blackout','Violet Static','Ash Runner','Last Neon'
+    'Iron Pulse','Night Drive','Blackout','Violet Static','Ash Runner','Last Neon',
+    'Ember Highway','Chrome Graves','Pulse Cathedral','Midnight Voltage',
+    'Wraith Circuit','Crimson Lanes','Ghost Frequency','Neon Descent',
+    'Ashen Horizon','Terminal Light'
   ]);
   assert.strictEqual(MUSIC_TRACKS[0].riff,MUSIC_RIFF);
   const signatures=new Set();
@@ -29,16 +32,16 @@ test('Five additional fully written original tracks accompany the existing riff'
     assert.ok(['square','sawtooth','triangle','sine'].includes(track.lead));
     signatures.add(JSON.stringify(track.riff));
   }
-  assert.equal(signatures.size,6,'all tracks have distinct original melodies');
+  assert.equal(signatures.size,16,'all tracks have distinct original melodies');
   assert.equal(scoreNoteAt(0,0),82.41,'the original riff is preserved');
   assert.equal(scoreNoteAt(0),scoreNoteAt(0,0));
   for(let id=0;id<MUSIC_TRACKS.length;id++)
     for(let step=0;step<64;step++)
       assert.equal(trackNoteAt(step,id),trackNoteAt(step+64,id));
-  assert.throws(()=>trackNoteAt(0,6),RangeError);
+  assert.throws(()=>trackNoteAt(0,16),RangeError);
 });
 
-test('Every six gates have all six shuffled tracks with no adjacent repetition',()=>{
+test('Sixteen-track shuffle bag has no repeats until the full library plays',()=>{
   const seeds=[1,257,98765,1709999988777,4294967295];
   for(const seed of seeds){
     const sequence=[];
@@ -50,14 +53,16 @@ test('Every six gates have all six shuffled tracks with no adjacent repetition',
       assert.ok(selected>=0&&selected<6);
     }
     assert.equal(sequence.length,36);
-    for(let block=0;block<6;block++){
-      const six=sequence.slice(block*6,block*6+6);
-      assert.equal(new Set(six).size,6,'shuffle bag never duplicates in six gates');
+    for(let block=0;block<2;block++){
+      const sixteen=sequence.slice(block*16,block*16+16);
+      assert.equal(new Set(sixteen).size,16,
+        'every 16-gate shuffle bag contains every track exactly once');
     }
+    assert.equal(new Set(sequence.slice(32,36)).size,4);
     for(let i=1;i<sequence.length;i++)
       assert.notEqual(sequence[i],sequence[i-1],
         'no identical back-to-back themes across bags');
-    assert.deepEqual(shuffledTrackBag(seed,0),sequence.slice(0,6));
+    assert.deepEqual(shuffledTrackBag(seed,0),sequence.slice(0,16));
   }
   assert.throws(()=>trackForGate(1,0,0),RangeError);
   assert.throws(()=>trackForGate(1,1,3),RangeError);

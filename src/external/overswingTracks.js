@@ -1,4 +1,4 @@
-// Six entirely original, royalty-free-to-this-game procedural synthwave scores.
+// Sixteen original, game-owned procedural synthwave scores.
 // All themes share the same 16-step/4-bar grid so they can crossfade on-beat.
 // No sampled audio or borrowed melodic passages.
 const parseBar=text=>{
@@ -227,7 +227,386 @@ const raw=[
       "D - - A F - D - C - E D - - F -",
       "B - - F D - B - A - D B - - E -"
     ]
+  },
+
+  {
+    "id": "ember-highway",
+    "name": "Ember Highway",
+    "lead": "sawtooth",
+    "octave": 1.5,
+    "leadGain": 0.8,
+    "bass": [
+      1,
+      1,
+      1.498,
+      1.334
+    ],
+    "chord": [
+      1.189,
+      1.498
+    ],
+    "roots": [
+      "E",
+      "C",
+      "D",
+      "B"
+    ],
+    "hats": [
+      1,
+      9
+    ],
+    "kicks": [
+      7,
+      15
+    ],
+    "bars": [
+      "E - G B - G E - E - D F - E G -",
+      "C - E G - B G - E - C D - E C -",
+      "D - F A - F D - D - C E - D F -",
+      "B - D F - A F - D - B D - E B -"
+    ]
+  },
+  {
+    "id": "chrome-graves",
+    "name": "Chrome Graves",
+    "lead": "square",
+    "octave": 1,
+    "leadGain": 0.76,
+    "bass": [
+      1,
+      1.059,
+      1,
+      1.498
+    ],
+    "chord": [
+      1.189,
+      1.498
+    ],
+    "roots": [
+      "B",
+      "B",
+      "C",
+      "E"
+    ],
+    "hats": [
+      3,
+      11,
+      15
+    ],
+    "kicks": [
+      3,
+      10
+    ],
+    "bars": [
+      "B B - D B - F - B - A B - G F -",
+      "B - D B - F B - A - G F - E D -",
+      "C C - E G - E - C - D E - G C -",
+      "E - E G - F E - D - B - G F E -"
+    ]
+  },
+  {
+    "id": "pulse-cathedral",
+    "name": "Pulse Cathedral",
+    "lead": "triangle",
+    "octave": 2,
+    "leadGain": 0.8,
+    "bass": [
+      1,
+      1.498,
+      1.189,
+      1.498
+    ],
+    "chord": [
+      1.189,
+      1.498
+    ],
+    "roots": [
+      "C",
+      "G",
+      "D",
+      "E"
+    ],
+    "hats": [
+      2,
+      6,
+      10,
+      14
+    ],
+    "kicks": [
+      6
+    ],
+    "bars": [
+      "C - - G - E - C G - - E - D - C",
+      "G - - D - B - G D - - B - A - G",
+      "D - - A - F - D A - - F - E - D",
+      "E - - B - G - E B - - G - F - E"
+    ]
+  },
+  {
+    "id": "midnight-voltage",
+    "name": "Midnight Voltage",
+    "lead": "sawtooth",
+    "octave": 1,
+    "leadGain": 0.91,
+    "bass": [
+      1,
+      1.189,
+      1.498,
+      1
+    ],
+    "chord": [
+      1.189,
+      1.498
+    ],
+    "roots": [
+      "E",
+      "E",
+      "G",
+      "B"
+    ],
+    "hats": [
+      1,
+      3,
+      9,
+      11
+    ],
+    "kicks": [
+      2,
+      14
+    ],
+    "bars": [
+      "E - E - G E - B - E - F G - E -",
+      "E - G - A G - E - D - E F - B -",
+      "G - G - B G - D - B - A G - F -",
+      "B - D - F D - B - A - G F - E -"
+    ]
+  },
+  {
+    "id": "wraith-circuit",
+    "name": "Wraith Circuit",
+    "lead": "sine",
+    "octave": 2,
+    "leadGain": 0.88,
+    "bass": [
+      1,
+      1,
+      1.189,
+      1.498
+    ],
+    "chord": [
+      1.189,
+      1.781
+    ],
+    "roots": [
+      "D",
+      "C",
+      "B",
+      "E"
+    ],
+    "hats": [
+      7,
+      15
+    ],
+    "kicks": [
+      11
+    ],
+    "bars": [
+      "D - F - A - F - D - E - F - D -",
+      "C - E - G - E - C - D - E - C -",
+      "B - D - F - D - B - C - D - B -",
+      "E - G - B - G - E - F - G - E -"
+    ]
+  },
+  {
+    "id": "crimson-lanes",
+    "name": "Crimson Lanes",
+    "lead": "square",
+    "octave": 1.5,
+    "leadGain": 0.83,
+    "bass": [
+      1,
+      1.498,
+      1,
+      1.189
+    ],
+    "chord": [
+      1.189,
+      1.498
+    ],
+    "roots": [
+      "A",
+      "G",
+      "E",
+      "D"
+    ],
+    "hats": [
+      3,
+      7,
+      11,
+      15
+    ],
+    "kicks": [
+      14
+    ],
+    "bars": [
+      "A - C E - C A - G - A C - B A -",
+      "G - B D - B G - F - G B - A G -",
+      "E - G B - G E - D - E G - F E -",
+      "D - F A - F D - C - D F - E D -"
+    ]
+  },
+  {
+    "id": "ghost-frequency",
+    "name": "Ghost Frequency",
+    "lead": "triangle",
+    "octave": 1.5,
+    "leadGain": 0.75,
+    "bass": [
+      1,
+      1.189,
+      1.189,
+      1
+    ],
+    "chord": [
+      1.189,
+      1.498
+    ],
+    "roots": [
+      "G",
+      "D",
+      "E",
+      "C"
+    ],
+    "hats": [
+      5,
+      13
+    ],
+    "kicks": [
+      7,
+      15
+    ],
+    "bars": [
+      "G - - B D - - B G - - A - - G -",
+      "D - - F A - - F D - - E - - D -",
+      "E - - G B - - G E - - F - - E -",
+      "C - - E G - - E C - - D - - C -"
+    ]
+  },
+  {
+    "id": "neon-descent",
+    "name": "Neon Descent",
+    "lead": "sawtooth",
+    "octave": 2,
+    "leadGain": 0.72,
+    "bass": [
+      1,
+      1.498,
+      1.189,
+      1
+    ],
+    "chord": [
+      1.189,
+      1.498
+    ],
+    "roots": [
+      "E",
+      "D",
+      "C",
+      "B"
+    ],
+    "hats": [
+      1,
+      5,
+      9,
+      13
+    ],
+    "kicks": [
+      6,
+      14
+    ],
+    "bars": [
+      "B - A - G - F E - G - F - E D -",
+      "A - G - F - E D - F - E - D C -",
+      "G - F - E - D C - E - D - C B -",
+      "F - E - D - C B - D - C - B E -"
+    ]
+  },
+  {
+    "id": "ashen-horizon",
+    "name": "Ashen Horizon",
+    "lead": "sine",
+    "octave": 2,
+    "leadGain": 0.84,
+    "bass": [
+      1,
+      1,
+      1.498,
+      1.189
+    ],
+    "chord": [
+      1.189,
+      1.498
+    ],
+    "roots": [
+      "C",
+      "E",
+      "G",
+      "B"
+    ],
+    "hats": [
+      6,
+      14
+    ],
+    "kicks": [
+      10
+    ],
+    "bars": [
+      "C - - - G - - E - - G - D - C -",
+      "E - - - B - - G - - B - F - E -",
+      "G - - - D - - B - - D - A - G -",
+      "B - - - F - - D - - F - C - B -"
+    ]
+  },
+  {
+    "id": "terminal-light",
+    "name": "Terminal Light",
+    "lead": "triangle",
+    "octave": 1.5,
+    "leadGain": 0.96,
+    "bass": [
+      1,
+      1.189,
+      1.498,
+      1.189
+    ],
+    "chord": [
+      1.189,
+      1.498
+    ],
+    "roots": [
+      "E",
+      "B",
+      "C",
+      "E"
+    ],
+    "hats": [
+      2,
+      7,
+      10,
+      15
+    ],
+    "kicks": [
+      3,
+      11
+    ],
+    "bars": [
+      "E G - B E - G - B G - E D - E -",
+      "B D - F B - D - F D - B A - B -",
+      "C E - G C - E - G E - C B - C -",
+      "E B - G E - B - G F - E D - E -"
+    ]
   }
+
 ];
 export const MUSIC_TRACKS=Object.freeze(raw.map(track=>Object.freeze({
   ...track,riff:Object.freeze(track.bars.map(parseBar)),
@@ -243,8 +622,8 @@ export function trackNoteAt(step,trackId=0){
   if(!track)throw new RangeError('Invalid music track');
   return track.riff[Math.floor(step/16)%4][step%16];
 }
-// Seeded Fisher-Yates shuffle bag: all six distinct tracks play in each
-// six-gate block. No consecutive repeats, even between shuffled bags.
+// Seeded Fisher-Yates shuffle bag: all sixteen tracks play in each
+// sixteen-gate block. No consecutive repeats, even between shuffled bags.
 // Selection is independent from game RNG, so it NEVER affects dealt cards.
 const scramble=seed=>{
   let n=(seed>>>0)||0x9e3779b9;

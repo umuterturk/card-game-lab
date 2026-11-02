@@ -365,7 +365,8 @@ test('Royal purchases are one time, spend Gold, and loadout stays at two',()=>{
   const run=startJourney(2100,progress.lifetimeGold,1,progress.equippedRoyalIds);
   assert.deepEqual(run.equippedRoyals,['J']);
   assert.equal(run.encounter.engineState.deal.hand.length,8);
-  assert.equal(run.encounter.engineState.deal.hand.filter(id=>id>=40).length,1);
+  assert.equal(run.encounter.engineState.deal.hand.filter(id=>id>=40).length,0);
+  assert.equal(run.encounter.engineState.deal.pendingRoyals.length,1);
   assert.equal(run.encounter.effectiveTarget,800);
   assert.equal(startJourney(2101,30000,1,[]).encounter.effectiveTarget,800);
   assert.throws(()=>startJourney(2102,0,1,['J','Q','K']),TypeError);
