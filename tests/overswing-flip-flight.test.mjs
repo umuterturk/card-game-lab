@@ -58,7 +58,8 @@ test('FLIP flight is non-blocking, pixel stepped and replaces redundant event ro
   assert.match(jsx,/ref=\{meterRef\}/);
   assert.match(jsx,/data-pot-card=\{potCard\?id:undefined\}/);
   assert.match(jsx,/flightHidden=\{flight\?\.destination==='pot'/);
-  assert.match(jsx,/s\.lastAction\?\.type==='flip'\|\|s\.lastAction\?\.type==='steer'\?/);
+  assert.match(jsx,/<Outcome e=\{s\.lastAction\}\/>/);
+  assert.doesNotMatch(jsx,/className=\{'os8-event/);
   assert.match(jsx,/os8-flip-a11y/);
   assert.match(jsx,/createPortal\(/);
   assert.match(jsx,/prefers-reduced-motion: reduce/);
