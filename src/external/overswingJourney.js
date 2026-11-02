@@ -7,7 +7,7 @@ import {revealOffer} from './overswingReveal.js';
 
 export const JOURNEY_SCHEMA=4;
 export const JOURNEY_PHASES=['playing','choosing_relic','choosing_wild','retry_offer','won','lost','abandoned'];
-export const RELIC_PRICE_RATE=0.20; // price is 20% of the next gate's scaled target
+export const RELIC_PRICE_RATE=0.20; // price is 20% of the gate being entered
 export const RETRY_PRICE_RATES=Object.freeze([0.25,0.35,0.50]);
 const BASE_RELIC_RULES={steerNoncrossPenalty:1,flipCrossJackpotGain:1,
   bankCapacityLoss:1,steerCrossSwingBonus:0};
@@ -43,8 +43,11 @@ function dealFor(runSeed,index,equippedRoyals=[],levelNumber=1,retryCount=0){
   snapCount:0,relicUses:{}};
 }
 export function offerJourneyRelics(run){
-  const choices=LAST_FLAME.relics.filter(r=>!run.relicIds.includes(r.id)).map(r=>r.id);
-  const random=drawRandom(journeySeed(run.runSeed,run.encounterIndex,'rewards'));
+  // Each gate is a fresh purchase: a relic used in an earlier gate can appear
+  // again, and the offer RNG is independent of card draw RNG.
+  const choices=LAST_FLAME.relics.map(r=>r.id);
+  const gateIndex=run.shopForGate??run.encounterIndex+1;
+  const random=drawRandom(journeySeed(run.runSeed,gateIndex,'rewards'));
   for(let i=choices.length-1;i>0;i--){
     const j=Math.floor(random()*(i+1));
     [choices[i],choices[j]]=[choices[j],choices[i]];
@@ -61,15 +64,20 @@ export function startJourney(runSeed=Date.now(),goldBalance=0,levelNumber=1,equi
     throw new TypeError('Invalid Royal loadout');
   const seed=runSeed,loadout=equippedRoyals.slice();
   const inventory=wildInventory(options.wildInventory);
-  return {schemaVersion:JOURNEY_SCHEMA,contentPackId:LAST_FLAME.id,
+  const initialShop=options.shopBeforeFirstGate===true;
+  const draft={schemaVersion:JOURNEY_SCHEMA,contentPackId:LAST_FLAME.id,
     contentVersion:LAST_FLAME.version,runId:'last-flame-'+seed.toString(36),
     runSeed:seed,equippedRoyals:loadout,levelNumber,goldSpent:0,retryGoldSpent:0,
     goldStart:goldBalance,treasuryEvents:[],retryCount:0,
     revealedCardIds:[],revealPurchaseCount:0,revealGoldSpent:0,
     wildInventoryStart:inventory,wildEvents:[],wildUsedGate:false,wildShieldArmed:false,
     wildRewardAvailable:options.rewardAvailable===true,wildRewardId:null,
-    phase:'playing',encounterIndex:0,relicIds:[],
-    offeredRelicIds:[],encounter:dealFor(seed,0,loadout,levelNumber),completedEncounters:[]};
+    phase:initialShop?'choosing_relic':'playing',
+    encounterIndex:0,relicIds:[],purchasedRelicIds:[],
+    shopForGate:initialShop?0:null,
+    offeredRelicIds:[],encounter:dealFor(seed,0,loadout,levelNumber),
+    completedEncounters:[]};
+  return initialShop?{...draft,offeredRelicIds:offerJourneyRelics(draft)}:draft;
 }
 export function isValidJourney(run){
   return !!run&&run.schemaVersion===JOURNEY_SCHEMA&&
@@ -165,9 +173,10 @@ function treasuryEvent(run,id,amount,lifetimeDelta=0){
   return [...run.treasuryEvents,{id:run.runId+'|'+id,amount,lifetimeDelta}];
 }
 export function journeyRelicPrice(run){
-  const next=LAST_FLAME.encounters[run.encounterIndex+1];
-  if(!next)return 0;
-  const target=Math.round(next.target*campaignLevel(run.levelNumber||1).targetScale);
+  const gateIndex=run.shopForGate??run.encounterIndex+1;
+  const gate=LAST_FLAME.encounters[gateIndex];
+  if(!gate)return 0;
+  const target=Math.round(gate.target*campaignLevel(run.levelNumber||1).targetScale);
   return Math.max(10,Math.round(target*RELIC_PRICE_RATE/10)*10);
 }
 export function stepJourney(run,command){
@@ -198,13 +207,11 @@ export function stepJourney(run,command){
   }
   if(run.phase==='choosing_relic'&&
      (command.type==='BUY_RELIC'||command.type==='SKIP_RELIC')){
-    const nextIndex=run.encounterIndex+1;
+    const nextIndex=run.shopForGate??run.encounterIndex+1;
     if(nextIndex>=LAST_FLAME.encounters.length)return run;
     const buying=command.type==='BUY_RELIC';
     const price=journeyRelicPrice(run);
     if(buying&&(!run.offeredRelicIds.includes(command.relicId)||
-       run.relicIds.includes(command.relicId)||
-       run.relicIds.length>=LAST_FLAME.rewards.maxOwnedRelics||
        !LAST_FLAME_RELICS[command.relicId]||
        journeyGoldBalance(run)<price))return run;
     return {...run,phase:'playing',encounterIndex:nextIndex,retryCount:0,
@@ -212,8 +219,11 @@ export function stepJourney(run,command){
       wildUsedGate:false,wildShieldArmed:false,
       goldSpent:run.goldSpent+(buying?price:0),
       treasuryEvents:buying?treasuryEvent(run,'relic:'+nextIndex,-price):run.treasuryEvents,
-      relicIds:buying?[...run.relicIds,command.relicId]:run.relicIds,
-      offeredRelicIds:[],
+      // One purchased relic is usable only in this gate, never the next one.
+      relicIds:buying?[command.relicId]:[],
+      purchasedRelicIds:buying?[...(run.purchasedRelicIds||run.relicIds),command.relicId]:
+        (run.purchasedRelicIds||run.relicIds),
+      shopForGate:null,offeredRelicIds:[],
       encounter:dealFor(run.runSeed,nextIndex,run.equippedRoyals,run.levelNumber||1)};
   }
   if(run.phase!=='playing')return run;
@@ -280,7 +290,9 @@ export function stepJourney(run,command){
   if(run.encounterIndex===LAST_FLAME.encounters.length-1){
     return {...credited,phase:run.wildRewardAvailable?'choosing_wild':'won'};
   }
-  const draft={...credited,phase:'choosing_relic'};
+  const draft={...credited,phase:'choosing_relic',
+    // An expired relic must not remain active while choosing for a new gate.
+    relicIds:[],shopForGate:run.encounterIndex+1};
   return {...draft,offeredRelicIds:offerJourneyRelics(draft)};
 }
 export const EMPTY_JOURNEY_PROGRESS=Object.freeze({
@@ -398,7 +410,8 @@ export function recordJourneyProgress(progress,run){
   return {...old,totalRuns:old.totalRuns+1,wins:old.wins+(run.phase==='won'?1:0),
     bestRunScore:Math.max(old.bestRunScore,journeyRunScore(run)),
     recordedRunIds:[...old.recordedRunIds,run.runId],
-    discoveredRelicIds:[...new Set([...old.discoveredRelicIds,...run.relicIds])],
+    discoveredRelicIds:[...new Set([...old.discoveredRelicIds,
+      ...(run.purchasedRelicIds||run.relicIds)])],
     clearedChapterIds:run.phase==='won'?
       [...new Set([...old.clearedChapterIds,LAST_FLAME.id,
         campaignLevel(run.levelNumber||1).id])]:old.clearedChapterIds};
