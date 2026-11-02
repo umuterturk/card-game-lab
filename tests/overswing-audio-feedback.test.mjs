@@ -177,7 +177,7 @@ test('STEER source, retro SFX controls, Bank fountain and gate-clear timing are 
   assert.match(jsx,/OverswingSoundControls sound=\{sound\}/);
   assert.match(controls,/onClick=\{sound\.toggleMusic\}/);
   assert.match(controls,/onClick=\{sound\.toggleSfx\}/);
-  assert.match(controls,/aria-pressed=\{sound\.musicOn\}/);
+  assert.match(controls,/aria-pressed=\{sound\.musicLevel>0\}/);
   assert.match(controls,/aria-pressed=\{sound\.sfxOn\}/);
   assert.match(hook,/createOverswingAudio\(/);
   assert.match(hook,/audioRef\.current\?\.dispose\(\)/);
