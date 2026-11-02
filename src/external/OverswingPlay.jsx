@@ -1,4 +1,5 @@
-import React,{useState,useEffect,useRef} from 'react';
+import React,{useState,useEffect,useLayoutEffect,useRef} from 'react';
+import {createPortal} from 'react-dom';
 import {rank,suit,signed,label,applySwing,overswingActions,overswingPayout,overswingMultiplier} from './engines.js';
 import {royalRank} from './overswingRoyals.js';
 import './overswing.css';
@@ -12,14 +13,16 @@ import {swingImpactForAction} from './overswingImpact.js';
 import DoomFire from './DoomFire.jsx';
 import {cardHistory} from './overswingHistory.js';
 import {pixelPendulumFrame,PENDULUM_FPS,PENDULUM_REGULAR_MS,PENDULUM_SNAP_MS} from './overswingPendulum.js';
+import {flipFlightResult,flipFlightPoints} from './overswingFlipFlight.js';
 
 const SUITS=['♥','♦','♠','♣'];
 const name=id=>label(id);
 const val=n=>n>0?'+'+n:String(n);
 const target={pot:'POT',discard:'DISCARD'};
-function Card({id,onClick,caption,chosen=false,mini=false}){
+function Card({id,onClick,caption,chosen=false,mini=false,potCard=false,flightHidden=false}){
   return <button type="button" disabled={!onClick} onClick={onClick}
-    className={'os8-card '+(suit(id)<2?'os8-red':'os8-black')+(royalRank(id)?' os8-royal':'')+(chosen?' os8-selected':'')+(mini?' os8-mini':'')}
+    data-pot-card={potCard?id:undefined}
+    className={'os8-card '+(suit(id)<2?'os8-red':'os8-black')+(royalRank(id)?' os8-royal':'')+(chosen?' os8-selected':'')+(mini?' os8-mini':'')+(flightHidden?' os8-pot-flight-hidden':'')}
     aria-label={name(id)+' '+val(signed(id))+(caption?' '+caption:'')}>
     <span className="os8-card-top">{name(id)}</span>
     {!mini&&<strong>{val(signed(id))}</strong>}
@@ -216,6 +219,32 @@ function PlayedCards({deal,onClose}){
   </div>;
 }
 
+
+// An oversized, briefly held reveal: FLIP button → readable card → Pot.
+// SNAP deliberately finishes at the meter instead, because it discards the card.
+function FlipFlight({flight,onFinish}){
+  if(!flight)return null;
+  const isSnap=flight.destination==='snap';
+  const isRed=suit(flight.card)<2;
+  const face=name(flight.card);
+  const onEnd=event=>{
+    if(event.target===event.currentTarget)onFinish(flight.serial);
+  };
+  return createPortal(
+    <div className={'os8-flip-flight '+(isSnap?'os8-flip-flight-snap':'os8-flip-flight-pot')+
+      (isRed?' os8-flip-flight-red':' os8-flip-flight-black')}
+      key={flight.serial} style={flight.style} onAnimationEnd={onEnd}
+      aria-hidden="true">
+      <div className="os8-flip-face">
+        <span className="os8-flip-face-corner">{face}</span>
+        <strong className="os8-flip-face-suit">{SUITS[suit(flight.card)]}</strong>
+        <b className="os8-flip-face-value">{val(signed(flight.card))}</b>
+        <span className="os8-flip-face-tag">{isSnap?'SNAP!':'FLIPPED'}</span>
+      </div>
+      {isSnap&&<span className="os8-flip-face-break" aria-hidden="true">✕</span>}
+    </div>,document.body);
+}
+
 const FACTOR_HELP={
   swing:{title:'SWING',text:'Cross zero to gain SWING. Any safe noncrossing FLIP or STEER loses 1 SWING tier (minimum ×1).'},
   flip:{title:'FLIP',text:'Each consecutive safe FLIP builds ×2, ×3, ×4… even when it crosses zero. STEER ends the streak but preserves earned FLIP.'},
@@ -237,6 +266,28 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
   const [helpOpen,setHelpOpen]=useState(false);
   const [queenPick,setQueenPick]=useState(null);
   const [impact,setImpact]=useState(null);
+  const [flight,setFlight]=useState(null);
+  const flipButtonRef=useRef(null),potTargetRef=useRef(null),meterRef=useRef(null);
+  const previousFlightAction=useRef(s.lastAction),flightSerial=useRef(0);
+  useLayoutEffect(()=>{
+    const action=s.lastAction;
+    if(action===previousFlightAction.current)return;
+    previousFlightAction.current=action;
+    const event=flipFlightResult(action);
+    if(!event){setFlight(null);return;}
+    if(window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches){
+      setFlight(null);return;
+    }
+    const source=flipButtonRef.current;
+    const target=event.destination==='pot'?
+      potTargetRef.current?.querySelector('[data-pot-card="'+event.card+'"]'):
+      meterRef.current;
+    if(!source||!target){setFlight(null);return;}
+    const points=flipFlightPoints(
+      source.getBoundingClientRect(),target.getBoundingClientRect(),
+      {width:window.innerWidth,height:window.innerHeight});
+    setFlight({...event,style:points,serial:++flightSerial.current});
+  },[s.lastAction,s.dealIndex,s.seed]);
   // A new action object means a new event. Use an increasing key so successive
   // ZERO BREAKs or SNAPs always restart their CSS animations.
   useEffect(()=>{
@@ -280,7 +331,7 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
   const guidedActionFirst=tutorial&&s.tutorialIntroDone&&(tutorialStep?.type==='flip'||tutorialStep?.type==='bank');
   const actionButtons=<div className="os8-controls">
     <div className="os8-actions os8-actions-primary">
-      <button type="button" disabled={!canFlip||discardPick}
+      <button type="button" ref={flipButtonRef} disabled={!canFlip||discardPick}
         className={'os8-flip '+(tutorial&&canFlip?'os8-guide-action':'')}
         onClick={()=>act({type:'flip'})}>
         <span className="os8-action-icon">▣?</span><b>FLIP</b>
@@ -321,10 +372,14 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
       <div className="os8-tooltip-header"><strong >How {FACTOR_HELP[openFactor].title} works</strong><button type="button" aria-label="Close explanation" onClick={()=>setOpenFactor(null)}>×</button></div>
       <p>{FACTOR_HELP[openFactor].text}</p>
     </div>}
-    <div className={'os8-event '+(s.lastAction?.snap?'os8-snap':s.lastAction?.zeroBreak?'os8-zero-break':'')} role="status" aria-live="polite">
-      {s.lastAction?.card!=null&&<Card id={s.lastAction.card} mini/>}
-      <p><Outcome e={s.lastAction}/></p>
-    </div>
+    {s.lastAction?.type==='flip'?
+      <span className="os8-flip-a11y" role="status" aria-live="polite">
+        <Outcome e={s.lastAction}/>
+      </span>:
+      <div className={'os8-event '+(s.lastAction?.snap?'os8-snap':s.lastAction?.zeroBreak?'os8-zero-break':'')} role="status" aria-live="polite">
+        {s.lastAction?.card!=null&&<Card id={s.lastAction.card} mini/>}
+        <p><Outcome e={s.lastAction}/></p>
+      </div>}
   </>;
 
   if(fullView&&helpOpen)return <section className="os8 os8-full os8-help-screen" aria-label="How to play Overswing">
@@ -379,7 +434,7 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
       ◇ EMBER SHIELD ARMED · NEXT FLIP PROTECTED
     </div>}
     {d.scoutNext!=null&&<div className="os8-scout-preview" role="status">✦ SCOUT · NEXT FLIP: <b>{name(d.scoutNext)} ({val(signed(d.scoutNext))})</b></div>}
-    <section className="os8-meter" aria-label={'Swing '+val(d.S)}>
+    <section className="os8-meter" ref={meterRef} aria-label={'Swing '+val(d.S)}>
       <DoomFire className="os8-meter-fire" width={92} height={36}/>
       <FlameMeter position={d.S} limit={limit} action={s.lastAction}/>
       {impact&&<SwingImpact key={impact.serial} impact={impact}/>}
@@ -409,7 +464,14 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
     {multiplierDetails}
     <section className="os8-pot">
       <div className="os8-section-heading"><h3>♨ POT CARDS</h3><span>{d.pot.length} cards · {pot} pts</span></div>
-      <div className="os8-potcards">{(fullView?d.pot.slice(-6):d.pot).map(c=><Card key={c} id={c} mini/>)}{fullView&&d.pot.length>6&&<span className="os8-pot-overflow" aria-label={(d.pot.length-6)+' more cards'}>+{d.pot.length-6}</span>}{!d.pot.length&&<span className="os8-empty">EMPTY</span>}</div>
+      <div className="os8-potcards" ref={potTargetRef}>
+        {(fullView?d.pot.slice(-6):d.pot).map(c=>
+          <Card key={c} id={c} mini potCard
+            flightHidden={flight?.destination==='pot'&&flight.card===c}/>)}
+        {fullView&&d.pot.length>6&&
+          <span className="os8-pot-overflow" aria-label={(d.pot.length-6)+' more cards'}>+{d.pot.length-6}</span>}
+        {!d.pot.length&&<span className="os8-empty">EMPTY</span>}
+      </div>
     </section>
     <section className="os8-hand">
       <div className="os8-section-heading"><h3>{discardPick?'BANK · REMOVE 1 CARD':'YOUR HAND · STEER'}</h3><span>{d.hand.length}/{d.handCap} cards · after BANK: {nextCap}</span></div>
@@ -440,6 +502,8 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
         <p>An empty hand refills automatically from the remaining deck, up to its capacity.</p>
       </details>
     </footer>
+    {flight&&<FlipFlight flight={flight} onFinish={serial=>
+      setFlight(current=>current?.serial===serial?null:current)}/>}
     {historyOpen&&<PlayedCards deal={d} onClose={()=>setHistoryOpen(false)}/>}
     {polarityPick&&isJourney&&<div className="os8-wild-overlay" role="presentation">
       <div className="os8-wild-modal" role="dialog" aria-modal="true"

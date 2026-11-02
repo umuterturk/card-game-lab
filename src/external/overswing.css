@@ -727,3 +727,70 @@
 .os8-flame-meter{position:relative;z-index:1}
 .os8-zero-warning{position:relative;z-index:1}
 .os8-impact{z-index:6}
+
+
+/* FLIP reveal: a real drawn card emerges from FLIP, pauses enlarged to be
+   readable, then joins the Pot. SNAP cards hit the meter and break instead.
+   All motion is transform-only, non-blocking, deliberately stepped at ~10 fps. */
+.os8-flip-flight{
+  position:fixed;left:0;top:0;z-index:1040;
+  width:82px;height:116px;pointer-events:none;
+  transform-origin:41px 58px;will-change:transform,opacity;
+  backface-visibility:hidden;
+  animation-duration:1160ms;
+  animation-timing-function:steps(11,end);
+  animation-fill-mode:both;
+}
+.os8-flip-flight-pot{animation-name:os8-flip-to-pot}
+.os8-flip-flight-snap{animation-name:os8-flip-to-snap;animation-duration:990ms}
+.os8-flip-face{
+  position:relative;width:82px;height:116px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;padding:5px 2px 4px;
+  border:5px solid #67472b;background:#f9e9cb;color:#212027;
+  border-radius:1px;
+  box-shadow:inset 0 0 0 3px #d1aa6b,5px 5px 0 #140e15,
+    0 0 0 3px #160e16,0 0 22px 4px #ffc96e91;
+  font-family:'VT323',monospace;
+  image-rendering:pixelated;
+}
+.os8-flip-flight-red .os8-flip-face{color:#bb2e30;border-color:#a75b45}
+.os8-flip-face-corner{
+  position:absolute;left:4px;top:3px;
+  font:23px/1 'VT323',monospace;
+}
+.os8-flip-face-suit{font:48px/.9 'VT323',monospace}
+.os8-flip-face-value{font:29px/1 'VT323',monospace}
+.os8-flip-face-tag{
+  position:absolute;bottom:3px;left:2px;right:2px;
+  text-align:center;letter-spacing:1px;font:12px 'VT323',monospace;
+  color:#664d3a;
+}
+.os8-flip-face-break{
+  position:absolute;inset:0;display:grid;place-items:center;
+  font:108px/1 'VT323',monospace;color:#ff4930;
+  text-shadow:5px 5px 0 #150c15,0 0 20px #ff3b23;
+  opacity:0;animation:os8-flip-break 990ms steps(9,end) both;
+}
+.os8-pot-flight-hidden{visibility:hidden!important}
+.os8-flip-a11y{position:absolute!important;width:1px!important;height:1px!important;
+  padding:0!important;margin:-1px!important;overflow:hidden!important;
+  clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+@keyframes os8-flip-to-pot{
+  0%{transform:translate3d(var(--flip-start-x),var(--flip-start-y),0) scale(.24) rotate(-13deg);opacity:.7}
+  21%{transform:translate3d(var(--flip-center-x),var(--flip-center-y),0) scale(1.58) rotate(5deg);opacity:1}
+  32%,60%{transform:translate3d(var(--flip-center-x),var(--flip-center-y),0) scale(1.65) rotate(0);opacity:1}
+  91%{transform:translate3d(var(--flip-end-x),var(--flip-end-y),0) scale(.42) rotate(0);opacity:1}
+  100%{transform:translate3d(var(--flip-end-x),var(--flip-end-y),0) scale(.42);opacity:0}
+}
+@keyframes os8-flip-to-snap{
+  0%{transform:translate3d(var(--flip-start-x),var(--flip-start-y),0) scale(.24) rotate(-13deg);opacity:.75}
+  22%{transform:translate3d(var(--flip-center-x),var(--flip-center-y),0) scale(1.58) rotate(4deg);opacity:1}
+  33%,58%{transform:translate3d(var(--flip-center-x),var(--flip-center-y),0) scale(1.65);opacity:1}
+  80%{transform:translate3d(var(--flip-end-x),var(--flip-end-y),0) scale(1) rotate(-15deg);opacity:1}
+  100%{transform:translate3d(var(--flip-end-x),var(--flip-end-y),0) scale(.1) rotate(70deg);opacity:0}
+}
+@keyframes os8-flip-break{0%,74%{opacity:0}80%,92%{opacity:1}100%{opacity:0}}
+@media(prefers-reduced-motion:reduce){
+  .os8-flip-flight{animation:none!important;display:none}
+}
