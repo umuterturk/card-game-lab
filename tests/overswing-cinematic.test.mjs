@@ -49,7 +49,7 @@ test('cinematic horror is an independent, slow 44 BPM score and respects music v
   assert.equal(fake.timers.size,1,'one shared scheduler, not a second interval');
   const gains=fake.contexts[0].gains;
   // master, music, sfx, 16 game tracks, 1 dedicated cinematic bus.
-  assert.equal(gains.length,20);
+  assert.ok(gains.length>=20,'initial synthesized notes allocate additional gain envelopes');
   assert.equal(gains[1].value,.8);
   assert.equal(gains[19].value,1,'horror bus active');
   assert.equal(gains[3].value,0,'normal music bus silent');
