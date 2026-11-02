@@ -53,3 +53,42 @@ test('mobile preparation highlights level limit and simplifies tall Royal sectio
   assert.match(controls,/<MusicNoteIcon\/>/);
   assert.match(controls,/sound\.restartAudio/);
 });
+
+
+test('action summaries stay accessible but never shift the board',()=>{
+  const jsx=read('OverswingPlay.jsx');
+  const actionBlock=jsx.slice(jsx.indexOf('const multiplierDetails='),jsx.indexOf('const helpContent='));
+  assert.match(actionBlock,/className="os8-flip-a11y"/);
+  assert.match(actionBlock,/role="status" aria-live="polite"/);
+  assert.doesNotMatch(actionBlock,/className=\{'os8-event/);
+  assert.doesNotMatch(actionBlock,/<div className="os8-event"/);
+  const css=read('overswing.css');
+  assert.match(css,/\.os8-flip-a11y\{position:absolute/);
+});
+
+test('hand always shows eight positions, with pale X markers on locked slots',()=>{
+  const jsx=read('OverswingPlay.jsx');
+  const css=read('overswingVisualFix.css');
+  assert.match(jsx,/const MAX_HAND_SLOTS=8/);
+  assert.match(jsx,/Array\.from\(\{length:MAX_HAND_SLOTS\}/);
+  assert.match(jsx,/index>=d\.handCap/);
+  assert.match(jsx,/os8-hand-slot-locked/);
+  assert.match(jsx,/os8-hand-slot-empty/);
+  assert.match(jsx,/os8-hand-slot-occupied/);
+  assert.match(jsx,/locked&&<span aria-hidden="true">×<\/span>/);
+  assert.match(css,/\.os8-hand \.os8-hand-slot\{/);
+  assert.match(css,/\.os8-hand \.os8-hand-slot-locked\{/);
+  assert.match(css,/\.os8-hand \.os8-hand-slot-locked>span\{/);
+  assert.match(css,/opacity:\.55/);
+});
+
+test('Queen shows no directional suit/type, and a single ±12 value',()=>{
+  const jsx=read('OverswingPlay.jsx');
+  assert.match(jsx,/const isQueen=royalRank\(id\)==='Q'/);
+  assert.match(jsx,/const cardName=isQueen\?'Q':name\(id\)/);
+  assert.match(jsx,/const cardValue=isQueen\?'±12':val\(signed\(id\)\)/);
+  assert.match(jsx,/isQueen\?'os8-queen'/);
+  assert.match(jsx,/royal==='Q'\?'':o\.snap/);
+  assert.match(jsx,/!isQueen&&<strong className="os8-flip-face-suit"/);
+  assert.match(jsx,/isQueen\?'±12':val\(signed\(flight\.card\)\)/);
+});
