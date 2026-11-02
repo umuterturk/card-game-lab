@@ -261,6 +261,7 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,j
   const [polarityPick,setPolarityPick]=useState(false);
   const [historyOpen,setHistoryOpen]=useState(false);
   const [helpOpen,setHelpOpen]=useState(false);
+  const [idleHint,setIdleHint]=useState(false);
   const [queenPick,setQueenPick]=useState(null);
   const [impact,setImpact]=useState(null);
   const [flight,setFlight]=useState(null);
@@ -360,6 +361,36 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,j
   const canFlip=legal.some(a=>a.type==='flip'),canBank=legal.some(a=>a.type==='bank');
   const wildCounts=isJourney?journeyWildBalance(journey):null;
   const nextCap=Math.max(2,d.handCap-(isJourney?journeyRules(journey).bankCapacityLoss:1)),mustDiscard=d.hand.filter(id=>royalRank(id)!=='K').length>nextCap;
+  // Only enabled gameplay actions pulse after five seconds without input.
+  // Reset on any interaction or game move; never count time spent offscreen
+  // or with a help/choice dialog open. No recurring timers while inactive.
+  useEffect(()=>{
+    let timeout=null;
+    const active=s.status==='playing'&&legal.length>0&&!historyOpen&&
+      !polarityPick&&queenPick===null&&!helpOpen;
+    const arm=()=>{
+      if(timeout!==null){window.clearTimeout(timeout);timeout=null;}
+      if(active&&!document.hidden)
+        timeout=window.setTimeout(()=>{timeout=null;setIdleHint(true);},5000);
+    };
+    const reset=()=>{setIdleHint(false);arm();};
+    window.addEventListener('pointerdown',reset,{passive:true});
+    window.addEventListener('touchstart',reset,{passive:true});
+    window.addEventListener('keydown',reset);
+    window.addEventListener('focus',reset);
+    document.addEventListener('visibilitychange',reset);
+    reset();
+    return ()=>{
+      if(timeout!==null)window.clearTimeout(timeout);
+      window.removeEventListener('pointerdown',reset);
+      window.removeEventListener('touchstart',reset);
+      window.removeEventListener('keydown',reset);
+      window.removeEventListener('focus',reset);
+      document.removeEventListener('visibilitychange',reset);
+    };
+  },[s.lastAction,s.dealIndex,s.seed,s.status,s.tutorialStep,s.tutorialIntroDone,
+    journey?.encounterIndex,journey?.retryCount,historyOpen,polarityPick,
+    queenPick,helpOpen,legal.length]);
   useEffect(()=>{setDiscardPick(false);setQueenPick(null);},[s.dealIndex,d.bankCount,s.status]);
   useEffect(()=>{setHistoryOpen(false);setPolarityPick(false);},
     [journey?.encounterIndex,journey?.retryCount,s.dealIndex]);
@@ -481,7 +512,7 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,j
       The fewer cards remain, the higher the Gold price.</p>
     <button type="button" className="os8-help-return" onClick={()=>setHelpOpen(false)}>BACK TO GAME</button>
   </section>;
-  return <div className={'os8'+(fullView?' os8-full':'')}>
+  return <div className={'os8'+(fullView?' os8-full':'')+(idleHint?' os8-idle':'')}>
     <header className="os8-head">
       <div className="os8-brand"><span>{tutorial?'GUIDED TRAINING':isJourney?'THE LAST FLAME':'V13 · ARCADE MODE'}</span><h2>OVER<span>SWING</span></h2></div>
       <div className="os8-settings">
