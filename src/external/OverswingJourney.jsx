@@ -179,7 +179,7 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
   const sound=useOverswingSound();
   useEffect(()=>{
     if(!introClosing)return;
-    const timer=window.setTimeout(()=>{setIntroVisible(false);setIntroClosing(false);},820);
+    const timer=window.setTimeout(()=>{setIntroVisible(false);setIntroClosing(false);},1850);
     return ()=>window.clearTimeout(timer);
   },[introClosing]);
   const [progress,setProgress]=useState(()=>
@@ -319,6 +319,7 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
     <GoldProgress progress={progress} compact/>
     <OverswingCampaignMap progress={progress} selected={selectedLevel}
       onSelect={setSelectedLevel} onStart={()=>{
+        sound.unlock();sound.setCinematic(true);
         setView('prepare');setIntroVisible(true);setIntroClosing(false);
       }}
       onQuick={()=>setView('quick')}
@@ -369,5 +370,5 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
   return null;
   })();
   return <>{screen}{reveal}{introVisible&&<OverswingEnemyIntro
-      level={selectedLevel} closing={introClosing} onContinue={()=>setIntroClosing(true)}/>}</>;
+      level={selectedLevel} closing={introClosing} onContinue={()=>{sound.setCinematic(false);setIntroClosing(true);}}/>}</>;
 }

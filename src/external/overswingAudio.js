@@ -60,12 +60,13 @@ export function scoreNoteAt(step,trackId=0){
 }
 
 export function createOverswingAudio(host=typeof window!=='undefined'?window:null){
-  let context=null,master=null,musicBus=null,sfxBus=null,timer=null,trackBuses=null;
+  let context=null,master=null,musicBus=null,sfxBus=null,timer=null,trackBuses=null,cinemaBus=null;
   let nextStep=0,nextAt=0,musicOn=false,sfxOn=true,noise=null;
   let musicVolume=0,sfxVolume=100,backgrounded=false,refreshSession=false;
   let targetTension=.12,smoothedTension=.12,activeGroove=0;
   let currentTempo=60,musicLevel=0;
   let selectedTrack=0,requestedTrack=0,crossfade=null,goalResolved=false;
+  let cinematic=false;
   const TRACK_FADE_SECONDS=1.8;
   const canPlay=()=>!!(host&&(host.AudioContext||host.webkitAudioContext));
   const ctx=()=>{
@@ -74,7 +75,7 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     if(context?.state==='closed'){
       clearScheduler();
       context=null;master=null;musicBus=null;sfxBus=null;
-      trackBuses=null;noise=null;crossfade=null;
+      trackBuses=null;cinemaBus=null;noise=null;crossfade=null;
       selectedTrack=requestedTrack;
     }
     if(context||!canPlay())return context;
@@ -93,6 +94,12 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
       channel.connect(musicBus);
       return channel;
     });
+    // Extra bus is created AFTER the sixteen track buses: legacy audio
+    // gain indices remain stable for active iOS recovery tests.
+    cinemaBus=context.createGain();
+    cinemaBus.gain.value=cinematic?1:0;
+    cinemaBus.connect(musicBus);
+    if(cinematic)trackBuses[selectedTrack].gain.value=0;
     const limiter=context.createDynamicsCompressor();
     limiter.threshold.value=-16;limiter.knee.value=12;limiter.ratio.value=4;
     limiter.attack.value=.004;limiter.release.value=.12;
@@ -126,7 +133,7 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     const old=context;
     clearScheduler();
     context=null;master=null;musicBus=null;sfxBus=null;
-    trackBuses=null;noise=null;crossfade=null;
+    trackBuses=null;cinemaBus=null;noise=null;crossfade=null;
     selectedTrack=requestedTrack;
     if(!old)return;
     old.onstatechange=null;
@@ -275,10 +282,64 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     if(local===14&&bar%4===3)
       tone(root*4,time,sixteenth*.95,.031,'triangle',bus,root*3.56);
   }
+  // A separate, original procedural horror score. Slow 44 BPM, subsonic-feeling
+  // pulses, dissonant suspended drones and occasional distant metal creaks.
+  // No samples and no extra timers: it uses the same iOS-safe audio scheduler.
+  function renderCinematicStep(step,time,beat){
+    const local=step%16;
+    if(local===0){
+      synthBass(41.2,time,beat*3.1,.12,.0,cinemaBus);
+      tone(55,time,beat*3.1,.034,'sine',cinemaBus,54.6);
+      tone(58.27,time+.11,beat*2.7,.016,'triangle',cinemaBus,55);
+    }
+    if(local===8){
+      synthBass(36.7,time,beat*2.7,.092,.0,cinemaBus);
+      tone(43.6,time,beat*2.5,.024,'triangle',cinemaBus,41.2);
+    }
+    if(local===12){
+      tone(123.5,time,beat*1.5,.020,'sine',cinemaBus,104);
+      blast(time,beat*.85,.008,cinemaBus,520);
+    }
+  }
+  function rampBus(param,to,now,seconds=1.35){
+    param.cancelScheduledValues(now);
+    // Use setTargetAtTime to stay compatible with Safari/iOS and test shims.
+    param.setTargetAtTime(to,now,seconds/4);
+  }
+  function setCinematic(enabled){
+    const next=!!enabled;
+    if(cinematic===next)return cinematic;
+    cinematic=next;
+    if(cinematic&&crossfade){
+      // Prevent an in-flight normal track crossfade from waking its buses
+      // underneath the horror drone.
+      crossfade=null;
+      selectedTrack=requestedTrack;
+    }
+    if(!context||!trackBuses||!cinemaBus)return cinematic;
+    const now=context.currentTime;
+    rampBus(cinemaBus.gain,cinematic?1:0,now);
+    // Mute every normal theme while the intro drone is active. Crossfade
+    // back to the selected game track without altering saved track choice.
+    trackBuses.forEach((bus,i)=>rampBus(bus.gain,
+      cinematic?0:(i===requestedTrack?1:0),now));
+    if(!cinematic){
+      selectedTrack=requestedTrack;
+      crossfade=null;
+      activeGroove=grooveForTension(targetTension);
+      currentTempo=tempoForGroove(activeGroove);
+    }
+    return cinematic;
+  }
   // The three-factor gate tension is already stable. Respond to it quickly
   // with a short note-level envelope and musical changes ON THE BEAT, never
   // the old two-bar delay. Keep gradual tempo ramps to avoid a speed jump.
   function scheduleStep(step,time){
+    if(cinematic){
+      currentTempo=44;
+      renderCinematicStep(step,time,60/currentTempo);
+      return;
+    }
     const local=step%16;
     const descending=targetTension<smoothedTension;
     const rate=goalResolved?.65:descending?.28:.19;
@@ -339,7 +400,7 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
       }
       return index;
     }
-    if(!crossfade&&index!==selectedTrack)beginTrackCrossfade(index);
+    if(!cinematic&&!crossfade&&index!==selectedTrack)beginTrackCrossfade(index);
     return index;
   }
   function schedule(){
@@ -393,7 +454,7 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
         for(let i=0;i<trackBuses.length;i++){
           const p=trackBuses[i].gain;
           p.cancelScheduledValues(context.currentTime);
-          p.setValueAtTime(i===selectedTrack?1:0,context.currentTime);
+          p.setValueAtTime(!cinematic&&i===selectedTrack?1:0,context.currentTime);
         }
       }
     }
@@ -543,7 +604,8 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     releaseContext();
   }
   return {unlock,play,setMusic,setMusicLevel,setMusicVolume,
-    setSfx,setSfxVolume,setTension,setTrack,suspend,resume,restart,dispose,
+    setSfx,setSfxVolume,setTension,setTrack,setCinematic,suspend,resume,restart,dispose,
+    get cinematic(){return cinematic;},
     get tension(){return targetTension;},
     get trackId(){return requestedTrack;},
     get trackName(){return MUSIC_TRACKS[requestedTrack].name;},

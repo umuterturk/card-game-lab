@@ -1,6 +1,6 @@
 // Each level is a three-gate fight against one named opponent.
-// Art is deliberately shared until unique enemy portraits are ready.
-const placeholder='enemies/hell-enforcer.webp';
+// Two compact, pixelated 2x3 sprite atlases: one unique portrait per level.
+const atlasFor=level=>level<=6?'enemies/infernal-01-06.webp':'enemies/infernal-07-12.webp';
 export const OVERSWING_ENEMIES=Object.freeze([
   ['THE ASH BUTCHER','No one leaves the furnace whole.'],
   ['CINDER WRAITH','Your fear is fuel.'],
@@ -14,5 +14,5 @@ export const OVERSWING_ENEMIES=Object.freeze([
   ['FIRE JAILER','The walls have begun to breathe.'],
   ['LAST EXECUTIONER','The blade waits for everyone.'],
   ['CROWN OF ASHES','Only one flame survives.']
-].map(([name,line],i)=>Object.freeze({level:i+1,name,line,art:placeholder})));
+].map(([name,line],i)=>Object.freeze({level:i+1,name,line,art:atlasFor(i+1),slot:i%6})));
 export const opponentForLevel=level=>OVERSWING_ENEMIES[level-1]||OVERSWING_ENEMIES[0];

@@ -5,10 +5,13 @@ import {startJourney,buyRoyal,EMPTY_JOURNEY_PROGRESS} from '../src/external/over
 import {OVERSWING_ENEMIES,opponentForLevel} from '../src/external/overswingEnemies.js';
 const read=file=>readFileSync(new URL('../src/external/'+file,import.meta.url),'utf8');
 
-test('the twelve three-gate levels have unique enemies and shared placeholder art',()=>{
+test('the twelve three-gate levels have unique enemies and two real portrait atlases',()=>{
   assert.equal(OVERSWING_ENEMIES.length,12);
   assert.equal(new Set(OVERSWING_ENEMIES.map(e=>e.name)).size,12);
-  assert.equal(new Set(OVERSWING_ENEMIES.map(e=>e.art)).size,1);
+  assert.equal(new Set(OVERSWING_ENEMIES.map(e=>e.art)).size,2);
+  assert.equal(new Set(OVERSWING_ENEMIES.map(e=>e.art+':'+e.slot)).size,12);
+  assert.equal(OVERSWING_ENEMIES[0].art,'enemies/infernal-01-06.webp');
+  assert.equal(OVERSWING_ENEMIES[11].art,'enemies/infernal-07-12.webp');
   assert.match(opponentForLevel(1).name,/BUTCHER/);
   const map=read('OverswingCampaignMap.jsx');
   assert.match(map,/ocm-opponent-art/);
