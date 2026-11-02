@@ -88,6 +88,10 @@ export function isValidJourney(run){
     Number.isInteger(run.encounterIndex)&&run.encounterIndex>=0&&
     run.encounterIndex<LAST_FLAME.encounters.length&&
     Array.isArray(run.relicIds)&&Array.isArray(run.offeredRelicIds)&&
+    (run.purchasedRelicIds===undefined||Array.isArray(run.purchasedRelicIds))&&
+    (run.shopForGate===undefined||run.shopForGate===null||
+      Number.isInteger(run.shopForGate)&&run.shopForGate>=0&&
+      run.shopForGate<LAST_FLAME.encounters.length)&&
     Array.isArray(run.completedEncounters)&&
     Number.isSafeInteger(run.goldSpent)&&run.goldSpent>=0&&
     Number.isSafeInteger(run.retryGoldSpent)&&run.retryGoldSpent>=0&&
@@ -340,8 +344,25 @@ export function restoreJourneyProgress(value,oldRun=null){
     ownedRoyalIds:owned,equippedRoyalIds:owned.slice(0,2),
     creditedTreasuryEventIds:[...new Set([...(value.creditedTreasuryEventIds||[]),...oldSpendIds])]};
 }
+// Current-schema runs saved before the per-gate relic change had a cumulative
+// relicIds list. Keep it as purchase history, but only retain the relic paid
+// for in the *current* gate. No extra charge is applied on migration.
+function restoreGateRelicState(run){
+  if(Array.isArray(run.purchasedRelicIds))return run;
+  const purchasedRelicIds=run.relicIds.slice();
+  const activePhase=run.phase==='playing'||run.phase==='retry_offer';
+  const boughtForCurrentGate=run.treasuryEvents.some(e=>
+    typeof e.id==='string'&&e.id.endsWith('|relic:'+run.encounterIndex));
+  const shopForGate=run.phase==='choosing_relic'?run.encounterIndex+1:null;
+  const migrated={...run,purchasedRelicIds,
+    relicIds:activePhase&&boughtForCurrentGate?purchasedRelicIds.slice(-1):[],
+    shopForGate};
+  if(shopForGate!==null)
+    migrated.offeredRelicIds=offerJourneyRelics(migrated);
+  return migrated;
+}
 export function restoreJourneyRun(value,progress=EMPTY_JOURNEY_PROGRESS){
-  if(isValidJourney(value))return value;
+  if(isValidJourney(value))return restoreGateRelicState(value);
   if(!value||![1,2,3].includes(value.schemaVersion)||
      !Number.isSafeInteger(value.runSeed)||!campaignLevel(value.levelNumber??1)||
      !Array.isArray(value.completedEncounters)||!Array.isArray(value.relicIds)||
@@ -365,7 +386,7 @@ export function restoreJourneyRun(value,progress=EMPTY_JOURNEY_PROGRESS){
     wildEvents:[],wildUsedGate:false,wildShieldArmed:false,
     wildRewardAvailable:false,wildRewardId:null};
   delete migration.treasuryStart;
-  return isValidJourney(migration)?migration:null;
+  return isValidJourney(migration)?restoreGateRelicState(migration):null;
 }
 export function buyRoyal(progress,id){
   const old=restoreJourneyProgress(progress),price=ROYAL_PRICES[id];
