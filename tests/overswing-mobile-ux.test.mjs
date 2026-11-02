@@ -112,8 +112,16 @@ test('five seconds without a move highlights only enabled game actions',()=>{
   assert.match(css,/\.os8\.os8-idle \.os8-hand \.os8-card:not\(:disabled\)/);
   assert.match(css,/\.os8\.os8-idle \.os8-abilities button:not\(:disabled\)/);
   assert.match(css,/animation:os8-action-heartbeat 5s ease-in-out infinite/);
-  assert.match(css,/@keyframes os8-action-heartbeat\{\s*0%,36%,100%/);
-  assert.match(css,/18%\{transform:scale\(1\.025\)/);
+  assert.match(css,/@keyframes os8-action-heartbeat\{\s*0%,3%,42%,100%/);
+  assert.match(css,/19%\{transform:scale\(1\.07\);filter:brightness\(1\.35\)/);
+  assert.match(css,/animation:os8-gold-sweep 5s ease-in-out infinite/);
+  assert.match(css,/@keyframes os8-gold-sweep\{/);
+  assert.match(css,/33%\{opacity:1;transform:translateX\(240%\)\}/);
+  assert.match(css,/\.os8\.os8-idle \.os8-actions button:not\(:disabled\)::after/);
+  assert.match(css,/\.os8\.os8-idle \.os8-hand \.os8-card:not\(:disabled\)::after/);
+  assert.match(css,/\.os8\.os8-idle \.os8-abilities button:not\(:disabled\)::after/);
+  assert.match(css,/mix-blend-mode:screen/);
+  assert.match(css,/pointer-events:none/);
   assert.doesNotMatch(css,/os8-action-heartbeat 2s/);
   assert.doesNotMatch(css,/animation-delay:\.14s|animation-delay:\.28s/);
   assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
