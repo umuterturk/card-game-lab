@@ -17,6 +17,15 @@ export function approachTempo(current,target,maxDelta=2){
   return current+Math.max(-maxDelta,Math.min(maxDelta,target-current));
 }
 
+// A four-beat original minor-key bass sequence that stays consistent while
+// the kick, hi-hats and syncopations change with intensity.
+export function synthwaveBassPitch(root,step){
+  if(!Number.isFinite(root)||root<=0||
+     !Number.isInteger(step)||step<0)throw new RangeError('Invalid synth bass note');
+  const degrees=[1,1,1.498,1.189]; // root, root, fifth, minor third
+  return root*degrees[Math.floor(step%16/4)];
+}
+
 const freezePattern=arr=>Object.freeze([...arr]);
 const pattern=(name,drums)=>Object.freeze({
   name,

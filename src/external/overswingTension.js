@@ -1,35 +1,40 @@
-import {rank,overswingMultiplier} from './engines.js';
-
-// Visible-board urgency. SNAP danger should be noticeable even when the Pot is
-// not enormous relative to the gate target. Does not read the hidden deck.
+// Music tension is a deliberately slow, monotonic measure of the current
+// gate's progress. Only THREE game inputs influence it:
+// 1. percent of Gold still needed, 2. deck + hand cards left, 3. gate level.
+// Pendulum, Pot, SNAP, multipliers, bosses, and individual card values DO NOT
+// influence the music. Events may still play their own short sound effects.
+export const OVERSWING_CARD_POOL=40;
+export const OVERSWING_MAX_GATE_LEVEL=36; // 12 campaign levels × 3 gates
 const clamp=n=>Math.max(0,Math.min(1,Number.isFinite(n)?n:0));
-export function overswingTension({deal,target=3000,limit=10,boss=false}={}){
-  if(!deal)return .12;
-  const safeLimit=Number.isFinite(limit)&&limit>0?limit:10;
+
+export function overswingTension({
+  deal,target=3000,gateLevel=1,maxGateLevel=OVERSWING_MAX_GATE_LEVEL
+}={}){
+  if(!deal)return .06;
   const goal=Number.isFinite(target)&&target>0?target:3000;
-  const potValue=Array.isArray(deal.pot)?deal.pot.reduce((sum,id)=>sum+rank(id),0):0;
-  const multiplier=overswingMultiplier({
-    W:Math.max(0,deal.W||0),flipFactor:Math.max(1,deal.flipFactor||1),
-    jackpotFactor:Math.max(1,deal.jackpotFactor||1)
-  });
-  const exposed=clamp(potValue*multiplier/goal);
-  const needle=clamp(Math.abs(deal.S||0)/safeLimit);
-  const progress=clamp((deal.T||0)/goal);
-  const deckSize=Math.max(1,deal.deck?.length||40);
-  const depletion=clamp((deal.pos||0)/deckSize);
-  // Always respect imminent SNAP. Exposed Gold, depleted draw chances and
-  // boss pressure make it worse, but a near-limit needle is never "calm".
+  const scored=Math.max(0,Number.isFinite(deal.T)?deal.T:0);
+  const goldRemainingPct=clamp((goal-scored)/goal);
+  const goldProgress=1-goldRemainingPct;
+  const deckLeft=Math.max(0,(deal.deck?.length||0)-(deal.pos||0));
+  const handLeft=Array.isArray(deal.hand)?deal.hand.length:0;
+  const cardDepletion=1-clamp((deckLeft+handLeft)/OVERSWING_CARD_POOL);
+  const levelProgress=clamp((gateLevel-1)/Math.max(1,maxGateLevel-1));
+
+  // Gold progress and card depletion each evolve through the whole gate.
+  // Gate level adds modest baseline intensity across the 36-gate campaign.
   return Math.round(clamp(
-    .10+.40*needle+.24*exposed+
-    .10*depletion+.06*progress+(boss?.08:0)
-  )*100)/100;
+    .06+.42*goldProgress+.39*cardDepletion+.13*levelProgress
+  )*1000)/1000;
 }
+
 export function musicLayerMix(tension){
   const t=clamp(tension);
-  // Tiny volume variation (<12%); the recognizable changes are grooves,
-  // double-time drums, rhythmic bass and minor supporting harmonies.
-  return {bass:+(.84+.10*t).toFixed(4),
-    percussion:+(.84+.10*t).toFixed(4),
-    menace:+(.78+.12*t).toFixed(4),
-    melody:1};
+  // Keep volume nearly flat. Musical intensity comes from bass sequencing,
+  // syncopation, drum patterns, filter movement and arrangement changes.
+  return {
+    bass:+(.84+.08*t).toFixed(4),
+    percussion:+(.84+.08*t).toFixed(4),
+    menace:+(.79+.10*t).toFixed(4),
+    melody:1
+  };
 }

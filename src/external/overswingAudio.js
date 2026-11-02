@@ -4,7 +4,7 @@
 import {multiplierFeedbackForAction,potCrackForAction} from './overswingFeedback.js';
 import {musicLayerMix} from './overswingTension.js';
 import {grooveForTension,nextGroove,grooveEvents,MUSIC_GROOVES,
-  tempoForGroove,approachTempo} from './overswingGrooves.js';
+  tempoForGroove,approachTempo,synthwaveBassPitch} from './overswingGrooves.js';
 
 export const AUDIO_CUES=Object.freeze(['flip','steer','zero','snap','bank']);
 export const BONUS_AUDIO_CUES=Object.freeze(['jackpot','swing','flipTier','potCrack']);
@@ -95,6 +95,32 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     osc.start(time);osc.stop(time+duration+.014);
     osc.onended=()=>{osc.disconnect();gain.disconnect();};
   }
+  // Original analog-style synthwave bass: a filtered saw with an octave
+  // overtone and a short, rounded filter envelope. The bass follows a steady
+  // arpeggiated pattern; no soundtrack samples or external audio assets.
+  function synthBass(frequency,time,duration,volume,brightness=0){
+    if(!context||!musicBus)return;
+    const low=context.createOscillator();
+    const overtone=context.createOscillator();
+    const filter=context.createBiquadFilter();
+    const gain=context.createGain();
+    low.type='sawtooth';
+    overtone.type='square';
+    low.frequency.setValueAtTime(Math.max(35,frequency),time);
+    overtone.frequency.setValueAtTime(Math.max(70,frequency*2.004),time);
+    filter.type='lowpass';
+    const cutoff=390+brightness*490;
+    filter.frequency.setValueAtTime(cutoff,time);
+    filter.frequency.exponentialRampToValueAtTime(195,time+Math.max(.06,duration*.85));
+    gain.gain.setValueAtTime(.0001,time);
+    gain.gain.exponentialRampToValueAtTime(Math.max(.002,volume),time+.018);
+    gain.gain.exponentialRampToValueAtTime(.0001,time+duration);
+    low.connect(filter);overtone.connect(filter);filter.connect(gain);gain.connect(musicBus);
+    low.start(time);overtone.start(time);
+    low.stop(time+duration+.014);overtone.stop(time+duration+.014);
+    low.onended=()=>{low.disconnect();overtone.disconnect();
+      filter.disconnect();gain.disconnect();};
+  }
   function blast(time,duration,volume,bus=sfxBus,cutoff=1500){
     if(!context||!noise||!bus)return;
     const source=context.createBufferSource(),filter=context.createBiquadFilter(),gain=context.createGain();
@@ -105,43 +131,44 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     source.start(time);source.stop(time+duration+.001);
     source.onended=()=>{source.disconnect();filter.disconnect();gain.disconnect();};
   }
-  // The original riff NEVER changes pitch sequence, tempo or timeline.
-  // Only the supporting arrangement changes: half-time -> driving rock ->
-  // pursuit -> double-time. Groove shifts happen on bar downbeats and move
-  // at most one tier per bar, even if danger spikes instantly.
+  // Stable, original synthwave foundation. The four-bar theme loops normally,
+  // while bass/drums shift across arrangements only on every SECOND bar.
+  // Smooth the three-factor progress over many notes: no action can make the
+  // beat jump immediately, even if the player BANKs a huge amount at once.
   function scheduleStep(step,time){
-    smoothedTension+=.09*(targetTension-smoothedTension);
+    smoothedTension+=.025*(targetTension-smoothedTension);
     const local=step%16,bar=Math.floor(step/16);
-    if(local===0)activeGroove=nextGroove(activeGroove,targetTension);
+    if(local===0&&bar%2===0)
+      activeGroove=nextGroove(activeGroove,smoothedTension);
     const groove=grooveEvents(activeGroove,step,bar);
     const layers=musicLayerMix(smoothedTension);
     const note=scoreNoteAt(step);
-    currentTempo=approachTempo(currentTempo,tempoForGroove(activeGroove));
+    currentTempo=approachTempo(currentTempo,tempoForGroove(activeGroove),.8);
     const beat=60/currentTempo;
     const sixteenth=beat/4;
     const root=PITCH[['E','E','C','B'][bar%4]];
 
-    // Always-on theme, same original 64-note grid and melody volume.
+    // Same recognizable 64-step theme and near-constant loudness.
     if(note){
       tone(note,time,(beat/2)*.86,.085,'sawtooth',musicBus,note*.995);
     }
-    // New rhythms, not extra volume: pulse changes bass note timing and
-    // shortened chugs appear only in riskier passages.
+    // Dark 80s synthwave pulse: filtered, gently detuned bass, cycling
+    // through root/fifth/minor-third accents. Rhythm—not gain—drives danger.
     if(groove.bass){
-      const duration=activeGroove<2?beat*.72:beat*.30;
-      tone(root,time,duration,.060*layers.bass,'square',musicBus,root*.99);
-      tone(root*.5,time,duration*.83,.023*layers.bass,'sine',musicBus);
+      const duration=activeGroove<2?beat*.53:beat*.30;
+      const bassNote=synthwaveBassPitch(root,local);
+      synthBass(bassNote,time,duration,.083*layers.bass,
+        activeGroove/3);
     }
     if(groove.chug)
       tone(root*2,time,sixteenth*.84,.039*layers.menace,
         'sawtooth',musicBus,root*1.91);
     if(groove.chord){
-      // E minor, C minor-ish and B diminished shades: dark, recognizable
-      // accompaniment beneath the same riff. Minor third and fifth remain
-      // anchored to the bar's root, so changing grooves doesn't change key.
+      // Slow noir-synth pad, with a stable minor chord under the main theme.
+      // No sudden key changes when the groove intensifies.
       const hold=activeGroove===0?beat*2.5:beat*1.5;
-      tone(root*1.189,time,hold,.017,'triangle',musicBus);
-      tone(root*1.498,time,hold,.011,'triangle',musicBus);
+      tone(root*1.189,time,hold,.020,'triangle',musicBus);
+      tone(root*1.498,time,hold,.014,'triangle',musicBus);
     }
     if(groove.echo&&note){
       // Short same-note answer after the theme, not a new melody.

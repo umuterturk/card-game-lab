@@ -69,17 +69,26 @@ test('Revealed deck UI is a single paid action and hides cards already drawn',()
   assert.match(journey,/stepJourney\(current,\{type:'BUY_REVEAL'\}\)/);
   assert.match(journey,/revealGoldSpent/);
 });
-test('Danger layers rise smoothly while the original four-bar melody loops unchanged',()=>{
+test('Tension builds from gate Gold progress, cards remaining and gate level only',()=>{
   const deal=newOverswing({seed:110}).deal;
-  const calm=overswingTension({deal:{...deal,S:0,T:0,W:0,flipFactor:1,
-    jackpotFactor:1,pot:[],pos:8},target:3000});
-  const tense=overswingTension({deal:{...deal,S:9,T:1000,W:4,flipFactor:5,
-    jackpotFactor:2,pot:[2,3,4,5],pos:35},target:3000});
-  const boss=overswingTension({deal:{...deal,S:9,T:1000,W:4,flipFactor:5,
-    jackpotFactor:2,pot:[2,3,4,5],pos:35},target:3000,boss:true});
-  assert.ok(calm<tense);
-  assert.ok(tense<boss);
-  const a=musicLayerMix(calm),b=musicLayerMix(tense);
+  const first=overswingTension({deal,target:3000,gateLevel:1});
+  const halfway=overswingTension({deal:{...deal,T:1500},target:3000,gateLevel:1});
+  const fewCards=overswingTension({
+    deal:{...deal,T:1500,pos:30,hand:[deal.hand[0]]},
+    target:3000,gateLevel:1
+  });
+  const lateGate=overswingTension({
+    deal:{...deal,T:1500,pos:30,hand:[deal.hand[0]]},
+    target:3000,gateLevel:36
+  });
+  assert.equal(first,.06);
+  assert.ok(first<halfway&&halfway<fewCards&&fewCards<lateGate);
+  // Changes to volatile Pot or pendulum state must not change the soundtrack.
+  assert.equal(overswingTension({
+    deal:{...deal,S:9,W:9,pot:[2,5,8],flipFactor:9,jackpotFactor:9},
+    target:3000,gateLevel:1
+  }),first);
+  const a=musicLayerMix(first),b=musicLayerMix(lateGate);
   for(const k of ['percussion','menace','bass'])assert.ok(a[k]<b[k]);
   assert.equal(a.melody,1);assert.equal(b.melody,1);
   assert.equal(scoreNoteAt(0),scoreNoteAt(64));
@@ -90,8 +99,9 @@ test('Danger layers rise smoothly while the original four-bar melody loops uncha
   assert.equal(audio.setTension(3),1);
   audio.dispose();
   const src=file('overswingAudio.js');
-  assert.match(src,/smoothedTension\+=\.09\*\(targetTension-smoothedTension\)/);
+  assert.match(src,/smoothedTension\+=\.025\*\(targetTension-smoothedTension\)/);
   assert.match(src,/const note=scoreNoteAt\(step\)/);
+  assert.match(src,/synthwaveBassPitch/);
   assert.match(src,/layers\.percussion/);
   assert.match(src,/layers\.menace/);
 });
