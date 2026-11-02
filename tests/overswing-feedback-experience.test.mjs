@@ -153,7 +153,7 @@ test('main menu and gameplay share sound controls, with explicit opt-in and pers
   assert.match(css,/\.oj-home \.oj-title \.oj-main-audio/);
   assert.match(css,/\.os-audio-modal-backdrop/);
   assert.deepEqual(DEFAULT_SOUND_PREFS,{
-    musicVolume:0,sfxVolume:100,trackChoice:null
+    musicVolume:25,sfxVolume:50,trackChoice:null
   });
   const stored=new Map();
   const storage={getItem:key=>stored.get(key)||null,
