@@ -89,13 +89,31 @@ export default function useOverswingSound(){
     audioRef.current?.setTension(tensionRef.current,options);
   };
   useEffect(()=>{
-    const visibility=()=>{
-      if(document.hidden)audioRef.current?.suspend();
-      else audioRef.current?.resume();
+    const pause=()=>audioRef.current?.suspend();
+    const recover=()=>{
+      if(!document.hidden)audioRef.current?.resume();
+    };
+    const visibility=()=>document.hidden?pause():recover();
+    // iOS may restore a page through pageshow/focus without a reliable
+    // visibilitychange, and may require a fresh gesture after interruption.
+    const recoverOnGesture=()=>{
+      if(!document.hidden)audioRef.current?.unlock();
     };
     document.addEventListener('visibilitychange',visibility);
+    window.addEventListener('pagehide',pause);
+    window.addEventListener('pageshow',recover);
+    window.addEventListener('focus',recover);
+    document.addEventListener('pointerdown',recoverOnGesture,true);
+    document.addEventListener('touchstart',recoverOnGesture,{capture:true,passive:true});
+    document.addEventListener('keydown',recoverOnGesture,true);
     return ()=>{
       document.removeEventListener('visibilitychange',visibility);
+      window.removeEventListener('pagehide',pause);
+      window.removeEventListener('pageshow',recover);
+      window.removeEventListener('focus',recover);
+      document.removeEventListener('pointerdown',recoverOnGesture,true);
+      document.removeEventListener('touchstart',recoverOnGesture,true);
+      document.removeEventListener('keydown',recoverOnGesture,true);
       audioRef.current?.dispose();
       audioRef.current=null;
     };
