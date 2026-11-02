@@ -13,9 +13,9 @@ const percent=(value,fallback)=>{
 export function normalizeSoundPreferences(value){
   return {
     musicVolume:percent(value?.musicVolume,
-      value?.music===true?50:DEFAULT_SOUND_PREFS.musicVolume),
+      value?.music===true?50:value?.music===false?0:DEFAULT_SOUND_PREFS.musicVolume),
     sfxVolume:percent(value?.sfxVolume,
-      value?.sfx===false?0:DEFAULT_SOUND_PREFS.sfxVolume),
+      value?.sfx===false?0:value?.sfx===true?100:DEFAULT_SOUND_PREFS.sfxVolume),
     trackChoice:Number.isInteger(value?.trackChoice)&&
       value.trackChoice>=0&&value.trackChoice<MUSIC_TRACKS.length?
       value.trackChoice:null
