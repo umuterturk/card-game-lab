@@ -1,6 +1,7 @@
-// Original Overswing score: four adaptive arrangements on one 16-step grid.
-// The existing riff and BPM never restart when danger changes.
-// Patterns express half-time, driving, double-time and frantic rhythms.
+// Original dark synthwave beat, inspired by the *energy* of classic
+// top-down arcade action soundtracks. No sampled or copied composition.
+// Four arrangements share the same kick/snare pulse and 16-step grid.
+// The riff never restarts; beat changes are infrequent and bar-aligned.
 export const STEPS_PER_BAR=16;
 export const GROOVE_NAMES=Object.freeze(['DREAD','PULSE','PURSUIT','PANIC']);
 /* Actual quarter-note tempos. Low tension is an ominous 60 BPM, not merely
@@ -39,26 +40,30 @@ const pattern=(name,drums)=>Object.freeze({
   chord:freezePattern(drums.chord||[]),
   echo:freezePattern(drums.echo||[]),
 });
+// Synthwave foundation: kick on every quarter-note, snare on 2 and 4,
+// shuffled offbeat hi-hats, bass pulses and later syncopated arpeggiation.
 export const MUSIC_GROOVES=Object.freeze([
   pattern('DREAD', {
-    kick:[0,10],snare:[8],hat:[0,4,8,12],bass:[0,8],chord:[0],
+    kick:[0,4,8,12],snare:[4,12],hat:[2,6,10,14],
+    bass:[0,4,8,12],chord:[0,8]
   }),
   pattern('PULSE', {
-    kick:[0,6,8,14],snare:[4,12],hat:[0,2,4,6,8,10,12,14],
-    bass:[0,4,8,12],chug:[6,14],chord:[0,8],
+    kick:[0,4,8,12,14],snare:[4,12],hat:[0,2,4,6,8,10,12,14],
+    ghost:[15],openHat:[14],
+    bass:[0,3,4,8,11,12],chug:[6,14],chord:[0,8],echo:[7,15]
   }),
   pattern('PURSUIT', {
-    kick:[0,3,6,8,11,14],snare:[4,12],
-    hat:[0,2,4,6,8,10,12,14],ghost:[7,15],openHat:[14],
-    bass:[0,2,4,7,8,10,12,14],chug:[3,7,11,15],
-    chord:[0,8],echo:[6,14],
+    kick:[0,3,4,6,8,11,12,14],snare:[4,12],
+    hat:[0,2,4,6,8,10,12,14],ghost:[7,15],openHat:[6,14],
+    bass:[0,2,4,6,8,10,12,14],chug:[3,7,11,15],
+    chord:[0,8],echo:[3,7,11,15]
   }),
   pattern('PANIC', {
-    kick:[0,2,3,5,6,8,10,11,13,14],snare:[4,12],
+    kick:[0,2,3,4,6,8,10,11,12,14],snare:[4,12],
     hat:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
     ghost:[7,11,15],openHat:[6,14],
-    bass:[0,2,3,5,6,8,10,11,13,14],chug:[1,5,7,9,13,15],
-    chord:[0,8],echo:[3,7,11,15],
+    bass:[0,2,3,4,6,8,10,11,12,14],chug:[1,5,7,9,13,15],
+    chord:[0,8],echo:[3,7,11,15]
   })
 ]);
 // Hysteresis prevents a pendulum hovering near a threshold from toggling the
