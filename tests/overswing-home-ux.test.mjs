@@ -81,7 +81,9 @@ test('permanent royal purchases require no selection and all three enter a fight
   assert.equal(run.encounter.engineState.deal.pendingRoyals.length,3);
   assert.equal(run.encounter.engineState.deal.hand.filter(id=>id>=40).length,0);
   const jsx=read('OverswingJourney.jsx');
-  assert.match(jsx,/settled\.ownedRoyalIds/);
+  const coordinator=read('overswingJourney.js');
+  assert.match(jsx,/resetJourneyAtLevel\(progress,run,level,Date\.now\(\)\)/);
+  assert.match(coordinator,/settled\.ownedRoyalIds/);
   assert.match(read('OverswingMarket.jsx'),/AUTO-EQUIPPED/);
 });
 

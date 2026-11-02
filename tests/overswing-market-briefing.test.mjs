@@ -50,7 +50,8 @@ test('cinematic intro leads into a single fading gate briefing under the charact
   const market=read('OverswingMarket.jsx');
   assert.match(journey,/setBriefingReady\(false\)/);
   assert.match(journey,/setBriefingReady\(true\)/);
-  assert.match(journey,/shopBeforeFirstGate:true/);
+  assert.match(journey,/resetJourneyAtLevel/);
+  assert.match(read('overswingJourney.js'),/shopBeforeFirstGate:true/);
   assert.doesNotMatch(journey,/if\(view==='prepare'\)/);
   assert.match(journey,/if\(run\.phase==='choosing_relic'\)return <OverswingGateBriefing/);
   assert.match(briefing,/<EnemyPortrait/);
