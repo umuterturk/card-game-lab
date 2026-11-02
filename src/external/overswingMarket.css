@@ -1,0 +1,25 @@
+.om-market{max-width:510px;padding:12px}
+.om-head{display:flex;align-items:center;gap:8px;justify-content:space-between;
+  margin:2px 0 12px}
+.om-head .oj-back{margin:0;white-space:nowrap}
+.om-head h1{font:clamp(15px,4vw,21px) var(--oj-pixel);color:#ffd793;margin:0}
+.om-head strong{font:21px 'VT323',monospace;color:#ffdf9e}
+.om-lock{font:14px 'VT323',monospace;color:#edac7b;text-align:center;margin:5px}
+.om-section{border:2px solid #78442d;background:#1a1119;margin:11px 0;padding:9px}
+.om-section-heading{display:flex;align-items:baseline;justify-content:space-between;
+ gap:6px;margin:0 0 8px}
+.om-section-heading strong{font:11px var(--oj-pixel);color:#ffca7e}
+.om-section-heading small{font:15px 'VT323',monospace;color:#be997a}
+.om-items{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+.om-item{min-width:0;min-height:106px;display:flex;flex-direction:column;align-items:center;
+ justify-content:center;gap:7px;padding:8px 3px;color:#ffe5b3;
+ background:linear-gradient(#44291d,#1e151b);border:2px solid #98613d;cursor:pointer}
+.om-item:disabled{cursor:default;opacity:.46}
+.om-item.om-owned{opacity:1;background:#2b261d;border-color:#8d7045}
+.om-item-symbol{font:35px 'VT323',monospace;color:#f5b765}
+.om-royal-symbol{font:23px var(--oj-pixel);color:#ffe5a6}
+.om-item-name{font:8px/1.35 var(--oj-pixel);text-align:center;overflow-wrap:anywhere}
+.om-item-name small{display:block;margin-top:4px;color:#c5a285;font:15px 'VT323',monospace}
+.om-item-price{color:#eeb978;font:17px 'VT323',monospace}
+.om-item-price .os-gold-amount{white-space:nowrap}
+@media(max-width:360px){.om-item{min-height:92px}.om-item-name{font-size:7px}}

@@ -39,17 +39,25 @@ test('portrait assets resolve from document root, not stylesheet /assets folder'
   }
 });
 
-test('minimal prepare shows portrait, four rules, buy-only Royals, and a fight button',()=>{
-  const jsx=read('OverswingJourney.jsx');
-  const prepare=jsx.slice(jsx.indexOf("if(view==='prepare')"),jsx.indexOf("if(!run||view==='menu'||view==='map')"));
-  const home=jsx.slice(jsx.indexOf("if(!run||view==='menu'||view==='map')"),jsx.indexOf("if(run.phase==='playing')"));
-  assert.match(prepare,/EnemyPortrait/);
-  assert.match(prepare,/oj-prep-rules/);
-  assert.match(prepare,/<RoyalWorkshop progress=\{progress\}/);
-  assert.match(prepare,/begin\(selectedLevel\)/);
-  assert.doesNotMatch(prepare,/onToggle|PREPARE YOUR JOURNEY/);
-  assert.match(home,/OverswingCampaignMap/);
-  assert.doesNotMatch(home,/RoyalWorkshop|ROYAL_PRICES|WildInventory/);
+test('the Market owns Royal purchases and the gate briefing sits below the portrait',()=>{
+  const jsx=read('OverswingJourney.jsx'),brief=read('OverswingGateBriefing.jsx');
+  const market=read('OverswingMarket.jsx'),css=read('overswingGateBriefing.css');
+  assert.doesNotMatch(jsx,/view==='prepare'|function RoyalWorkshop/);
+  assert.match(jsx,/view==='market'/);
+  assert.match(jsx,/oj-market-button/);
+  assert.match(jsx,/<OverswingGateBriefing/);
+  assert.match(jsx,/setBriefingReady\(true\)/);
+  assert.match(brief,/<EnemyPortrait/);
+  assert.match(brief,/campaignRuleLabels\(level\)/);
+  assert.match(brief,/run\.offeredRelicIds\.map/);
+  assert.match(brief,/FIGHT WITHOUT RELIC/);
+  assert.doesNotMatch(brief,/ROYAL|RoyalWorkshop/);
+  assert.match(css,/\.og-panel-visible/);
+  assert.match(css,/@keyframes og-panel-in/);
+  assert.match(market,/ROYALS/);
+  assert.match(market,/WILDS/);
+  assert.match(market,/onRoyal/);
+  assert.match(market,/onWild/);
 });
 
 test('cinematic intro fades in, sparkles, then shrinks into prepare on player tap',()=>{
@@ -74,7 +82,7 @@ test('permanent royal purchases require no selection and all three enter a fight
   assert.equal(run.encounter.engineState.deal.hand.filter(id=>id>=40).length,0);
   const jsx=read('OverswingJourney.jsx');
   assert.match(jsx,/settled\.ownedRoyalIds/);
-  assert.match(jsx,/BUY ONCE · ALWAYS ACTIVE/);
+  assert.match(read('OverswingMarket.jsx'),/AUTO-EQUIPPED/);
 });
 
 test('homepage still has ambient hell pendulum and no Royal store',()=>{

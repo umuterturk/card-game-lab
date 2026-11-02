@@ -18,6 +18,7 @@ export default function useOverswingSound(){
   const musicRef=useRef(initial.musicVolume),sfxRef=useRef(initial.sfxVolume);
   const choiceRef=useRef(initial.trackChoice),gateRef=useRef(0);
   const cinematicRef=useRef(false);
+  const atmosphereRef=useRef(null);
 
   const effectiveTrack=trackChoice??gateTrack;
   const persist=()=>persistSoundPreferences(
@@ -31,7 +32,7 @@ export default function useOverswingSound(){
       audioRef.current.setTrack(choiceRef.current??gateRef.current);
       audioRef.current.setSfxVolume(sfxRef.current);
       audioRef.current.setTension(tensionRef.current);
-      audioRef.current.setCinematic(cinematicRef.current);
+      audioRef.current.setAtmosphere(atmosphereRef.current);
     }
     return audioRef.current;
   };
@@ -92,10 +93,12 @@ export default function useOverswingSound(){
     setGateTrack(index);
     if(choiceRef.current===null)audioRef.current?.setTrack(index);
   };
-  const setCinematic=enabled=>{
-    cinematicRef.current=!!enabled;
-    audioRef.current?.setCinematic(cinematicRef.current);
+  const setAtmosphere=mode=>{
+    atmosphereRef.current=mode;
+    cinematicRef.current=mode==='cinematic';
+    audioRef.current?.setAtmosphere(mode);
   };
+  const setCinematic=enabled=>setAtmosphere(enabled?'cinematic':null);
   const play=action=>audioRef.current?.play(action);
   const setTension=(value,options={})=>{
     const normalized=Number.isFinite(value)?
@@ -137,5 +140,5 @@ export default function useOverswingSound(){
   },[]);
   return {musicVolume,sfxVolume,musicOn,sfxOn:sfxVolume>0,
     trackChoice,gateTrack,effectiveTrack,setMusicVolume,setSfxVolume,
-    setTrackChoice,setTrack,setCinematic,unlock,restartAudio,play,setTension};
+    setTrackChoice,setTrack,setCinematic,setAtmosphere,unlock,restartAudio,play,setTension};
 }

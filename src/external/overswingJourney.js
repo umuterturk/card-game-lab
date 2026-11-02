@@ -395,6 +395,17 @@ export function buyRoyal(progress,id){
   return {...old,lifetimeGold:old.lifetimeGold-price,
     ownedRoyalIds:owned,equippedRoyalIds:[...owned]};
 }
+// Consumables can be purchased only outside active runs. In-run wild usage
+// remains bound to the existing one-per-gate rule and idempotent event ledger.
+export const MARKET_WILD_PRICES=Object.freeze({
+  shuffle:400,polarity:650,shield:900
+});
+export function buyMarketWild(progress,id){
+  const old=restoreJourneyProgress(progress),price=MARKET_WILD_PRICES[id];
+  if(!WILD_IDS.includes(id)||!price||old.lifetimeGold<price)return old;
+  return {...old,lifetimeGold:old.lifetimeGold-price,
+    wildInventory:{...old.wildInventory,[id]:(old.wildInventory[id]||0)+1}};
+}
 export function toggleRoyalEquipped(progress,id){
   // Compatibility for old clients; the equipment picker has been retired.
   const old=restoreJourneyProgress(progress);

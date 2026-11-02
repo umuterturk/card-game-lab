@@ -39,17 +39,20 @@ test('Flip displays the scouted card; Queen auto-plays the sole safe direction',
   assert.equal([-1,1].filter(direction=>Math.abs(0+direction*12)<=10).length,0);
 });
 
-test('mobile preparation highlights level limit and simplifies tall Royal section',()=>{
+test('mobile gate briefing uses compact rule chips and Market holds Royals',()=>{
   const play=read('OverswingPlay.jsx');
   const journey=read('OverswingJourney.jsx');
+  const briefing=read('OverswingGateBriefing.jsx');
+  const market=read('OverswingMarket.jsx');
   const controls=read('OverswingSoundControls.jsx');
   assert.doesNotMatch(play,/os8-meter-ends/);
   assert.match(play,/DECK \{deckRemaining\}/);
   assert.match(play,/d\.deck\.length-d\.pos/);
-  assert.match(journey,/oj-prep-rules/);
-  assert.match(journey,/level\.rules\.snapLimit\?\?10/);
-  assert.match(journey,/oj-royal-mini-grid/);
-  assert.match(journey,/BUY ONCE · ALWAYS ACTIVE/);
+  assert.match(journey,/oj-market-button/);
+  assert.doesNotMatch(journey,/view==='prepare'/);
+  assert.match(briefing,/og-rules/);
+  assert.match(briefing,/campaignRuleLabels\(level\)/);
+  assert.match(market,/AUTO-EQUIPPED/);
   assert.match(controls,/<MusicNoteIcon\/>/);
   assert.match(controls,/sound\.restartAudio/);
 });

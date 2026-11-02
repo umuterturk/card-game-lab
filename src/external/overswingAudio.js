@@ -66,7 +66,7 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
   let targetTension=.12,smoothedTension=.12,activeGroove=0;
   let currentTempo=60,musicLevel=0;
   let selectedTrack=0,requestedTrack=0,crossfade=null,goalResolved=false;
-  let cinematic=false;
+  let cinematic=false,menuMusic=false;
   const TRACK_FADE_SECONDS=1.8;
   const canPlay=()=>!!(host&&(host.AudioContext||host.webkitAudioContext));
   const ctx=()=>{
@@ -97,9 +97,9 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     // Extra bus is created AFTER the sixteen track buses: legacy audio
     // gain indices remain stable for active iOS recovery tests.
     cinemaBus=context.createGain();
-    cinemaBus.gain.value=cinematic?1:0;
+    cinemaBus.gain.value=cinematic||menuMusic?1:0;
     cinemaBus.connect(musicBus);
-    if(cinematic)trackBuses[selectedTrack].gain.value=0;
+    if(cinematic||menuMusic)trackBuses[selectedTrack].gain.value=0;
     const limiter=context.createDynamicsCompressor();
     limiter.threshold.value=-16;limiter.knee.value=12;limiter.ratio.value=4;
     limiter.attack.value=.004;limiter.release.value=.12;
@@ -301,43 +301,72 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
       blast(time,beat*.85,.008,cinemaBus,520);
     }
   }
-  function rampBus(param,to,now,seconds=1.35){
+  // Eight-bar, ~26-second original home theme at 74 BPM, compared with the
+  // 44 BPM cinematic drone. Procedural dark ambience, not a short sample loop.
+  function renderMenuStep(step,time,beat){
+    const local=step%16,bar=Math.floor(step/16)%8;
+    const roots=[41.2,36.71,43.65,38.89,49,41.2,36.71,55];
+    const root=roots[bar];
+    if(local===0){
+      synthBass(root,time,beat*3.2,.092,.05,cinemaBus);
+      tone(root*1.5,time,beat*3.25,.023,'triangle',cinemaBus,root*1.497);
+      tone(root*2.12,time+.11,beat*2.7,.014,'sine',cinemaBus,root*2.08);
+      tone(95,time,.16,.062,'sine',cinemaBus,44);
+      blast(time,.18,.018,cinemaBus,240);
+    }
+    if(local===6){
+      tone(root*.88,time,beat*1.7,.012,'triangle',cinemaBus,root*.86);
+      blast(time,.085,.009,cinemaBus,550);
+    }
+    if(local===8){
+      tone(91,time,.15,.046,'sine',cinemaBus,43);
+      synthBass(root*.75,time,beat*1.4,.065,0,cinemaBus);
+    }
+    if(local===11&&bar%2===1)
+      tone(root*3,time,beat*.8,.010,'sine',cinemaBus,root*2.83);
+    if(local===14&&bar%4===3)
+      blast(time,.25,.012,cinemaBus,900);
+  }
+  function rampBus(param,to,now,seconds=1.8){
     param.cancelScheduledValues(now);
     // Use setTargetAtTime to stay compatible with Safari/iOS and test shims.
     param.setTargetAtTime(to,now,seconds/4);
   }
-  function setCinematic(enabled){
-    const next=!!enabled;
-    if(cinematic===next)return cinematic;
-    cinematic=next;
-    if(cinematic&&crossfade){
-      // Prevent an in-flight normal track crossfade from waking its buses
-      // underneath the horror drone.
-      crossfade=null;
-      selectedTrack=requestedTrack;
+  function setAtmosphere(mode){
+    if(mode!==null&&mode!=='menu'&&mode!=='cinematic')
+      throw new RangeError('Invalid atmosphere mode');
+    const nextCinema=mode==='cinematic',nextMenu=mode==='menu';
+    if(cinematic===nextCinema&&menuMusic===nextMenu)return mode;
+    cinematic=nextCinema;menuMusic=nextMenu;
+    if((cinematic||menuMusic)&&crossfade){
+      crossfade=null;selectedTrack=requestedTrack;
     }
-    if(!context||!trackBuses||!cinemaBus)return cinematic;
+    if(!context||!trackBuses||!cinemaBus)return mode;
     const now=context.currentTime;
-    rampBus(cinemaBus.gain,cinematic?1:0,now);
-    // Mute every normal theme while the intro drone is active. Crossfade
-    // back to the selected game track without altering saved track choice.
+    rampBus(cinemaBus.gain,cinematic||menuMusic?1:0,now);
+    // The existing selected track remains untouched. Its bus fades in when
+    // starting combat and fades out on the home screen; same audio context.
     trackBuses.forEach((bus,i)=>rampBus(bus.gain,
-      cinematic?0:(i===requestedTrack?1:0),now));
-    if(!cinematic){
+      cinematic||menuMusic?0:(i===requestedTrack?1:0),now));
+    if(!cinematic&&!menuMusic){
       selectedTrack=requestedTrack;
       crossfade=null;
       activeGroove=grooveForTension(targetTension);
       currentTempo=tempoForGroove(activeGroove);
     }
-    return cinematic;
+    return mode;
+  }
+  function setCinematic(enabled){
+    return setAtmosphere(enabled?'cinematic':null)==='cinematic';
   }
   // The three-factor gate tension is already stable. Respond to it quickly
   // with a short note-level envelope and musical changes ON THE BEAT, never
   // the old two-bar delay. Keep gradual tempo ramps to avoid a speed jump.
   function scheduleStep(step,time){
-    if(cinematic){
-      currentTempo=44;
-      renderCinematicStep(step,time,60/currentTempo);
+    if(cinematic||menuMusic){
+      currentTempo=cinematic?44:74;
+      if(cinematic)renderCinematicStep(step,time,60/currentTempo);
+      else renderMenuStep(step,time,60/currentTempo);
       return;
     }
     const local=step%16;
@@ -395,12 +424,12 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
         for(let i=0;i<trackBuses.length;i++){
           const p=trackBuses[i].gain;
           p.cancelScheduledValues(context.currentTime);
-          p.setValueAtTime(i===index?1:0,context.currentTime);
+          p.setValueAtTime(!cinematic&&!menuMusic&&i===index?1:0,context.currentTime);
         }
       }
       return index;
     }
-    if(!cinematic&&!crossfade&&index!==selectedTrack)beginTrackCrossfade(index);
+    if(!cinematic&&!menuMusic&&!crossfade&&index!==selectedTrack)beginTrackCrossfade(index);
     return index;
   }
   function schedule(){
@@ -454,7 +483,7 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
         for(let i=0;i<trackBuses.length;i++){
           const p=trackBuses[i].gain;
           p.cancelScheduledValues(context.currentTime);
-          p.setValueAtTime(!cinematic&&i===selectedTrack?1:0,context.currentTime);
+          p.setValueAtTime(!cinematic&&!menuMusic&&i===selectedTrack?1:0,context.currentTime);
         }
       }
     }
@@ -604,7 +633,8 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     releaseContext();
   }
   return {unlock,play,setMusic,setMusicLevel,setMusicVolume,
-    setSfx,setSfxVolume,setTension,setTrack,setCinematic,suspend,resume,restart,dispose,
+    setSfx,setSfxVolume,setTension,setTrack,setCinematic,setAtmosphere,suspend,resume,restart,dispose,
+    get menuMusic(){return menuMusic;},
     get cinematic(){return cinematic;},
     get tension(){return targetTension;},
     get trackId(){return requestedTrack;},

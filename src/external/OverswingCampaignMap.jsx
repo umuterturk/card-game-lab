@@ -36,7 +36,7 @@ export default function OverswingCampaignMap({progress,selected,onSelect,onStart
         disabled={selected>=Math.min(next,CAMPAIGN_LEVELS.length)}
         aria-label="Next unlocked level">›</button>
     </div>
-    <div className="ocm-rules">{campaignRuleLabels(level).map(t=><span key={t}>{t}</span>)}</div>
+    
     <div className="oj-choices ocm-actions">
       {activeRun&&<button className="oj-secondary" type="button" onClick={activeRun}>RESUME CURRENT FIGHT</button>}
       <button className="oj-primary" type="button" onClick={onStart}>PREPARE · LEVEL {level.number}</button>
