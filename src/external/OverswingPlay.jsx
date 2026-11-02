@@ -27,15 +27,20 @@ const SUITS=['♥','♦','♠','♣'];
 const name=id=>label(id);
 const val=n=>n>0?'+'+n:String(n);
 const target={pot:'POT',discard:'DISCARD'};
+const MAX_HAND_SLOTS=8;
 function Card({id,onClick,caption,chosen=false,mini=false,potCard=false,handCard=false,flightHidden=false}){
+  // Queen chooses her direction, so her suit and signed color are irrelevant.
+  const isQueen=royalRank(id)==='Q';
+  const cardName=isQueen?'Q':name(id);
+  const cardValue=isQueen?'±12':val(signed(id));
   return <button type="button" disabled={!onClick} onClick={onClick}
     data-pot-card={potCard?id:undefined}
     data-hand-card={handCard?id:undefined}
-    className={'os8-card '+(suit(id)<2?'os8-red':'os8-black')+(royalRank(id)?' os8-royal':'')+(chosen?' os8-selected':'')+(mini?' os8-mini':'')+(flightHidden?' os8-pot-flight-hidden':'')}
-    aria-label={name(id)+' '+val(signed(id))+(caption?' '+caption:'')}>
-    <span className="os8-card-top">{name(id)}</span>
+    className={'os8-card '+(isQueen?'os8-queen':suit(id)<2?'os8-red':'os8-black')+(royalRank(id)?' os8-royal':'')+(chosen?' os8-selected':'')+(mini?' os8-mini':'')+(flightHidden?' os8-pot-flight-hidden':'')}
+    aria-label={cardName+' '+cardValue+(caption?' '+caption:'')}>
+    <span className="os8-card-top">{cardName}</span>
 
-    {!mini&&<strong>{val(signed(id))}</strong>}
+    {!mini&&<strong>{cardValue}</strong>}
     {!mini&&<small>{caption}</small>}
   </button>;
 }
@@ -187,21 +192,22 @@ function FlipFlight({flight,onFinish}){
   if(!flight)return null;
   const isSnap=flight.destination==='snap',isDiscard=flight.destination==='discard';
   const isSteer=flight.kind==='steer';
+  const isQueen=royalRank(flight.card)==='Q';
   const isRed=suit(flight.card)<2;
-  const face=name(flight.card);
+  const face=isQueen?'Q':name(flight.card);
   const onEnd=event=>{
     if(event.target===event.currentTarget)onFinish(flight.serial);
   };
   return createPortal(
     <div className={'os8-flip-flight '+(isSnap?'os8-flip-flight-snap':isDiscard?'os8-flip-flight-discard':'os8-flip-flight-pot')+
       (isSteer?' os8-steer-flight':'')+
-      (isRed?' os8-flip-flight-red':' os8-flip-flight-black')}
+      (isQueen?' os8-flip-flight-queen':isRed?' os8-flip-flight-red':' os8-flip-flight-black')}
       key={flight.serial} style={flight.style} onAnimationEnd={onEnd}
       aria-hidden="true">
       <div className="os8-flip-face">
         <span className="os8-flip-face-corner">{face}</span>
-        <strong className="os8-flip-face-suit">{SUITS[suit(flight.card)]}</strong>
-        <b className="os8-flip-face-value">{val(signed(flight.card))}</b>
+        {!isQueen&&<strong className="os8-flip-face-suit">{SUITS[suit(flight.card)]}</strong>}
+        <b className="os8-flip-face-value">{isQueen?'±12':val(signed(flight.card))}</b>
         <span className="os8-flip-face-tag">{isSnap?'SNAP!':isDiscard?'DISCARDED':isSteer?'STEERED':'FLIPPED'}</span>
       </div>
       {isSnap&&<span className="os8-flip-face-break" aria-hidden="true">✕</span>}
@@ -453,14 +459,10 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,j
       <div className="os8-tooltip-header"><strong >How {FACTOR_HELP[openFactor].title} works</strong><button type="button" aria-label="Close explanation" onClick={()=>setOpenFactor(null)}>×</button></div>
       <p>{FACTOR_HELP[openFactor].text}</p>
     </div>}
-    {s.lastAction?.type==='flip'||s.lastAction?.type==='steer'?
-      <span className="os8-flip-a11y" role="status" aria-live="polite">
-        <Outcome e={s.lastAction}/>
-      </span>:
-      <div className={'os8-event '+(s.lastAction?.snap?'os8-snap':s.lastAction?.zeroBreak?'os8-zero-break':'')} role="status" aria-live="polite">
-        {s.lastAction?.card!=null&&<Card id={s.lastAction.card} mini/>}
-        <p><Outcome e={s.lastAction}/></p>
-      </div>}
+    {/* Keep action feedback for screen readers, but never let it push the board. */}
+    <span className="os8-flip-a11y" role="status" aria-live="polite">
+      <Outcome e={s.lastAction}/>
+    </span>
   </>;
 
   if(fullView&&helpOpen)return <section className="os8 os8-full os8-help-screen" aria-label="How to play Overswing">
@@ -564,16 +566,26 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,j
       <div className="os8-section-heading"><h3>{discardPick?'BANK · REMOVE 1 CARD':'YOUR HAND · STEER'}</h3><span>DECK {deckRemaining} · HAND {d.hand.length}/{d.handCap}{discardPick?' · BANK CAP '+nextCap:''}</span></div>
       {discardPick&&<p className="os8-attention">Hand limit {d.handCap} → {nextCap}. {tutorial?'Remove only the highlighted card.':'Tap the card to discard.'} <button type="button" onClick={()=>setDiscardPick(false)}>CANCEL</button></p>}
       <div className="os8-handcards" ref={handContainerRef}>
-        {d.hand.map((id,index)=>{
+        {Array.from({length:MAX_HAND_SLOTS},(_,index)=>{
+          const id=d.hand[index];
+          if(id==null){
+            const locked=index>=d.handCap;
+            return <span key={'slot-'+index}
+              className={'os8-hand-slot '+(locked?'os8-hand-slot-locked':'os8-hand-slot-empty')}
+              aria-label={locked?'Locked hand slot':'Empty hand slot'}>
+              {locked&&<span aria-hidden="true">×</span>}
+            </span>;
+          }
           const o=applySwing(d.S,d.W,signed(id),limit);
           const royal=royalRank(id);
-          const caption=discardPick?'REMOVE':royal==='K'?'CROWN +'+(d.crownBonus||0)+'%':royal==='J'?'SCOUT':royal==='Q'?'±12':o.snap?'SNAP':d.S!==0&&o.S===0?'ZERO BREAK':d.plays===0||o.swung?'POT +'+rank(id):d.W>0?'SWING −1':'DISCARD';
+          const caption=discardPick?'REMOVE':royal==='K'?'CROWN +'+(d.crownBonus||0)+'%':royal==='J'?'SCOUT':royal==='Q'?'MIRROR':o.snap?'SNAP':d.S!==0&&o.S===0?'ZERO BREAK':d.plays===0||o.swung?'POT +'+rank(id):d.W>0?'SWING −1':'DISCARD';
           const allowed=discardPick?legal.some(a=>a.type==='bank'&&a.dropIndex===index):legal.some(a=>a.type==='steer'&&a.index===index);
           const highlighted=tutorial&&allowed;
-          return <Card key={id} id={id} handCard chosen={highlighted||(!tutorial&&discardPick)}
-            onClick={allowed?event=>doSteer(index,event.currentTarget):null} caption={caption}/>;
+          return <span className="os8-hand-slot os8-hand-slot-occupied" key={id}>
+            <Card id={id} handCard chosen={highlighted||(!tutorial&&discardPick)}
+              onClick={allowed?event=>doSteer(index,event.currentTarget):null} caption={caption}/>
+          </span>;
         })}
-        {!d.hand.length&&<p className="os8-empty">No cards in hand. It refills automatically when deck cards remain.</p>}
       </div>
     </section>
     {!guidedActionFirst&&actionButtons}
