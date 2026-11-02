@@ -4,7 +4,7 @@ import {MUSIC_TRACKS} from './overswingTracks.js';
 export const OVERSWING_SOUND_KEY='overswing_sound_v2';
 export const LEGACY_SOUND_KEY='overswing_sound_v1';
 export const DEFAULT_SOUND_PREFS=Object.freeze({
-  musicVolume:0,sfxVolume:100,trackChoice:null
+  musicVolume:25,sfxVolume:50,trackChoice:null
 });
 const percent=(value,fallback)=>{
   if(!Number.isFinite(value))return fallback;
