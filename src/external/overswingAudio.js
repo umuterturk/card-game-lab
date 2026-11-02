@@ -110,12 +110,30 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     active.onstatechange=()=>{
       if(context!==active)return;
       if(active.state==='running')startScheduler();
-      else clearScheduler();
+      else if(active.state==='interrupted'||active.state==='closed'){
+        // iOS WebKit sometimes never resolves resume() or reports "running"
+        // while the audio graph is silent. Retire the broken graph entirely.
+        releaseContext();
+      }else clearScheduler();
     };
     return context;
   };
   function clearScheduler(){
     if(timer!==null){host?.clearInterval(timer);timer=null;}
+  }
+  function releaseContext(){
+    const old=context;
+    clearScheduler();
+    context=null;master=null;musicBus=null;sfxBus=null;
+    trackBuses=null;noise=null;crossfade=null;
+    selectedTrack=requestedTrack;
+    if(!old)return;
+    old.onstatechange=null;
+    if(old.state!=='closed'){
+      // Never await a close/resume promise while the phone is backgrounded.
+      // Some iOS versions leave those promises pending indefinitely.
+      try{Promise.resolve(old.close()).catch(()=>{});}catch{}
+    }
   }
   function startScheduler(){
     if(!context||!musicOn||backgrounded||context.state!=='running'||
@@ -482,30 +500,30 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     }
   }
   function suspend(){
+    // A resume() on iPhone can resolve without restoring sound. Abandon the
+    // old context on backgrounding, and recreate it only on a real gesture.
     backgrounded=true;
-    clearScheduler();
-    if(context&&context.state==='running'){
-      try{Promise.resolve(context.suspend()).catch(()=>{});}catch{}
-    }
+    releaseContext();
   }
   function resume(){
-    if(!context)return; // No autoplay on page load or before a gesture.
+    // Visibility/focus alone cannot reliably unlock Web Audio on iOS.
+    // The global pointer/touch handler calls unlock() on the first tap.
     backgrounded=false;
-    // A closed context must be recreated by the next user gesture.
-    if(context.state!=='closed')wakeContext();
+  }
+  function restart(){
+    // Explicit emergency recovery when WebKit keeps output silent despite
+    // reporting "running" (there is no reliable Web Audio silence detector).
+    releaseContext();
+    backgrounded=false;
+    return unlock();
   }
   function dispose(){
     backgrounded=true;
     stopMusic();
-    if(context&&context.state!=='closed'){
-      try{Promise.resolve(context.close()).catch(()=>{});}catch{}
-    }
-    if(context)context.onstatechange=null;
-    context=null;master=null;musicBus=null;sfxBus=null;noise=null;
-    trackBuses=null;crossfade=null;
+    releaseContext();
   }
   return {unlock,play,setMusic,setMusicLevel,setMusicVolume,
-    setSfx,setSfxVolume,setTension,setTrack,suspend,resume,dispose,
+    setSfx,setSfxVolume,setTension,setTrack,suspend,resume,restart,dispose,
     get tension(){return targetTension;},
     get trackId(){return requestedTrack;},
     get trackName(){return MUSIC_TRACKS[requestedTrack].name;},
