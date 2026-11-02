@@ -307,7 +307,6 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
           <small>Exceed this swing and lose your Pot</small>
         </div>
         <div className="oj-prepare-rule-chips">
-          {campaignRuleLabels(level).filter(rule=>!rule.startsWith('SNAP ')).map(rule=><span key={rule}>{rule}</span>)}
           <span>HAND {level.rules.maxHandSize??8}</span>
           <span>FLIP {level.rules.maxFlips??'∞'}</span>
           <span>BANK TAX {level.rules.bankTax??0}%</span>
