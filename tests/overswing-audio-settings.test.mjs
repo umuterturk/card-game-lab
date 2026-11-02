@@ -61,6 +61,10 @@ test('preferences persist both independent volumes, Auto/manual track and migrat
   assert.deepEqual(readSoundPreferences(storage),{
     musicVolume:50,sfxVolume:0,trackChoice:null
   });
+  store.set(LEGACY_SOUND_KEY,JSON.stringify({music:false,sfx:true}));
+  assert.deepEqual(readSoundPreferences(storage),{
+    musicVolume:0,sfxVolume:100,trackChoice:null
+  },'explicit legacy mute remains muted despite new defaults');
   store.set(LEGACY_SOUND_KEY,'broken{');
   assert.deepEqual(readSoundPreferences(storage),DEFAULT_SOUND_PREFS);
 });
