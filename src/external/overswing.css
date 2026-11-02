@@ -1030,3 +1030,15 @@
 .os8-actions .os8-next-flip-card span{font:12px/.9 'VT323',monospace}
 .os8-full .os8-actions .os8-next-flip-card{height:28px;min-width:40px}
 .os8-hand .os8-section-heading span{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* Always show the real level-wide SNAP threshold clearly, even in full-view. */
+.os8-campaign-rules .os8-campaign-snap{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:25px;padding:3px 9px;
+  background:#63231b;border:2px solid #ffb15d;
+  color:#ffe08d;font:clamp(14px,4vw,19px)/1 'VT323',monospace;
+  text-shadow:1px 1px #220b11
+}
+.os8-full .os8-campaign-rules .os8-campaign-snap{
+  font-size:clamp(14px,4vw,18px);min-height:22px;padding:2px 7px
+}
