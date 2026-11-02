@@ -92,3 +92,25 @@ test('Queen shows no directional suit/type, and a single ±12 value',()=>{
   assert.match(jsx,/!isQueen&&<strong className="os8-flip-face-suit"/);
   assert.match(jsx,/isQueen\?'±12':val\(signed\(flight\.card\)\)/);
 });
+
+
+test('five seconds without a move highlights only enabled game actions',()=>{
+  const jsx=read('OverswingPlay.jsx');
+  const css=read('overswingVisualFix.css');
+  assert.match(jsx,/const \[idleHint,setIdleHint\]=useState\(false\)/);
+  assert.match(jsx,/window\.setTimeout\(\(\)=>\{timeout=null;setIdleHint\(true\);\},5000\)/);
+  assert.match(jsx,/window\.clearTimeout\(timeout\)/);
+  assert.match(jsx,/window\.addEventListener\('pointerdown',reset/);
+  assert.match(jsx,/window\.addEventListener\('touchstart',reset/);
+  assert.match(jsx,/window\.addEventListener\('keydown',reset\)/);
+  assert.match(jsx,/document\.addEventListener\('visibilitychange',reset\)/);
+  assert.match(jsx,/!document\.hidden/);
+  assert.match(jsx,/s\.lastAction,s\.dealIndex,s\.seed/);
+  assert.match(jsx,/!historyOpen&&\s*!polarityPick&&queenPick===null&&!helpOpen/);
+  assert.match(jsx,/\(idleHint\?' os8-idle':''\)/);
+  assert.match(css,/\.os8:not\(\.os8-idle\) \.os8-actions button:not\(:disabled\)/);
+  assert.match(css,/\.os8\.os8-idle \.os8-hand \.os8-card:not\(:disabled\)/);
+  assert.match(css,/\.os8\.os8-idle \.os8-abilities button:not\(:disabled\)/);
+  assert.match(css,/@keyframes os8-action-heartbeat/);
+  assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
+});
