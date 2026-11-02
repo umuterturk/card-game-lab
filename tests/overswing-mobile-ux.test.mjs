@@ -57,7 +57,7 @@ test('mobile preparation highlights level limit and simplifies tall Royal sectio
 
 test('action summaries stay accessible but never shift the board',()=>{
   const jsx=read('OverswingPlay.jsx');
-  const actionBlock=jsx.slice(jsx.indexOf('const multiplierDetails='),jsx.indexOf('const helpContent='));
+  const actionBlock=jsx.slice(jsx.indexOf('const multiplierDetails='),jsx.indexOf('if(fullView&&helpOpen)'));
   assert.match(actionBlock,/className="os8-flip-a11y"/);
   assert.match(actionBlock,/role="status" aria-live="polite"/);
   assert.doesNotMatch(actionBlock,/className=\{'os8-event/);
