@@ -231,9 +231,10 @@
   .os8-full .os8-hand .os8-hand-slot{min-height:48px}
 }
 
-/* After five seconds idle, give enabled actions one slow, gentle
-   heartbeat every five seconds, then rest until the next beat.
-   Compositor transforms keep the rest of the board in place. */
+/* After five seconds without interaction, playable actions show ONE
+   clearly visible heartbeat plus an actual gold-light sweep. Both animate
+   once per five-second cycle; the rest of each cycle is still. Nothing
+   changes intrinsic button dimensions or affects disabled controls. */
 .os8:not(.os8-idle) .os8-actions button:not(:disabled),
 .os8:not(.os8-idle) .os8-hand .os8-card:not(:disabled){
   animation:none;
@@ -241,20 +242,57 @@
 .os8.os8-idle .os8-actions button:not(:disabled),
 .os8.os8-idle .os8-hand .os8-card:not(:disabled),
 .os8.os8-idle .os8-abilities button:not(:disabled){
+  position:relative;
+  overflow:hidden;
+  isolation:isolate;
   animation:os8-action-heartbeat 5s ease-in-out infinite;
   transform-origin:center;
   will-change:transform,filter;
 }
+/* ::after is free on all three actionable surfaces. The Royal crown
+   and ability-header decorations use ::before and remain untouched. */
+.os8.os8-idle .os8-actions button:not(:disabled)::after,
+.os8.os8-idle .os8-hand .os8-card:not(:disabled)::after,
+.os8.os8-idle .os8-abilities button:not(:disabled)::after{
+  content:"";
+  position:absolute;
+  z-index:4;
+  top:0;bottom:0;left:-75%;width:75%;
+  pointer-events:none;
+  background:linear-gradient(105deg,
+    transparent 0%,
+    #f3a82e44 20%,
+    #ffd46b99 36%,
+    #fff8c9ee 49%,
+    #ffd46b99 62%,
+    #f3a82e44 78%,
+    transparent 100%);
+  mix-blend-mode:screen;
+  opacity:0;
+  transform:translateX(0);
+  animation:os8-gold-sweep 5s ease-in-out infinite;
+}
 @keyframes os8-action-heartbeat{
-  0%,36%,100%{transform:scale(1);filter:brightness(1)}
-  18%{transform:scale(1.025);filter:brightness(1.16) drop-shadow(0 0 6px #ffd18a80)}
+  0%,3%,42%,100%{transform:scale(1);filter:brightness(1)}
+  19%{transform:scale(1.07);filter:brightness(1.35) drop-shadow(0 0 12px #ffc05ecc)}
+}
+@keyframes os8-gold-sweep{
+  0%,3%{opacity:0;transform:translateX(0)}
+  7%{opacity:1;transform:translateX(0)}
+  33%{opacity:1;transform:translateX(240%)}
+  41%,100%{opacity:0;transform:translateX(240%)}
 }
 @media(prefers-reduced-motion:reduce){
   .os8.os8-idle .os8-actions button:not(:disabled),
   .os8.os8-idle .os8-hand .os8-card:not(:disabled),
   .os8.os8-idle .os8-abilities button:not(:disabled){
     animation:none!important;will-change:auto;
-    filter:brightness(1.12);
-    outline:2px solid #d6a86d;outline-offset:1px;
+    filter:brightness(1.2);
+    outline:2px solid #e3b85e;outline-offset:1px;
+  }
+  .os8.os8-idle .os8-actions button:not(:disabled)::after,
+  .os8.os8-idle .os8-hand .os8-card:not(:disabled)::after,
+  .os8.os8-idle .os8-abilities button:not(:disabled)::after{
+    animation:none!important;content:none;
   }
 }
