@@ -105,6 +105,10 @@ export default function OverswingSoundControls({sound,className=''}){
             Changes apply immediately. Music at 0 is off; the two volumes are
             independent. Your preferences are saved.
           </p>
+          <button className="os-audio-restart" type="button"
+            onClick={sound.restartAudio} aria-label="Restart music and sound">
+            ♫ RESTART AUDIO
+          </button>
           <button className="os-audio-done" type="button" onClick={close}>
             BACK TO GAME
           </button>
