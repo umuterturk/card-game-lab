@@ -14,7 +14,7 @@
   box-shadow:inset 0 0 0 1px #191018,2px 2px 0 #10090d;
   color:#ffe0a0;cursor:pointer;touch-action:manipulation
 }
-.os-audio-gear-icon{
+.os-audio-music-icon{
   width:18px;height:18px;color:#ffd488;
   filter:drop-shadow(1px 1px 0 #1b1015);
 }
@@ -43,7 +43,7 @@
   .os8-full .os8-settings .os-sound-controls button.os-audio-settings-trigger{
     min-width:27px;min-height:27px;padding:1px 2px!important
   }
-  .os-audio-gear-icon{width:16px;height:16px}
+  .os-audio-music-icon{width:16px;height:16px}
   .os-sound-controls button.os-audio-settings-trigger span{font-size:8px}
 }
 
@@ -179,3 +179,6 @@
 @media(prefers-reduced-motion:reduce){
   .os-audio-modal-backdrop{backdrop-filter:none;-webkit-backdrop-filter:none}
 }
+
+/* The audio button uses an unambiguous music-note glyph instead of a gear. */
+.os-audio-music-icon{display:block;flex-shrink:0}
