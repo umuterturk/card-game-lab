@@ -31,7 +31,7 @@ test('coin shines gently in stepped frames and respects reduced-motion settings'
 
 test('main page, journey preparation, purchases, retries and results show the same Gold icon',()=>{
   const jsx=get('OverswingJourney.jsx');
-  assert.match(jsx,/import GoldAmount from '\.\/GoldCoin\.jsx';/);
+  assert.match(jsx,/import GoldAmount(?:,\{GoldCoin\})? from '\.\/GoldCoin\.jsx';/);
   assert.match(jsx,/<GoldAmount value=\{progress\.lifetimeGold\|\|0\} showLabel/);
   assert.match(jsx,/<GoldProgress progress=\{progress\} compact\/>/);
   assert.match(jsx,/<GoldAmount value=\{price\}\/>/);
@@ -48,7 +48,7 @@ test('main page, journey preparation, purchases, retries and results show the sa
 
 test('gameplay Gold score, BANK button, gate goals and game-over results share the coin',()=>{
   const jsx=get('OverswingPlay.jsx');
-  assert.match(jsx,/import GoldAmount from '\.\/GoldCoin\.jsx';/);
+  assert.match(jsx,/import GoldAmount(?:,\{GoldCoin\})? from '\.\/GoldCoin\.jsx';/);
   assert.match(jsx,/<GoldAmount value=\{d\.T\}\/>/);
   assert.match(jsx,/<GoldAmount value=\{total\}\/>/);
   assert.match(jsx,/<GoldAmount value=\{payout\} prefix="\+"\/>/);

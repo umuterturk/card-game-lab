@@ -126,7 +126,7 @@ test('audio is lazy, gesture-unlocked, opt-out, and closes cleanly',async()=>{
   audio.play({type:'steer',card:2});
   assert.equal(oscillators,after,'muted SFX does not schedule voices');
   audio.setSfx(true);
-  audio.play({type:'snap',card:2,snap:true});
+  audio.play({type:'steer',card:2,snap:true});
   assert.ok(noiseSources>0);
   assert.equal(audio.setMusic(true),true);
   assert.equal(audio.musicOn,true);
