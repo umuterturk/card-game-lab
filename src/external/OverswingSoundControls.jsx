@@ -3,11 +3,13 @@ import {createPortal} from 'react-dom';
 import {MUSIC_TRACKS} from './overswingTracks.js';
 import './overswingSoundControls.css';
 
-function PixelGear(){
-  return <svg className="os-audio-gear-icon" aria-hidden="true"
-    viewBox="0 0 24 24" shapeRendering="crispEdges" fill="currentColor">
-    <path d="M9 1H15V4H18V6H21V9H23V15H21V18H18V20H15V23H9V20H6V18H3V15H1V9H3V6H6V4H9Z"/>
-    <path d="M9 9H15V15H9Z" fill="#302025"/>
+function MusicNoteIcon(){
+  return <svg className="os-audio-music-icon" aria-hidden="true"
+    viewBox="0 0 24 24" fill="currentColor">
+    <path d="M10 18V5l11-2v13" fill="none" stroke="currentColor"
+      strokeWidth="2.4" strokeLinejoin="round"/>
+    <ellipse cx="7" cy="18" rx="3.5" ry="2.5" transform="rotate(-18 7 18)"/>
+    <ellipse cx="18" cy="16" rx="3.5" ry="2.5" transform="rotate(-18 18 16)"/>
   </svg>;
 }
 function VolumeRow({id,title,value,onChange}){
@@ -60,7 +62,7 @@ export default function OverswingSoundControls({sound,className=''}){
           sound.unlock(); // direct gesture: resume saved music if enabled
           setOpen(true);
         }}>
-        <PixelGear/>
+        <MusicNoteIcon/>
         <span>AUDIO</span>
       </button>
     </div>
