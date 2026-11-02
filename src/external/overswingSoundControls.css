@@ -1,0 +1,39 @@
+/* Shared audio controls keep the main page minimalist and remain accessible. */
+.os-sound-controls{
+  display:inline-flex;align-items:center;justify-content:center;gap:4px;
+}
+.os-sound-controls button.os8-audio-toggle{
+  min-width:34px;min-height:30px;padding:3px 5px;display:inline-flex;
+  flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  color:#d0a997;background:#1d141a;border:1px solid #70412f;border-radius:2px;
+  box-shadow:2px 2px 0 #120c11;
+  font:19px/1 'VT323',monospace;cursor:pointer;touch-action:manipulation;
+}
+.os-sound-controls button.os8-audio-toggle span{font:10px/1 'VT323',monospace}
+.os-sound-controls button.os8-audio-toggle.on{
+  border-color:#d89f4e;color:#ffe0a2;background:#58321e;
+  text-shadow:0 0 8px #f4a94c80;
+}
+.os-sound-controls button.os8-audio-toggle.off{opacity:.72}
+.os-sound-controls button.os8-audio-toggle:focus-visible{
+  outline:2px solid #ffe0a2;outline-offset:2px
+}
+.oj-home .oj-main-audio{
+  position:absolute;right:6px;top:3px;z-index:8;
+}
+.oj-home .oj-main-audio button.os8-audio-toggle{
+  min-width:31px;min-height:29px;background:#170f16d9
+}
+@media(max-width:370px){
+ .oj-home .oj-main-audio{right:2px;top:2px;gap:2px}
+ .oj-home .oj-main-audio button.os8-audio-toggle{min-width:28px;min-height:26px;padding:2px 3px}
+}
+
+/* Homepage title styles assign position to all direct children; win specificity
+   so the audio toggles remain tucked away at top-right. */
+.oj-home .oj-title .oj-main-audio{
+  position:absolute;right:6px;top:3px;z-index:8
+}
+@media(max-width:370px){
+  .oj-home .oj-title .oj-main-audio{right:2px;top:2px}
+}

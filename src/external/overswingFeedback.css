@@ -1,0 +1,155 @@
+/* JACKPOT and ordinary multiplier gains. Localized to multiplier row. */
+.os8-factors{position:relative;isolation:isolate}
+.os8-multiplier-burst{
+  position:absolute;inset:-8px 0 -16px;z-index:9;pointer-events:none;
+  display:grid;place-items:center;overflow:visible;
+  animation:os8-multiplier-life 970ms steps(1,end) both;
+}
+.os8-multiplier-burst-jackpot{animation-duration:1440ms}
+.os8-multiplier-message{
+  position:relative;z-index:2;display:flex;align-items:center;
+  flex-direction:column;gap:5px;padding:7px 12px;
+  background:#160f1de8;border:3px solid #dba25b;color:#ffe9ba;
+  box-shadow:4px 5px 0 #1a080e,0 0 17px #e8904680;
+  text-shadow:2px 2px #521d18;
+  animation:os8-multiplier-pop 900ms steps(8,end) both;
+}
+.os8-multiplier-message strong{font:clamp(10px,3vw,15px)/1.45 var(--pixel,monospace)}
+.os8-multiplier-message span{font:clamp(15px,4.4vw,21px)/1 'VT323',monospace}
+.os8-multiplier-burst-swing .os8-multiplier-message{
+  color:#d3f4de;border-color:#6b9f8a;box-shadow:3px 3px #162a26
+}
+.os8-multiplier-burst-flip .os8-multiplier-message{
+  color:#ffcfa6;border-color:#c37c44;box-shadow:3px 3px #3c2127
+}
+.os8-multiplier-burst-jackpot .os8-multiplier-message{
+  background:#34141df5;border:4px solid #ffcf5a;color:#fff7c9;
+  box-shadow:4px 6px 0 #280912,0 0 25px #ffb13ab8;
+  padding:9px 18px;
+  animation:os8-jackpot-title 1280ms steps(11,end) both
+}
+.os8-multiplier-burst-jackpot .os8-multiplier-message strong{
+  font-size:clamp(14px,4.6vw,21px);color:#ffdc78
+}
+.os8-multiplier-burst-jackpot .os8-multiplier-message span{
+  font-size:clamp(21px,6vw,29px)
+}
+.os8-multiplier-crown{
+  position:absolute;z-index:3;top:-56px;left:50%;
+  width:75px;height:51px;transform:translateX(-50%);
+  filter:drop-shadow(4px 4px 0 #180917);
+  animation:os8-jackpot-crown 1280ms steps(9,end) both
+}
+.os8-multiplier-crown svg{width:100%;height:100%;image-rendering:pixelated}
+.os8-multiplier-halo{position:absolute;left:50%;top:50%;
+  width:56px;height:56px;border:7px solid #ffdf8a;
+  box-shadow:0 0 0 6px #ec7a34,0 0 0 11px #591e24;
+  transform:translate(-50%,-50%);opacity:0;
+  animation:os8-jackpot-ring 1080ms steps(9,end) both
+}
+.os8-multiplier-spark{position:absolute;left:calc(50% - 4px);top:calc(50% - 4px);
+  z-index:1;width:8px;height:8px;background:#ffe68d;
+  box-shadow:8px 0 #ff9c37,0 8px #ff4a2a;
+  opacity:0;transform-origin:4px 4px;
+  animation:os8-jackpot-spark 1140ms steps(10,end) var(--burst-delay) both
+}
+@keyframes os8-multiplier-life{
+  0%,77%{opacity:1}100%{opacity:0}
+}
+@keyframes os8-multiplier-pop{
+  0%{opacity:0;transform:scale(.65) translateY(8px)}
+  25%,65%{opacity:1;transform:scale(1.05) translateY(0)}
+  100%{opacity:0;transform:scale(.9) translateY(-10px)}
+}
+@keyframes os8-jackpot-title{
+  0%{opacity:0;transform:translateY(24px) scale(.5)}
+  24%{opacity:1;transform:translateY(0) scale(1.18)}
+  42%,72%{opacity:1;transform:translateY(0) scale(1.08)}
+  100%{opacity:0;transform:translateY(-13px) scale(.9)}
+}
+@keyframes os8-jackpot-crown{
+  0%{opacity:0;transform:translate(-50%,22px) scale(.3)}
+  25%,75%{opacity:1;transform:translate(-50%,-3px) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-15px) scale(.75)}
+}
+@keyframes os8-jackpot-ring{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}
+  22%{opacity:1}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(4.4)}
+}
+@keyframes os8-jackpot-spark{
+  0%{opacity:0;transform:rotate(var(--burst-angle)) translateY(0) scale(.5)}
+  18%{opacity:1}
+  85%{opacity:1}
+  100%{opacity:0;transform:rotate(var(--burst-angle))
+    translateY(calc(-1 * var(--burst-radius))) scale(.8)}
+}
+.os8-factor-winning{box-shadow:inset 0 0 0 2px #ffd26c,0 0 15px #ffd26c88;
+  animation:os8-winning-factor 860ms steps(8,end) both}
+@keyframes os8-winning-factor{
+  0%,100%{filter:brightness(1)}50%{filter:brightness(1.65)}
+}
+
+/* Additional fractured-glass layer. Does not remove the old SNAP effects. */
+.os8-pot-crack{position:fixed;inset:0;z-index:1080;pointer-events:none;
+  isolation:isolate;overflow:hidden;
+  animation:os8-pot-crack-life 1320ms steps(12,end) both}
+.os8-pot-crack-flash{position:absolute;inset:0;opacity:0;
+  background:radial-gradient(ellipse at var(--crack-x) var(--crack-y),
+    #ff4d36a6 0,#a2223874 25%,transparent 75%);
+  animation:os8-pot-crack-flash 700ms steps(5,end) both}
+.os8-pot-crack-vignette{position:absolute;inset:0;opacity:0;
+  box-shadow:inset 0 0 100px 35px #650f25bb;
+  animation:os8-pot-crack-vignette 1060ms steps(9,end) both}
+.os8-pot-crack-glass{position:absolute;
+  left:var(--crack-x,50%);top:var(--crack-y,56%);
+  width:min(110vw,520px);height:min(80vh,550px);
+  transform:translate(-50%,-50%);overflow:visible;
+  filter:drop-shadow(2px 2px 0 #160912);
+  animation:os8-pot-crack-shiver 880ms steps(9,end) both}
+.os8-pot-crack-glass path{
+  stroke-dasharray:1500;stroke-dashoffset:1500;
+  animation:os8-pot-crack-draw 660ms steps(10,end) both}
+.os8-pot-crack-caption{
+  position:absolute;left:50%;bottom:clamp(22px,11vh,105px);
+  width:max-content;max-width:92vw;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  border:4px solid #ff694e;background:#200e19e9;
+  box-shadow:5px 6px 0 #0e0710,0 0 25px #dd3932aa;
+  padding:8px 11px;color:#ffd0c0;text-align:center;
+  animation:os8-pot-crack-caption 1140ms steps(10,end) both}
+.os8-pot-crack-caption strong{
+  font:clamp(11px,3.7vw,18px)/1.5 var(--pixel,monospace);
+  text-shadow:3px 3px 0 #6e1525}
+.os8-pot-crack-caption span{font:clamp(14px,4vw,21px)/1.1 'VT323',monospace}
+.os8-pot-breaking{position:relative;isolation:isolate;
+  animation:os8-pot-loss-shake 780ms steps(9,end) both}
+.os8-pot-breaking::after{content:"";position:absolute;inset:0;
+  border:4px solid #ff432f;opacity:0;pointer-events:none;
+  animation:os8-pot-loss-flash 770ms steps(5,end) both}
+@keyframes os8-pot-crack-life{0%,87%{opacity:1}100%{opacity:0}}
+@keyframes os8-pot-crack-flash{
+  0%{opacity:0}12%,32%{opacity:1}45%,100%{opacity:0}}
+@keyframes os8-pot-crack-vignette{
+  0%{opacity:0}15%,65%{opacity:1}100%{opacity:0}}
+@keyframes os8-pot-crack-draw{
+  0%{stroke-dashoffset:1500}60%,100%{stroke-dashoffset:0}}
+@keyframes os8-pot-crack-shiver{
+  0%,25%,50%,100%{translate:0 0}
+  12%{translate:-5px 3px}38%{translate:6px -4px}65%{translate:-3px 2px}}
+@keyframes os8-pot-crack-caption{
+  0%,14%{opacity:0;transform:translate(-50%,12px) scale(.75)}
+  27%,75%{opacity:1;transform:translate(-50%,0) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-12px) scale(.85)}}
+@keyframes os8-pot-loss-shake{
+  0%,100%{transform:translateX(0)}
+  13%,49%{transform:translateX(-6px)}26%,62%{transform:translateX(7px)}
+  74%{transform:translateX(-2px)}}
+@keyframes os8-pot-loss-flash{
+  0%,90%,100%{opacity:0}18%,49%{opacity:1}}
+@media(prefers-reduced-motion:reduce){
+ .os8-multiplier-burst,.os8-pot-crack,.os8-pot-breaking,
+ .os8-factor-winning{animation:none!important}
+ .os8-multiplier-burst,.os8-pot-crack{display:none!important}
+ .os8-pot-breaking::after{animation:none!important;opacity:0!important}
+}

@@ -147,6 +147,7 @@ export function stepOverswing(s,a,rules={}){
   let msg='',ended=false;
   const previousS=d.S,previousW=d.W,previousPot=d.pot.reduce((sum,c)=>sum+rank(c),0);
   const previousMultiplier=overswingMultiplier(d);
+  const previousFlipFactor=d.flipFactor,previousJackpotFactor=d.jackpotFactor;
   if(a.type==='bank'){
     const gross=overswingPayout(s,{...effective,bankTax:0});
     const gain=overswingPayout(s,effective);
@@ -236,6 +237,8 @@ export function stepOverswing(s,a,rules={}){
         openingSteer:opening&&a.type==='steer',addedToPot,scouted:royalRank(c)==='J'?d.scoutNext:null,
         flipStreak:d.flipStreak,flipFactor:d.flipFactor,
         jackpotFactor:d.jackpotFactor,multiplier:overswingMultiplier(d),
+        swingTierGained:d.W>previousW,flipTierGained:d.flipFactor>previousFlipFactor,
+        jackpotTierGained:d.jackpotFactor>previousJackpotFactor,
         modifiersApplied:[
           ...(a.type==='steer'&&!outcome.swung&&!zeroBreak&&effective.steerNoncrossPenalty===0?['steady_hand']:[]),
           ...(a.type==='steer'&&outcome.swung&&effective.steerCrossSwingBonus>0?['swing_coil']:[]),

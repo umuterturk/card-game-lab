@@ -4,6 +4,9 @@ import OverswingPlay from './OverswingPlay.jsx';
 import OverswingCampaignMap from './OverswingCampaignMap.jsx';
 import DoomFire from './DoomFire.jsx';
 import HellPendulum from './HellPendulum.jsx';
+import useOverswingSound from './useOverswingSound.js';
+import OverswingSoundControls from './OverswingSoundControls.jsx';
+import {potCrackForAction} from './overswingFeedback.js';
 import GoldAmount from './GoldCoin.jsx';
 import {campaignNextLevel,campaignLevel,campaignRuleLabels} from './overswingCampaign.js';
 import {LAST_FLAME,LAST_FLAME_RELICS} from './overswingJourneyContent.js';
@@ -170,6 +173,8 @@ function RetryOffer({run,onRetry,onDecline}){
 export default function OverswingJourney({quickState,quickAct,quickRestart,fullView=false}){
   const [view,setView]=useState('journey');
   const [bankTransition,setBankTransition]=useState(false);
+  const [lossTransition,setLossTransition]=useState(false);
+  const sound=useOverswingSound();
   const [progress,setProgress]=useState(()=>
     restoreJourneyProgress(readSaved(PROFILE_KEY),readSaved(RUN_KEY)));
   const [run,setRun]=useState(()=>restoreJourneyRun(
@@ -185,6 +190,12 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
     const timer=window.setTimeout(()=>setBankTransition(false),1450);
     return ()=>window.clearTimeout(timer);
   },[bankTransition,run?.encounter?.engineState?.lastAction]);
+  // Keep the board visible until the glass fracture animation completes.
+  useEffect(()=>{
+    if(!lossTransition)return;
+    const timer=window.setTimeout(()=>setLossTransition(false),1450);
+    return ()=>window.clearTimeout(timer);
+  },[lossTransition,run?.encounter?.engineState?.lastAction]);
   useEffect(()=>{try{
     if(run)localStorage.setItem(RUN_KEY,JSON.stringify(run));
     else localStorage.removeItem(RUN_KEY);
@@ -215,6 +226,11 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
   };
   const play=action=>{
     if(action?.type==='bank')setBankTransition(true);
+    if(run&&action?.type!=='bank'){
+      const next=stepJourney(run,{type:'PLAY',action});
+      if(next!==run&&potCrackForAction(next.encounter?.engineState?.lastAction))
+        setLossTransition(true);
+    }
     setRun(current=>current?stepJourney(current,{type:'PLAY',action}):current);
   };
   const useWild=(wildId,index)=>setRun(current=>current?
@@ -235,7 +251,8 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
   const screen=(()=>{
   if(view==='quick')return <div className="oj-shell oj-quick">
     <button type="button" className="oj-back" onClick={()=>setView('journey')}>‹ JOURNEY MENU</button>
-    <OverswingPlay s={quickState} act={quickAct} restart={quickRestart} fullView={fullView}/>
+    <OverswingPlay s={quickState} act={quickAct} restart={quickRestart}
+      fullView={fullView} sound={sound}/>
   </div>;
   if(view==='prepare'){
     const level=campaignLevel(selectedLevel);
@@ -269,6 +286,7 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
   }
   if(!run||view==='menu'||view==='map')return <main className="oj-shell oj-home oj-map-home">
     <header className="oj-title">
+      <OverswingSoundControls sound={sound} className="oj-main-audio"/>
       <DoomFire className="oj-title-doom-fire" width={62} height={34}/>
       <HellPendulum/>
       <h1>OVER<span>SWING</span></h1>
@@ -281,10 +299,13 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
   </main>;
   if(run.phase==='playing'||(bankTransition&&
      ['choosing_relic','choosing_wild','won'].includes(run.phase)&&
-     run.encounter?.engineState?.lastAction?.type==='bank'))
+     run.encounter?.engineState?.lastAction?.type==='bank')||
+    (lossTransition&&run.phase==='retry_offer'&&
+     potCrackForAction(run.encounter?.engineState?.lastAction)))
     return <div className="oj-shell oj-playing">
     <OverswingPlay s={run.encounter.engineState} act={play} onWild={useWild}
-      journey={run} fullView={fullView} onBack={()=>setView('menu')}/>
+      journey={run} fullView={fullView} onBack={()=>setView('menu')}
+      sound={sound}/>
     <div className="oj-exit-row"><button type="button" onClick={()=>setView('menu')}>LEAVE BOARD</button></div>
   </div>;
   if(run.phase==='choosing_relic')return <main className="oj-shell oj-reward">

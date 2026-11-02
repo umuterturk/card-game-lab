@@ -15,7 +15,9 @@ import GoldAmount,{GoldCoin} from './GoldCoin.jsx';
 import {cardHistory} from './overswingHistory.js';
 import {pixelPendulumFrame,PENDULUM_FPS,PENDULUM_REGULAR_MS,PENDULUM_SNAP_MS} from './overswingPendulum.js';
 import {cardFlightResult,flipFlightPoints,bankCoinBurst,bankBurstPoints} from './overswingFlipFlight.js';
-import {createOverswingAudio} from './overswingAudio.js';
+import OverswingSoundControls from './OverswingSoundControls.jsx';
+import {multiplierFeedbackForAction,potCrackForAction} from './overswingFeedback.js';
+import {MultiplierBurst,PotCrack} from './OverswingFeedback.jsx';
 
 const SUITS=['♥','♦','♠','♣'];
 const name=id=>label(id);
@@ -163,12 +165,12 @@ function SwingImpact({impact}){
       focusable="false" aria-hidden="true">
       {IMPACT_GLYPHS[impact.kind].flatMap((line,y)=>[...line].map((bit,x)=>
         bit==='1'?<rect key={y+'-'+x} x={x*4} y={y*4} width="4" height="4"
-          fill={snap?(y%3===0?'#fff4c4':'#ff6d44'):(y%3===0?'#fff4c4':'#ffd575')}/>:null
+          fill={snap?(y%3===0?'#fff4c4':'#ff6d44'):(y%3===0?'#c9d0e0':'#8791b1')}/>:null
       ))}
     </svg>
     <div className="os8-impact-caption">
       <strong>{snap?'SNAP!':'ZERO BREAK'}</strong>
-      <span>{snap?'POT LOST':'MULTIPLIERS RESET'}</span>
+      <span>{snap?'POT LOST':'ALL MULTIPLIERS → ×1'}</span>
     </div>
   </div>;
 }
@@ -283,15 +285,16 @@ const FACTOR_HELP={
   flip:{title:'FLIP',text:'Each consecutive safe FLIP builds ×2, ×3, ×4… even when it crosses zero. STEER ends the streak but preserves earned FLIP.'},
   jackpot:{title:'JACKPOT',text:'Every zero crossing made by FLIP adds one tier: ×2, ×3, ×4… A noncrossing FLIP does not reduce it. Exact zero resets all multipliers.'}
 };
-function Factor({id,label,value,onClick,expanded}){
-  return <button type="button" className={'os8-factor '+(value>1?'os8-active':'')+(expanded?' os8-factor-open':'')}
+function Factor({id,label,value,onClick,expanded,winning=false}){
+  return <button type="button" className={'os8-factor '+(value>1?'os8-active':'')+
+    (expanded?' os8-factor-open':'')+(winning?' os8-factor-winning':'')}
       onClick={onClick} aria-expanded={expanded} aria-controls="os8-factor-help"
       aria-label={label+' multiplier '+value+'. Tap for help'}>
     <span>{label} <span className="os8-info-icon" aria-hidden="true">ⓘ</span></span>
     <b>×{value.toLocaleString('en-US')}</b>
   </button>;
 }
-export default function OverswingPlay({s,act,restart,onWild=null,journey=null,onBack=null,fullView=false}){
+export default function OverswingPlay({s,act,restart,onWild=null,journey=null,onBack=null,fullView=false,sound=null}){
   const [discardPick,setDiscardPick]=useState(false);
   const [openFactor,setOpenFactor]=useState(null);
   const [polarityPick,setPolarityPick]=useState(false);
@@ -301,53 +304,26 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
   const [impact,setImpact]=useState(null);
   const [flight,setFlight]=useState(null);
   const [coinBurst,setCoinBurst]=useState(null);
-  const [musicOn,setMusicOn]=useState(false);
-  const [sfxOn,setSfxOn]=useState(true);
-  const audioRef=useRef(null),lastAudioAction=useRef(s.lastAction);
+  const [multiplierBurst,setMultiplierBurst]=useState(null);
+  const [potCrack,setPotCrack]=useState(null);
+  const lastAudioAction=useRef(s.lastAction);
   const flipButtonRef=useRef(null),bankButtonRef=useRef(null);
-  const potTargetRef=useRef(null),meterRef=useRef(null),goldTargetRef=useRef(null);
+  const potTargetRef=useRef(null),potSectionRef=useRef(null);
+  const meterRef=useRef(null),goldTargetRef=useRef(null);
   const discardTargetRef=useRef(null),handContainerRef=useRef(null);
   const steerSourceRef=useRef(null);
   const previousFlightAction=useRef(s.lastAction),flightSerial=useRef(0),bankSerial=useRef(0);
+  const previousFeedbackAction=useRef(s.lastAction),bonusSerial=useRef(0),crackSerial=useRef(0);
 
-  // Browser autoplay policy: synth context is created by a direct gesture.
-  const startAudio=()=>{
-    if(!audioRef.current)audioRef.current=createOverswingAudio();
-    audioRef.current.setSfx(sfxOn);
-    audioRef.current.unlock();
-  };
-  const dispatch=command=>{startAudio();act(command);};
+  const dispatch=command=>{sound?.unlock();act(command);};
   const saveSteerSource=(index,element)=>{
     if(!element||!Number.isInteger(d?.hand?.[index]))return;
     steerSourceRef.current={card:d.hand[index],rect:element.getBoundingClientRect()};
   };
-  const soundMusic=()=>{
-    if(!audioRef.current)audioRef.current=createOverswingAudio();
-    const enabled=audioRef.current.setMusic(!musicOn);
-    setMusicOn(enabled);
-  };
-  const soundSfx=()=>{
-    if(!audioRef.current)audioRef.current=createOverswingAudio();
-    const enabled=!sfxOn;
-    if(enabled)audioRef.current.unlock();
-    audioRef.current.setSfx(enabled);
-    setSfxOn(enabled);
-  };
-  useEffect(()=>{
-    const visibility=()=>{
-      if(document.hidden)audioRef.current?.suspend();
-      else audioRef.current?.resume();
-    };
-    document.addEventListener('visibilitychange',visibility);
-    return ()=>{
-      document.removeEventListener('visibilitychange',visibility);
-      audioRef.current?.dispose();audioRef.current=null;
-    };
-  },[]);
   useEffect(()=>{
     if(s.lastAction===lastAudioAction.current)return;
     lastAudioAction.current=s.lastAction;
-    audioRef.current?.play(s.lastAction);
+    sound?.play(s.lastAction);
   },[s.lastAction]);
   useLayoutEffect(()=>{
     const action=s.lastAction;
@@ -380,6 +356,22 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
       {width:window.innerWidth,height:window.innerHeight});
     setFlight({...event,style,serial:++flightSerial.current});
   },[s.lastAction,s.dealIndex,s.seed]);
+  useLayoutEffect(()=>{
+    const action=s.lastAction;
+    if(action===previousFeedbackAction.current)return;
+    previousFeedbackAction.current=action;
+    const bonus=multiplierFeedbackForAction(action);
+    setMultiplierBurst(bonus?{...bonus,serial:++bonusSerial.current}:null);
+    const loss=potCrackForAction(action);
+    const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    if(!loss||reduced){setPotCrack(null);return;}
+    const area=potSectionRef.current?.getBoundingClientRect();
+    const centerX=area?Math.round(area.left+area.width/2):Math.round(window.innerWidth/2);
+    const centerY=area?Math.round(area.top+area.height/2):Math.round(window.innerHeight*.62);
+    setPotCrack({...loss,serial:++crackSerial.current,style:{
+      '--crack-x':centerX+'px','--crack-y':centerY+'px'
+    }});
+  },[s.lastAction,s.dealIndex,s.seed]);
   // A new action object means a new event. Use an increasing key so successive
   // ZERO BREAKs or SNAPs always restart their CSS animations.
   useEffect(()=>{
@@ -407,7 +399,7 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
       const card=d.hand[index];
       saveSteerSource(index,handContainerRef.current?.querySelector('[data-hand-card="'+card+'"]'));
     }
-    startAudio();
+    sound?.unlock();
     onWild?.(wildId,index);
     setPolarityPick(false);
   };
@@ -424,7 +416,7 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
       dispatch({type:'steer',index});
     }
   };
-  const bank=()=>{if(mustDiscard){startAudio();setDiscardPick(true);}else dispatch({type:'bank'});};
+  const bank=()=>{if(mustDiscard){sound?.unlock();setDiscardPick(true);}else dispatch({type:'bank'});};
   const playQueen=direction=>{
     if(queenPick!=null&&legal.some(a=>a.type==='steer'&&a.index===queenPick&&a.direction===direction))
       dispatch({type:'steer',index:queenPick,direction});
@@ -466,9 +458,16 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
   </div>;
   const multiplierDetails=<>
     <div className="os8-factors" aria-label="Multiplier details; tap for an explanation">
-      <Factor id="swing" label="SWING" value={d.W+1} onClick={()=>setOpenFactor(openFactor==='swing'?null:'swing')} expanded={openFactor==='swing'}/>
-      <Factor id="flip" label="FLIP" value={d.flipFactor} onClick={()=>setOpenFactor(openFactor==='flip'?null:'flip')} expanded={openFactor==='flip'}/>
-      <Factor id="jackpot" label="JACKPOT" value={d.jackpotFactor} onClick={()=>setOpenFactor(openFactor==='jackpot'?null:'jackpot')} expanded={openFactor==='jackpot'}/>
+      <Factor id="swing" label="SWING" value={d.W+1}
+        winning={multiplierBurst?.kind==='swing'}
+        onClick={()=>setOpenFactor(openFactor==='swing'?null:'swing')} expanded={openFactor==='swing'}/>
+      <Factor id="flip" label="FLIP" value={d.flipFactor}
+        winning={multiplierBurst?.kind==='flip'}
+        onClick={()=>setOpenFactor(openFactor==='flip'?null:'flip')} expanded={openFactor==='flip'}/>
+      <Factor id="jackpot" label="JACKPOT" value={d.jackpotFactor}
+        winning={multiplierBurst?.kind==='jackpot'}
+        onClick={()=>setOpenFactor(openFactor==='jackpot'?null:'jackpot')} expanded={openFactor==='jackpot'}/>
+      {multiplierBurst&&<MultiplierBurst key={multiplierBurst.serial} feedback={multiplierBurst}/>}
     </div>
     {openFactor&&FACTOR_HELP[openFactor]&&<div id="os8-factor-help" className="os8-factor-tooltip" role="region" aria-label={FACTOR_HELP[openFactor].title+' explanation'}>
       <div className="os8-tooltip-header"><strong >How {FACTOR_HELP[openFactor].title} works</strong><button type="button" aria-label="Close explanation" onClick={()=>setOpenFactor(null)}>×</button></div>
@@ -503,16 +502,7 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
     <header className="os8-head">
       <div className="os8-brand"><span>{tutorial?'GUIDED TRAINING':isJourney?'THE LAST FLAME':'V13 · ARCADE MODE'}</span><h2>OVER<span>SWING</span></h2></div>
       <div className="os8-settings">
-        <button type="button" className={'os8-audio-toggle '+(musicOn?'on':'off')}
-          onClick={soundMusic} aria-label={musicOn?'Turn music off':'Turn music on'}
-          aria-pressed={musicOn} title={musicOn?'Music on · tap to mute':'Play original battle music'}>
-          ♫<span>{musicOn?'ON':'OFF'}</span>
-        </button>
-        <button type="button" className={'os8-audio-toggle '+(sfxOn?'on':'off')}
-          onClick={soundSfx} aria-label={sfxOn?'Mute sound effects':'Enable sound effects'}
-          aria-pressed={sfxOn} title={sfxOn?'SFX on · tap to mute':'SFX muted'}>
-          ◖))<span>{sfxOn?'ON':'OFF'}</span>
-        </button>
+        <OverswingSoundControls sound={sound}/>
         {fullView&&<button type="button" aria-label="How to play" title="How to play" onClick={()=>setHelpOpen(true)}>?</button>}
         {isJourney?<button type="button" title="Back to journey" onClick={onBack}>‹ MAP</button>:null}
         {!isJourney&&!tutorial&&<button className="os8-tutorial-launch" type="button" onClick={()=>{setDiscardPick(false);setOpenFactor(null);restart('tutorial');}}>TRAIN</button>}
@@ -574,7 +564,7 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
     </section>}
     {guidedActionFirst&&actionButtons}
     {multiplierDetails}
-    <section className="os8-pot">
+    <section ref={potSectionRef} className={'os8-pot'+(potCrack?' os8-pot-breaking':'')}>
       <div className="os8-section-heading"><h3>♨ POT CARDS</h3><span>{d.pot.length} cards · {pot} pts</span></div>
       <div className="os8-potcards" ref={potTargetRef}>
         {(fullView?d.pot.slice(-6):d.pot).map(c=>
@@ -619,6 +609,8 @@ export default function OverswingPlay({s,act,restart,onWild=null,journey=null,on
       setFlight(current=>current?.serial===serial?null:current)}/>}
     {coinBurst&&<BankCoinBurst burst={coinBurst} onFinish={serial=>
       setCoinBurst(current=>current?.serial===serial?null:current)}/>}
+    {potCrack&&<PotCrack key={potCrack.serial} crack={potCrack} onFinish={serial=>
+      setPotCrack(current=>current?.serial===serial?null:current)}/>}
     {historyOpen&&<PlayedCards deal={d} onClose={()=>setHistoryOpen(false)}/>}
     {polarityPick&&isJourney&&<div className="os8-wild-overlay" role="presentation">
       <div className="os8-wild-modal" role="dialog" aria-modal="true"

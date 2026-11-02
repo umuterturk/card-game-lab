@@ -915,3 +915,62 @@
  .os8-steer-flight,.os8-bank-burst,.os8-bank-flying-coin,
  .os8-bank-burst-label{animation:none!important;display:none!important}
 }
+
+/* ZERO BREAK is a negative reset, not a reward: cold ash and implosion.
+   SNAP and JACKPOT retain their own effects. */
+.os8-impact-zero{
+  --os8-impact-ink:#b3bacd;--os8-impact-core:#6c789b;
+  --os8-impact-glow:#353b63;
+}
+.os8-impact-zero .os8-impact-flash{
+  background:radial-gradient(ellipse at 50% 42%,#7381b364 0%,
+    #242b5ba0 30%,transparent 66%),
+    repeating-linear-gradient(0deg,transparent 0 7px,#6d83ac24 7px 11px);
+}
+.os8-impact-zero .os8-impact-shockwave{
+  animation:os8-zero-implosion 640ms steps(7,end) both;
+  border-color:#b9bfdb;box-shadow:0 0 0 6px #272640
+}
+.os8-impact-zero .os8-impact-spark{
+  background:#94a4ba;box-shadow:8px 0 #4b537a,0 8px #2d2f52;
+  animation:os8-zero-ash 830ms steps(8,end) both
+}
+.os8-impact-zero .os8-impact-split{
+  background:repeating-linear-gradient(90deg,#b5bcd3 0 9px,
+    transparent 9px 14px);
+  box-shadow:0 4px 0 #1b1a35;
+  animation:os8-zero-rift 730ms steps(8,end) both
+}
+.os8-impact-zero .os8-impact-glyph{
+  filter:drop-shadow(3px 3px 0 #18172e) drop-shadow(-3px -3px 0 #1b1e3e);
+  animation:os8-zero-glyph-fall 820ms steps(8,end) both
+}
+.os8-impact-zero .os8-impact-caption strong{
+  color:#dbe0ed;border-color:#7886b6;background:#1d2035;
+  text-shadow:2px 2px #0b0b1e
+}
+.os8-impact-zero .os8-impact-caption span{
+  color:#c1c8dd;background:#191c31e8
+}
+@keyframes os8-zero-implosion{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(9)}
+  20%{opacity:1}
+  80%{opacity:1;transform:translate(-50%,-50%) scale(.6)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(.1)}
+}
+@keyframes os8-zero-ash{
+  0%{opacity:0;transform:rotate(var(--ray)) translateY(-45px) scale(1)}
+  20%,58%{opacity:.8}
+  100%{opacity:0;transform:rotate(var(--ray)) translateY(6px) scale(.2)}
+}
+@keyframes os8-zero-rift{
+  0%{opacity:0;transform:scaleX(1.7)}
+  26%{opacity:1}
+  100%{opacity:0;transform:scaleX(.12)}
+}
+@keyframes os8-zero-glyph-fall{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(1.4)}
+  25%{opacity:1;transform:translate(-50%,-50%) scale(.95)}
+  70%{opacity:1;transform:translate(-50%,-40%) scale(.75)}
+  100%{opacity:0;transform:translate(-50%,-20%) scale(.35)}
+}

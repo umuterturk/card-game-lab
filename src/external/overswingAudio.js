@@ -1,7 +1,16 @@
 // Original, procedural 8-bit dark-metal score and arcade SFX.
 // No third-party music, recordings or samples. Browser Web Audio only.
 // Audio starts solely after a player's gesture and is cleaned up on unmount.
+import {multiplierFeedbackForAction,potCrackForAction} from './overswingFeedback.js';
+
 export const AUDIO_CUES=Object.freeze(['flip','steer','zero','snap','bank']);
+export const BONUS_AUDIO_CUES=Object.freeze(['jackpot','swing','flipTier','potCrack']);
+export function bonusAudioCuesForAction(action){
+  if(potCrackForAction(action))return ['potCrack'];
+  const feedback=multiplierFeedbackForAction(action);
+  if(!feedback)return [];
+  return [feedback.kind==='flip'?'flipTier':feedback.kind];
+}
 export function audioCueForAction(action){
   if(!action)return null;
   if(action.type==='bank')return Number(action.points)>0?'bank':null;
@@ -147,9 +156,12 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
         tone(220,time+.03,.085,.048,'square');
         break;
       case 'zero':
-        tone(392,time,.12,.12,'triangle');
-        tone(523,time+.075,.17,.14,'square');
-        tone(784,time+.16,.26,.17,'triangle');
+        // ZERO BREAK is a setback: falling dissonance and a collapsing ember,
+        // deliberately not the ascending JACKPOT or winning fanfare.
+        tone(493,time,.18,.11,'sawtooth',sfxBus,247);
+        tone(311,time+.07,.24,.10,'square',sfxBus,116);
+        blast(time+.11,.23,.095,sfxBus,810);
+        tone(73,time+.2,.25,.075,'triangle',sfxBus,40);
         break;
       case 'snap':
         blast(time,.32,.27,sfxBus,1250);
@@ -165,6 +177,43 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
           tone(base/2,at,.10,.038,'triangle');
         }
         break;
+      }
+    }
+    // These accents layer ON TOP of the normal FLIP / STEER / SNAP cue,
+    // instead of replacing it. Protected SNAPs never get the devilish crack.
+    for(const bonus of bonusAudioCuesForAction(action)){
+      switch(bonus){
+        case 'flipTier':
+          tone(659,time+.095,.115,.041,'triangle',sfxBus,830);
+          tone(987,time+.145,.09,.026,'sine');
+          break;
+        case 'swing':
+          tone(460,time+.08,.17,.078,'triangle',sfxBus,650);
+          tone(690,time+.13,.15,.055,'sine');
+          break;
+        case 'jackpot':{
+          // A bright ascending arcade-metal fanfare, with stereo-safe sparks.
+          const scale=[392,494,587,784,988,1175];
+          scale.forEach((pitch,i)=>{
+            const at=time+.055+i*.075;
+            tone(pitch,at,.22,.073,'square',sfxBus,pitch*1.025);
+            tone(pitch*2,at+.017,.15,.035,'triangle');
+          });
+          blast(time+.10,.12,.035,sfxBus,3900);
+          tone(1568,time+.51,.38,.09,'triangle');
+          tone(784,time+.51,.33,.045,'sawtooth');
+          break;
+        }
+        case 'potCrack':
+          // Dissonant descending tritone, low infernal growl and stone-glass
+          // fracture. Additional to the existing SNAP impact sound.
+          blast(time+.025,.18,.26,sfxBus,4700);
+          tone(175,time+.03,.48,.14,'sawtooth',sfxBus,49);
+          tone(124,time+.045,.55,.15,'square',sfxBus,32);
+          tone(185,time+.12,.31,.09,'sawtooth',sfxBus,61);
+          blast(time+.21,.36,.20,sfxBus,700);
+          tone(58,time+.26,.45,.11,'triangle',sfxBus,30);
+          break;
       }
     }
   }
