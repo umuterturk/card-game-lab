@@ -30,7 +30,7 @@ test('campaign homepage stays minimal; Royals and inventory live in preparation'
   assert.match(campaign,/PREPARE · LEVEL/);
 });
 
-test('the selected permanent Royal loadout still becomes the new hand',()=>{
+test('the selected permanent Royal loadout is scheduled for later hand refills',()=>{
   let progress={...EMPTY_JOURNEY_PROGRESS,lifetimeGold:250000};
   progress=buyRoyal(progress,'K');
   progress=buyRoyal(progress,'J');
@@ -41,7 +41,8 @@ test('the selected permanent Royal loadout still becomes the new hand',()=>{
   const run=startJourney(8127,progress.lifetimeGold,1,progress.equippedRoyalIds,
     {wildInventory:progress.wildInventory,rewardAvailable:true});
   assert.deepEqual(run.equippedRoyals,['J']);
-  assert.equal(run.encounter.engineState.deal.hand.filter(card=>card>=40).length,1);
+  assert.equal(run.encounter.engineState.deal.hand.filter(card=>card>=40).length,0);
+  assert.equal(run.encounter.engineState.deal.pendingRoyals.length,1);
   assert.equal(run.levelNumber,1);
   assert.equal(run.wildRewardAvailable,true);
 });

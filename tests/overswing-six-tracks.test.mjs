@@ -50,7 +50,7 @@ test('Sixteen-track shuffle bag has no repeats until the full library plays',()=
       sequence.push(selected);
       assert.equal(selected,trackForGate(seed,level,gate),
         'a save/retry must replay the same track');
-      assert.ok(selected>=0&&selected<6);
+      assert.ok(selected>=0&&selected<16);
     }
     assert.equal(sequence.length,36);
     for(let block=0;block<2;block++){
