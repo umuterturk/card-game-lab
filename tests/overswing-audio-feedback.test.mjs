@@ -135,6 +135,7 @@ test('audio is lazy, gesture-unlocked, opt-out, and closes cleanly',async()=>{
   assert.ok(oscillators>before);
   const after=oscillators;
   audio.setSfx(false);
+  assert.equal(closeCount,1,'muting both channels releases the first context');
   audio.play({type:'steer',card:2});
   assert.equal(oscillators,after,'muted SFX does not schedule voices');
   audio.setSfx(true);
@@ -149,7 +150,7 @@ test('audio is lazy, gesture-unlocked, opt-out, and closes cleanly',async()=>{
   audio.suspend();
   audio.dispose();
   await Promise.resolve();
-  assert.equal(closeCount,1);
+  assert.equal(closeCount,2,'the restored SFX context closes on sleep');
   assert.equal(timers.size,0);
   const unsupported=createOverswingAudio(null);
   assert.equal(unsupported.unlock(),false);
