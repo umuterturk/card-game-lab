@@ -96,7 +96,7 @@ test('cinematic UI enters from the side and keeps the same image when rules appe
   const css=read('overswingEnemy.css');
   assert.match(jsx,/sound\.setAtmosphere\('cinematic'\)/);
   assert.match(jsx,/sound\.setAtmosphere\('menu'\)/);
-  assert.match(jsx,/prepared=\{briefingReady\}/);
+  assert.ok(jsx.includes("prepared={!introVisible||briefingReady}"));
   assert.match(jsx,/setBriefingReady\(true\)/);
   assert.doesNotMatch(jsx,/setIntroClosing\(true\)|1850/);
   assert.match(intro,/oe-intro-image-shell/);

@@ -64,8 +64,8 @@ test('PREPARE crossfades the controls without moving or replacing the cinematic 
   const jsx=read('OverswingJourney.jsx'),intro=read('OverswingEnemy.jsx');
   const css=read('overswingEnemy.css');
   assert.match(jsx,/setIntroVisible\(true\)/);
-  assert.match(jsx,/prepared=\{briefingReady\}/);
-  assert.match(jsx,/run\.phase==='choosing_relic'&&introVisible/);
+  assert.ok(jsx.includes("prepared={!introVisible||briefingReady}"));
+  assert.ok(jsx.includes("run?.phase==='choosing_relic'&&!bankTransition&&createPortal("));
   assert.match(jsx,/<OverswingGateBriefing run=\{run\} embedded/);
   assert.doesNotMatch(jsx,/setIntroClosing\(true\)/);
   assert.match(intro,/TAP TO PREPARE/);
@@ -82,7 +82,7 @@ test('cinematic intro portals outside fullscreen scale and survives refresh with
   const jsx=read('OverswingJourney.jsx'),intro=read('OverswingEnemy.jsx');
   const css=read('overswingEnemy.css');
   assert.ok(jsx.includes("if(run.phase==='choosing_relic')return null;"));
-  assert.ok(jsx.includes("run?.phase==='choosing_relic'&&createPortal("));
+  assert.ok(jsx.includes("run?.phase==='choosing_relic'&&!bankTransition&&createPortal("));
   assert.ok(jsx.includes("document.body)"));
   assert.ok(jsx.includes("prepared={!introVisible||briefingReady}"));
   assert.ok(jsx.includes("<OverswingGateBriefing run={run} embedded"));

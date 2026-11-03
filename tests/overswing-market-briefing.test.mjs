@@ -53,7 +53,9 @@ test('cinematic intro leads into a single fading gate briefing under the charact
   assert.match(journey,/resetJourneyAtLevel/);
   assert.match(read('overswingJourney.js'),/shopBeforeFirstGate:true/);
   assert.doesNotMatch(journey,/if\(view==='prepare'\)/);
-  assert.match(journey,/if\(run\.phase==='choosing_relic'\)return <OverswingGateBriefing/);
+  assert.ok(journey.includes("if(run.phase==='choosing_relic')return null;"));
+  assert.ok(journey.includes("createPortal("));
+  assert.ok(journey.includes("<OverswingGateBriefing run={run} embedded"));
   assert.match(briefing,/<EnemyPortrait/);
   assert.match(briefing,/og-panel/);
   assert.match(briefing,/run\.offeredRelicIds\.map/);

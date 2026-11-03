@@ -367,7 +367,7 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
   </main>;
   return null;
   })();
-  return <>{screen}{reveal}<OverswingPurchaseFlight purchase={purchaseFlight}/>{view==='journey'&&run?.phase==='choosing_relic'&&createPortal(
+  return <>{screen}{reveal}<OverswingPurchaseFlight purchase={purchaseFlight}/>{view==='journey'&&run?.phase==='choosing_relic'&&!bankTransition&&createPortal(
       <OverswingEnemyIntro
         level={run.levelNumber} prepared={!introVisible||briefingReady}
         onContinue={()=>{sound.setAtmosphere('menu');setBriefingReady(true);}}
