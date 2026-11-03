@@ -27,6 +27,8 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm test
       - run: npm run build
+      # Browser-level smoke: exercise PREPARE and refresh in the scaled mobile UI.
+      - run: node scripts/verify-overswing-briefing.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
