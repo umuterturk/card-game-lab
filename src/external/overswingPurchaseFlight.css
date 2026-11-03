@@ -1,0 +1,18 @@
+/* Purchase uses BANK's animation in the opposite logical direction:
+   Treasury -> item, with the same pixel-art coins and landing burst. */
+.os8-bank-burst.oj-purchase-burst{z-index:5000}
+.oj-purchase-burst .oj-purchase-label{border-color:#bd8959;background:#291a1fed;
+ box-shadow:0 5px 0 #120a10,0 0 18px #ffc45a73}
+.oj-purchase-burst .oj-purchase-label>span:last-child{
+ font:clamp(8px,2.3vw,11px)/1.4 'Press Start 2P',monospace;
+ color:#ffe0a1;max-width:170px;text-align:center}
+.oj-purchase-burst .oj-purchase-label .os-gold-amount{color:#f7b17b}
+.og-relic.og-relic-buying:disabled,.om-item.om-buying:disabled{
+ opacity:1;filter:brightness(1.22);border-color:#ffdf8e;
+ box-shadow:inset 0 0 0 2px #995f36,0 0 18px #ffc05b91}
+@media(prefers-reduced-motion:reduce){
+ /* The purchase remains visible without moving particles. */
+ .oj-purchase-burst .os8-bank-flying-coin{display:none!important}
+ .oj-purchase-burst .oj-purchase-label{animation:none!important;opacity:1;
+ transform:translate3d(var(--bank-end-x),var(--bank-end-y),0) scale(1)}
+}
