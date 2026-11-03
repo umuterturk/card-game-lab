@@ -163,3 +163,64 @@ body>.oe-intro{position:fixed;inset:0;width:100vw;height:100dvh;z-index:2400}
 .oe-intro-prepared .oe-intro-back{opacity:1;pointer-events:auto;
  transition:opacity 1s ease .4s}
 .oe-intro-back:focus-visible{outline:2px solid #ffe3a7;outline-offset:3px}
+
+
+/* Cursed-tape horror: intermittent ghost exposures, muted analog noise,
+   tearing and two soft flashes per ~8s. Never animate the real portrait's
+   geometry, scroll layout, or hit targets. Overlays are pointer-transparent. */
+.oe-intro-echo{position:absolute;inset:0;width:100%;height:100%;
+ opacity:0;pointer-events:none;mix-blend-mode:screen;isolation:isolate;
+ filter:grayscale(1) invert(.75) sepia(.28) contrast(1.75) brightness(.62);
+ animation:oe-ring-ghost 8.3s steps(1,end) infinite}
+.oe-intro-film{position:absolute;z-index:1;inset:0;overflow:hidden;
+ pointer-events:none;mix-blend-mode:screen}
+.oe-intro-film::before{content:"";position:absolute;inset:-14% -4%;
+ background:
+  repeating-linear-gradient(0deg,transparent 0 4px,#b2c7b019 5px,transparent 6px 13px),
+  repeating-linear-gradient(90deg,transparent 0 37px,#e5ece609 38px,transparent 39px 83px);
+ opacity:.34;animation:oe-ring-tracking 3.9s steps(7,end) infinite}
+.oe-intro-film::after{content:"";position:absolute;left:-10%;right:-10%;
+ top:5%;height:13%;background:repeating-linear-gradient(0deg,
+ #a8bba72e 0 1px,#23302c55 2px 4px,transparent 5px 9px);
+ opacity:0;box-shadow:0 2px 19px #becdb42b;
+ animation:oe-ring-tear 8.3s steps(1,end) infinite}
+.oe-intro-signal-flash,.oe-intro-prep-flash{position:absolute;z-index:1;inset:0;
+ opacity:0;pointer-events:none;mix-blend-mode:screen;
+ background:linear-gradient(180deg,#a7b7a188,#c2cbb055 42%,transparent 87%)}
+.oe-intro-signal-flash{animation:oe-ring-signal 8.3s steps(1,end) infinite}
+.oe-intro-prepared .oe-intro-prep-flash{
+ animation:oe-ring-prepare 1.15s steps(1,end) 1 both}
+@keyframes oe-ring-ghost{
+ 0%,12%,13%,34%,35%,62%,63%,100%{opacity:0;transform:translateX(0)}
+ 12.3%{opacity:.42;transform:translateX(-7px)}
+ 12.65%{opacity:.18;transform:translateX(4px)}
+ 34.3%{opacity:.27;transform:translateX(8px)}
+ 62.3%{opacity:.35;transform:translateX(-5px)}
+}
+@keyframes oe-ring-tracking{
+ from{transform:translateY(-9px)}
+ to{transform:translateY(17px)}
+}
+@keyframes oe-ring-tear{
+ 0%,12%,13%,34%,35%,61%,63%,100%{opacity:0;transform:translate(0,0)}
+ 12.3%{opacity:.62;transform:translate(11px,20dvh)}
+ 34.3%{opacity:.37;transform:translate(-9px,52dvh)}
+ 62.3%{opacity:.5;transform:translate(7px,34dvh)}
+}
+@keyframes oe-ring-signal{
+ 0%,12%,13%,34%,35%,62%,63%,100%{opacity:0}
+ 12.3%{opacity:.14}
+ 34.3%{opacity:.1}
+ 62.3%{opacity:.12}
+}
+@keyframes oe-ring-prepare{
+ 0%,8%,18%,27%,100%{opacity:0}
+ 12%{opacity:.16}
+ 22%{opacity:.09}
+}
+/* Stop the effect entirely when the system asks for reduced motion. */
+@media(prefers-reduced-motion:reduce){
+ .oe-intro-echo,.oe-intro-film::before,.oe-intro-film::after,
+ .oe-intro-signal-flash,.oe-intro-prep-flash{
+ animation:none!important;opacity:0!important;transform:none!important}
+}

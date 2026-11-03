@@ -51,6 +51,15 @@ try{
       image:{x:rect?.x,y:rect?.y,width:rect?.width,height:rect?.height}};
   });
   assert.ok(before.portal,'Cinematic must be portaled directly under body');
+  const horror=await page.evaluate(()=>({
+    echo:!!document.querySelector('.oe-intro-echo'),
+    film:!!document.querySelector('.oe-intro-film'),
+    ghostAnimation:getComputedStyle(document.querySelector('.oe-intro-echo')).animationName,
+    signalAnimation:getComputedStyle(document.querySelector('.oe-intro-signal-flash')).animationName
+  }));
+  assert.ok(horror.echo&&horror.film,'Cursed videotape layers must exist');
+  assert.equal(horror.ghostAnimation,'oe-ring-ghost');
+  assert.equal(horror.signalAnimation,'oe-ring-signal');
   assert.equal(before.position,'fixed');
   assert.ok(before.image.width>=300&&before.image.height>=300,
     'Cinematic image must have a real, full-size bounding rectangle');
@@ -70,6 +79,8 @@ try{
     Math.abs(after.image.y-before.image.y)<2,
     'PREPARE must never move the portrait');
   assert.ok(after.opacity>.9,'Rules and relics must be visibly faded in');
+  assert.equal(await page.$eval('.oe-intro-prep-flash',
+    el=>getComputedStyle(el).animationName),'oe-ring-prepare');
   assert.ok(after.buttonOpacity<.1,'Prepare button must be faded out');
   assert.equal(after.relics,3);
   assert.equal(after.oldPortraits,0,'No small bordered portrait may appear');
@@ -85,6 +96,13 @@ try{
   assert.ok(restored.portal&&restored.opacity>.9,'Refresh must restore the cinematic briefing');
   assert.equal(restored.relics,3);
   assert.equal(restored.oldPortraits,0);
+  await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'reduce'}]);
+  const still=await page.$eval('.oe-intro-echo',el=>({
+    animation:getComputedStyle(el).animationName,
+    opacity:getComputedStyle(el).opacity
+  }));
+  assert.equal(still.animation,'none','Reduced motion must disable ghost flashes');
+  assert.equal(still.opacity,'0');
   await page.click('.oe-intro-preparation .og-fight');
   await page.waitForSelector('.oj-playing',{timeout:8000});
   assert.equal(await page.$('body > .oe-intro'),null,'Starting fight removes cinematic overlay');

@@ -70,7 +70,8 @@ test('PREPARE crossfades the controls without moving or replacing the cinematic 
   assert.doesNotMatch(jsx,/setIntroClosing\(true\)/);
   assert.match(intro,/TAP TO PREPARE/);
   assert.match(intro,/oe-intro-embers/);
-  assert.equal(intro.match(/<EnemyPortrait level=\{level\}/g)?.length,1);
+  assert.equal(intro.match(/<EnemyPortrait level=\{level\}/g)?.length,2,
+    'one fixed main portrait and one spectral overlay');
   assert.match(intro,/\{children&&<div className="oe-intro-preparation"/);
   assert.match(css,/\.oe-intro-prepared \.oe-intro-words/);
   assert.match(css,/\.oe-intro-prepared \.oe-intro-preparation/);

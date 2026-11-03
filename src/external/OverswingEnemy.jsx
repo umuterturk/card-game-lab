@@ -39,8 +39,14 @@ export default function OverswingEnemyIntro({level,closing=false,onContinue,onBa
     <div className="oe-intro-night" aria-hidden="true"/>
     <div className="oe-intro-image-shell">
       <EnemyPortrait level={level} className="oe-intro-art" alt=""/>
+      {/* A spectral second exposure is the only image that jitters; the real
+          character stays exactly where it is throughout PREPARE. */}
+      <EnemyPortrait level={level} className="oe-intro-echo" alt=""/>
     </div>
     <div className="oe-intro-vignette" aria-hidden="true"/>
+    <div className="oe-intro-film" aria-hidden="true"/>
+    <div className="oe-intro-signal-flash" aria-hidden="true"/>
+    <div className="oe-intro-prep-flash" aria-hidden="true"/>
     <div className="oe-intro-heat" aria-hidden="true"/>
     <div className="oe-intro-embers" aria-hidden="true">
       {Array.from({length:22},(_,i)=><i key={i} style={{

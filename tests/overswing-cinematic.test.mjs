@@ -109,3 +109,20 @@ test('cinematic UI enters from the side and keeps the same image when rules appe
   assert.match(css,/oe-pixel-haze/);
   assert.match(css,/prefers-reduced-motion:reduce/);
 });
+
+test('cursed-tape horror briefly ghosts the opponent but never animates the base portrait position',()=>{
+  const read=name=>readFileSync(new URL('../src/external/'+name,import.meta.url),'utf8');
+  const intro=read('OverswingEnemy.jsx'),css=read('overswingEnemy.css');
+  assert.match(intro,/className="oe-intro-echo"/);
+  assert.match(intro,/className="oe-intro-film"/);
+  assert.match(intro,/className="oe-intro-signal-flash"/);
+  assert.match(intro,/className="oe-intro-prep-flash"/);
+  assert.match(css,/@keyframes oe-ring-ghost/);
+  assert.match(css,/@keyframes oe-ring-tracking/);
+  assert.match(css,/@keyframes oe-ring-tear/);
+  assert.match(css,/@keyframes oe-ring-prepare/);
+  assert.match(css,/\.oe-intro-echo\{position:absolute;inset:0/);
+  assert.match(css,/\.oe-intro-film\{position:absolute;z-index:1;inset:0/);
+  assert.match(css,/\.oe-intro-prepared \.oe-intro-prep-flash/);
+  assert.match(css,/\.oe-intro-echo,\.oe-intro-film::before,\.oe-intro-film::after/);
+});
