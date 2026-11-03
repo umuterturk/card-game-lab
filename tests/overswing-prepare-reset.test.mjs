@@ -83,7 +83,8 @@ test('PREPARE always runs the cinematic, while RESUME continues the saved run',(
     journey.indexOf('onQuick=',journey.indexOf('onSelect={setSelectedLevel} onStart={()=>{')));
   assert.match(press,/begin\(selectedLevel\)/);
   assert.match(press,/sound\.setAtmosphere\('cinematic'\)/);
-  assert.match(press,/setIntroClosing\(false\)/);
+  assert.match(press,/setBriefingReady\(false\)/);
+  assert.doesNotMatch(press,/setIntroClosing/);
   assert.match(press,/setIntroVisible\(true\)/);
   assert.doesNotMatch(press,/if\(activeJourney\).*setView\('journey'\)/);
   assert.match(journey,/resetJourneyAtLevel\(progress,run,level,Date\.now\(\)\)/);
