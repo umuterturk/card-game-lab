@@ -27,8 +27,15 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm test
       - run: npm run build
+      - run: npm run verify:release
       # Browser-level smoke: exercise PREPARE and refresh in the scaled mobile UI.
       - run: node scripts/verify-overswing-briefing.mjs
+      - run: npm run verify:offline
+      - run: npm run package:crazygames
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overswing-html5-portal
+          path: overswing-crazygames.zip
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

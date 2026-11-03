@@ -1,0 +1,5 @@
+/* No scrolling catalog chrome; preserve existing scaled game board and safe area. */
+html.overswing-full-active,body.overswing-full-active{overscroll-behavior:none}
+body.overswing-full-active{background:#100b13}
+body.overswing-full-active #root{min-height:100dvh}
+.oj-save-warning{position:fixed;z-index:2147483646;left:calc(10px + env(safe-area-inset-left,0px));right:calc(10px + env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));max-width:540px;margin:auto;padding:10px 12px;color:#fff0cd;background:#5b2029;border:2px solid #ffbf79;font:14px/1.35 system-ui,sans-serif;text-align:center;pointer-events:none}

@@ -147,6 +147,7 @@ function RetryOffer({run,onRetry,onDecline,pendingPurchase=null}){
 }
 export default function OverswingJourney({quickState,quickAct,quickRestart,fullView=false}){
   const [view,setView]=useState('journey');
+  const [saveFailure,setSaveFailure]=useState(false);
   const [introVisible,setIntroVisible]=useState(false);
   const [briefingReady,setBriefingReady]=useState(true);
   const [bankTransition,setBankTransition]=useState(false);
@@ -221,11 +222,17 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
     const timer=window.setTimeout(()=>setLossTransition(false),1450);
     return ()=>window.clearTimeout(timer);
   },[lossTransition,run?.encounter?.engineState?.lastAction]);
-  useEffect(()=>{try{
-    if(run)localStorage.setItem(RUN_KEY,JSON.stringify(run));
-    else localStorage.removeItem(RUN_KEY);
-  }catch{}},[run]);
-  useEffect(()=>{try{localStorage.setItem(PROFILE_KEY,JSON.stringify(progress));}catch{}},[progress]);
+  useEffect(()=>{
+    try{
+      if(run)localStorage.setItem(RUN_KEY,JSON.stringify(run));
+      else localStorage.removeItem(RUN_KEY);
+      setSaveFailure(false);
+    }catch{setSaveFailure(true);}
+  },[run]);
+  useEffect(()=>{
+    try{localStorage.setItem(PROFILE_KEY,JSON.stringify(progress));}
+    catch{setSaveFailure(true);}
+  },[progress]);
   useEffect(()=>{
     if(run)setProgress(current=>recordJourneyGold(current,run));
   },[run]);
@@ -367,7 +374,7 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
   </main>;
   return null;
   })();
-  return <>{screen}{reveal}<OverswingPurchaseFlight purchase={purchaseFlight}/>{view==='journey'&&run?.phase==='choosing_relic'&&!bankTransition&&createPortal(
+  return <>{saveFailure&&<div role="alert" className="oj-save-warning">Progress cannot be saved on this device. Check your browser storage settings.</div>}{screen}{reveal}<OverswingPurchaseFlight purchase={purchaseFlight}/>{view==='journey'&&run?.phase==='choosing_relic'&&!bankTransition&&createPortal(
       <OverswingEnemyIntro
         level={run.levelNumber} prepared={!introVisible||briefingReady}
         onContinue={()=>{sound.setAtmosphere('menu');setBriefingReady(true);}}

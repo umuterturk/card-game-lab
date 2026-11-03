@@ -1,0 +1,26 @@
+{
+  "name": "Overswing: The Last Flame",
+  "short_name": "Overswing",
+  "description": "An offline-ready single-player card game of risk and reward.",
+  "id": "./overswing",
+  "start_url": "./overswing.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#100b13",
+  "background_color": "#100b13",
+  "icons": [
+    {
+      "src": "./overswing-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./overswing-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
