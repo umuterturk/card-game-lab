@@ -77,7 +77,6 @@ try{
   await page.waitForSelector('body > .oe-intro.oe-intro-prepared',{timeout:10000});
   await delay(1350);
   const restored=await page.evaluate(()=>({
-    panel:document.querySelector('.oe-intro-preparation'),
     opacity:Number(getComputedStyle(document.querySelector('.oe-intro-preparation')).opacity),
     relics:document.querySelectorAll('.oe-intro-preparation .og-relic').length,
     oldPortraits:document.querySelectorAll('.og-portrait').length,
