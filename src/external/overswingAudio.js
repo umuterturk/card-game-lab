@@ -572,11 +572,16 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
   }
   function setMusic(enabled){return setMusicLevel(enabled?1:0)>0;}
   function setSfxVolume(value){
+    const wasMuted=sfxVolume===0;
     sfxVolume=clampAudioVolume(value);
     sfxOn=sfxVolume>0;
     if(sfxVolume===0&&!musicOn){
       // Do not keep an inactive AudioContext alive after both channels mute.
       releaseContext();
+    }else if(sfxVolume>0&&wasMuted&&!context){
+      // Re-enabling effects from the settings slider is a user gesture.
+      // Restore the context here; ordinary muted taps never reach this path.
+      unlock();
     }else if(context&&sfxBus){
       sfxBus.gain.cancelScheduledValues(context.currentTime);
       sfxBus.gain.setTargetAtTime(sfxGainForVolume(sfxVolume),
