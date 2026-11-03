@@ -124,8 +124,6 @@
 
 /* Keep the cinematic opponent image completely fixed when PREPARE is pressed.
    Only controls cross-fade; no new portrait frame, border, or layout reflow. */
-.oe-intro-prepared .oe-intro-image-shell,
-.oe-intro-prepared .oe-intro-art{animation-play-state:paused}
 .oe-intro-words,.oe-intro-continue{
  transition:opacity .75s ease,visibility 0s linear .75s}
 .oe-intro-prepared .oe-intro-words,.oe-intro-prepared .oe-intro-continue{
