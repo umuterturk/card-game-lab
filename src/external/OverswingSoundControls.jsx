@@ -1,6 +1,7 @@
 import React,{useEffect,useId,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {MUSIC_TRACKS} from './overswingTracks.js';
+import {THRILLER_TRACKS,THRILLER_START,GAMEPLAY_TRACKS} from './overswingThriller.js';
 import './overswingSoundControls.css';
 
 function MusicNoteIcon(){
@@ -30,7 +31,9 @@ function VolumeRow({id,title,value,onChange}){
 export default function OverswingSoundControls({sound,className=''}){
   const [open,setOpen]=useState(false);
   const trigger=useRef(null),panel=useRef(null),closeButton=useRef(null);
-  const dialogId=useId(),trackId=useId(),musicId=useId(),sfxId=useId();
+  const dialogId=useId(),themeId=useId(),trackId=useId(),musicId=useId(),sfxId=useId();
+  const soundtrackOptions=sound?.theme==='thriller'?
+    THRILLER_TRACKS:MUSIC_TRACKS.map(track=>track);
   useEffect(()=>{
     if(!open)return;
     closeButton.current?.focus();
@@ -80,22 +83,30 @@ export default function OverswingSoundControls({sound,className=''}){
               onClick={close} aria-label="Close audio settings">✕</button>
           </div>
           <div className="os-audio-select-section">
+            <label htmlFor={themeId}>GAMEPLAY MUSIC THEME</label>
+            <select id={themeId} value={sound.theme}
+              onChange={event=>sound.setTheme(event.target.value)}>
+              <option value="synthwave">DARK SYNTHWAVE · ORIGINAL</option>
+              <option value="thriller">HORROR / THRILLER · NEW</option>
+            </select>
+          </div>
+          <div className="os-audio-select-section">
             <label htmlFor={trackId}>MUSIC TRACK</label>
             <select id={trackId}
               value={sound.trackChoice===null?'auto':String(sound.trackChoice)}
               onChange={event=>sound.setTrackChoice(
                 event.target.value==='auto'?null:Number(event.target.value))}>
               <option value="auto">AUTO · RANDOM EACH GATE</option>
-              {MUSIC_TRACKS.map((track,index)=>
-                <option key={track.id} value={index}>
+              {soundtrackOptions.map((track,index)=>
+                <option key={track.id} value={sound.theme==='thriller'?THRILLER_START+index:index}>
                   {String(index+1).padStart(2,'0')} · {track.name.toUpperCase()}
                 </option>)}
             </select>
             <p className="os-audio-current-track">
-              NOW SELECTED: <strong>{MUSIC_TRACKS[sound.effectiveTrack]?.name||'Iron Pulse'}</strong>
+              NOW SELECTED: <strong>{GAMEPLAY_TRACKS[sound.effectiveTrack]?.name||'Iron Pulse'}</strong>
             </p>
-            <p className="os-audio-hint">Auto rotates tracks each gate. Manual selection
-              keeps your chosen track until you return to Auto.</p>
+            <p className="os-audio-hint">Auto picks from the chosen theme each gate.
+              Both themes adapt to remaining cards and gate tension.</p>
           </div>
           <VolumeRow id={musicId} title="MUSIC VOLUME"
             value={sound.musicVolume} onChange={sound.setMusicVolume}/>
