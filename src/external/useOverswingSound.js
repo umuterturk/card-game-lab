@@ -35,7 +35,7 @@ export default function useOverswingSound(){
     const storage=typeof window==='undefined'?null:window.localStorage;
     persistSoundPreferences(storage,{
       musicVolume:musicRef.current,sfxVolume:sfxRef.current,
-      trackChoice:themeRef.current==='thriller'?null:choiceRef.current
+      trackChoice:choiceRef.current
     });
     persistMusicThemePreferences(storage,{
       theme:themeRef.current,
