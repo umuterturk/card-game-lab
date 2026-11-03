@@ -78,6 +78,20 @@ test('PREPARE crossfades the controls without moving or replacing the cinematic 
   assert.match(css,/prefers-reduced-motion:reduce/);
 });
 
+test('cinematic intro portals outside fullscreen scale and survives refresh without old bordered layout',()=>{
+  const jsx=read('OverswingJourney.jsx'),intro=read('OverswingEnemy.jsx');
+  const css=read('overswingEnemy.css');
+  assert.match(jsx,/run\\.phase==='choosing_relic'\\)return null/);
+  assert.match(jsx,/run\\?\\.phase==='choosing_relic'&&createPortal\\(/);
+  assert.match(jsx,/document\\.body\\)/);
+  assert.match(jsx,/prepared=\\{!introVisible\\|\\|briefingReady\\}/);
+  assert.match(jsx,/<OverswingGateBriefing run=\\{run\\} embedded/);
+  assert.doesNotMatch(jsx,/<OverswingGateBriefing\\s*\\n\\s*run=\\{run\\} ready=/);
+  assert.match(intro,/oe-intro-image-shell/);
+  assert.match(css,/body>\\.oe-intro\\{position:fixed/);
+  assert.match(intro,/oe-intro-back/);
+});
+
 test('permanent royal purchases require no selection and all three enter a fight',()=>{
   let progress={...EMPTY_JOURNEY_PROGRESS,lifetimeGold:350000};
   for(const id of ['K','J','Q'])progress=buyRoyal(progress,id);

@@ -357,10 +357,9 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
       sound={sound}/>
     <div className="oj-exit-row"><button type="button" onClick={()=>setView('menu')}>LEAVE BOARD</button></div>
   </div>;
-  if(run.phase==='choosing_relic'&&introVisible)return null;
-  if(run.phase==='choosing_relic')return <OverswingGateBriefing
-    run={run} ready={briefingReady} pendingPurchase={pendingPurchase} onBuy={buy} onSkip={skip}
-    onBack={()=>setView('map')}/>;
+  // The cinematic briefing is rendered in a body portal, never inside the
+  // transformed FullscreenFit surface (which has zero flow-height here).
+  if(run.phase==='choosing_relic')return null;
   if(run.phase==='choosing_wild')return <WildReward run={run} onPick={claimWild}/>;
   if(run.phase==='retry_offer')return <RetryOffer run={run} pendingPurchase={pendingPurchase} onRetry={buyRetry} onDecline={acceptDefeat}/>;
   if(['won','lost','abandoned'].includes(run.phase))return <main className="oj-shell">
@@ -368,11 +367,13 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
   </main>;
   return null;
   })();
-  return <>{screen}{reveal}<OverswingPurchaseFlight purchase={purchaseFlight}/>{introVisible&&run?.phase==='choosing_relic'&&<OverswingEnemyIntro
-      level={run.levelNumber} prepared={briefingReady}
-      onContinue={()=>{sound.setAtmosphere('menu');setBriefingReady(true);}}>
-      <OverswingGateBriefing run={run} embedded ready={briefingReady}
-        pendingPurchase={pendingPurchase} onBuy={buy} onSkip={skip}
-        onBack={()=>{setIntroVisible(false);setView('map');}}/>
-    </OverswingEnemyIntro>}</>;
+  return <>{screen}{reveal}<OverswingPurchaseFlight purchase={purchaseFlight}/>{view==='journey'&&run?.phase==='choosing_relic'&&createPortal(
+      <OverswingEnemyIntro
+        level={run.levelNumber} prepared={!introVisible||briefingReady}
+        onContinue={()=>{sound.setAtmosphere('menu');setBriefingReady(true);}}
+        onBack={()=>{setIntroVisible(false);setView('map');}}>
+        <OverswingGateBriefing run={run} embedded ready={!introVisible||briefingReady}
+          pendingPurchase={pendingPurchase} onBuy={buy} onSkip={skip}
+          onBack={()=>{setIntroVisible(false);setView('map');}}/>
+      </OverswingEnemyIntro>,document.body)}</>;
 }

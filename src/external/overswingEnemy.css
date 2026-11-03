@@ -127,7 +127,8 @@
 .oe-intro-words,.oe-intro-continue{
  transition:opacity .75s ease,visibility 0s linear .75s}
 .oe-intro-prepared .oe-intro-words,.oe-intro-prepared .oe-intro-continue{
- opacity:0;visibility:hidden;pointer-events:none;animation:none}
+ animation:oe-prep-fade-out .8s ease-out both;pointer-events:none}
+@keyframes oe-prep-fade-out{from{opacity:1}to{opacity:0}}
 .oe-intro-preparation{position:absolute;z-index:4;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);
  width:min(calc(100% - 22px),510px);max-height:min(66dvh,540px);
  transform:translateX(-50%);overflow-y:auto;overscroll-behavior:contain;
@@ -151,3 +152,14 @@
 @media(prefers-reduced-motion:reduce){
  .oe-intro-preparation,.oe-intro-words,.oe-intro-continue{transition:none!important}
 }
+
+/* The overlay is portaled to body, bypassing FullscreenFit's scaled,
+   zero-flow-height ancestor. Keep the entire portrait fully viewport-sized. */
+body>.oe-intro{position:fixed;inset:0;width:100vw;height:100dvh;z-index:2400}
+.oe-intro-back{position:absolute;z-index:5;top:calc(env(safe-area-inset-top,0px) + 15px);
+ left:14px;padding:8px 11px;border:1px solid #9b693c;background:#180c15bd;
+ color:#ffe3a7;font:10px var(--oj-pixel);cursor:pointer;opacity:0;
+ pointer-events:none;transition:opacity .7s ease}
+.oe-intro-prepared .oe-intro-back{opacity:1;pointer-events:auto;
+ transition:opacity 1s ease .4s}
+.oe-intro-back:focus-visible{outline:2px solid #ffe3a7;outline-offset:3px}
