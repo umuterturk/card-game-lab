@@ -6,6 +6,8 @@ import {musicLayerMix} from './overswingTension.js';
 import {grooveForTension,nextGroove,grooveEvents,MUSIC_GROOVES,
   tempoForGroove,approachTempo,synthwaveBassPitch} from './overswingGrooves.js';
 import {MUSIC_RIFF,MUSIC_TRACKS,trackNoteAt} from './overswingTracks.js';
+import {THRILLER_TRACKS,THRILLER_START,GAMEPLAY_TRACKS,
+  thrillerNoteAt,thrillerTempoForGroove} from './overswingThriller.js';
 export {MUSIC_RIFF,MUSIC_TRACKS} from './overswingTracks.js';
 
 export const AUDIO_CUES=Object.freeze(['flip','steer','zero','snap','bank']);
@@ -94,11 +96,17 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
       channel.connect(musicBus);
       return channel;
     });
-    // Extra bus is created AFTER the sixteen track buses: legacy audio
-    // gain indices remain stable for active iOS recovery tests.
+    // Preserve the original bus positions, including the cinematic bus, for
+    // interrupted iOS sessions and existing gameplay settings.
     cinemaBus=context.createGain();
     cinemaBus.gain.value=cinematic||menuMusic?1:0;
     cinemaBus.connect(musicBus);
+    THRILLER_TRACKS.forEach((track,i)=>{
+      const channel=context.createGain();
+      channel.gain.value=selectedTrack===THRILLER_START+i?1:0;
+      channel.connect(musicBus);
+      trackBuses.push(channel);
+    });
     if(cinematic||menuMusic)trackBuses[selectedTrack].gain.value=0;
     const limiter=context.createDynamicsCompressor();
     limiter.threshold.value=-16;limiter.knee.value=12;limiter.ratio.value=4;
@@ -234,7 +242,67 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     source.start(time);source.stop(time+duration+.001);
     source.onended=()=>{source.disconnect();filter.disconnect();gain.disconnect();};
   }
+
+  // Fast but restrained horror percussion. Three arrangements have different
+  // bass movement, accents and dissonance; tension changes tempo and density,
+  // not loudness. This uses the existing Web Audio clock and fade buses.
+  function renderThrillerStep(trackId,step,time,groove,layers,beat,sixteenth){
+    const track=THRILLER_TRACKS[trackId-THRILLER_START];
+    const bus=trackBuses[trackId],local=step%16,bar=Math.floor(step/16);
+    const root=PITCH[track.roots[bar%4]];
+    const note=thrillerNoteAt(step,trackId);
+    if(local===0){
+      // An ominous two-note drone lives below the moving percussion.
+      synthBass(root*.5,time,beat*3.15,.059*layers.bass,.05,bus);
+      tone(root*1.059,time+.045,beat*2.8,.012,'triangle',bus,root*1.024);
+      if(track.style==='signal')
+        tone(root*1.414,time+.1,beat*2.1,.012,'sine',bus,root*1.47);
+    }
+    if(note){
+      const pitch=PITCH[note]*track.octave;
+      const duration=track.style==='knock'?beat*.53:beat*.31;
+      tone(pitch,time,duration,.040*track.leadGain,
+        track.lead,bus,pitch*(track.style==='signal'?1.032:.988));
+      if(track.style==='signal'&&local%4===3)
+        tone(pitch*1.059,time+.045,sixteenth*.92,.014,'sine',bus,pitch*.992);
+    }
+    if(groove.bass){
+      const bassNote=root*track.bass[Math.floor(local/4)];
+      synthBass(bassNote,time,activeGroove>=2?beat*.27:beat*.43,
+        .075*layers.bass,.12+activeGroove*.12,bus);
+    }
+    if(groove.chord&&(local===0||local===8)){
+      tone(root*track.chord[0],time,beat*(activeGroove?1.3:2.3),
+        .015*layers.menace,'sine',bus);
+      tone(root*track.chord[1],time+.06,beat*1.5,
+        .011,'triangle',bus,root*1.37);
+    }
+    if(groove.kick||(activeGroove>=1&&track.kicks.includes(local))){
+      tone(102,time,.14,.122*layers.percussion,'sine',bus,40);
+      blast(time,.026,.027*layers.percussion,bus,350);
+    }
+    if(groove.snare){
+      blast(time,.10,groove.fill?.072:.059,bus,1120);
+      tone(132,time,.075,.017,'triangle',bus,76);
+    }
+    if(groove.hat||(activeGroove>=1&&track.hats.includes(local)))
+      blast(time,.03,.017*layers.percussion,bus,3600);
+    if(groove.ghost)blast(time,.045,.020,bus,870);
+    if(groove.openHat&&activeGroove>=2)blast(time,.085,.023,bus,3100);
+    if(track.style==='knock'&&(local===3||local===11))
+      tone(root*2.02,time,.09,.025,'triangle',bus,root*1.4);
+    if(track.style==='chase'&&activeGroove>=2&&(local===7||local===15))
+      tone(root*2.5,time,sixteenth*.78,.027,'sawtooth',bus,root*1.35);
+    if(track.style==='signal'&&(local===6||local===14)){
+      tone(root*3.03,time,.10,.020,'sine',bus,root*2.66);
+      if(activeGroove>=2)blast(time,.06,.017,bus,1350);
+    }
+  }
   function renderTrackStep(trackId,step,time,groove,layers,beat,sixteenth){
+    if(trackId>=THRILLER_START){
+      renderThrillerStep(trackId,step,time,groove,layers,beat,sixteenth);
+      return;
+    }
     const track=MUSIC_TRACKS[trackId];
     const bus=trackBuses[trackId],local=step%16,bar=Math.floor(step/16);
     const note=scoreNoteAt(step,trackId);
@@ -352,7 +420,8 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
       selectedTrack=requestedTrack;
       crossfade=null;
       activeGroove=grooveForTension(targetTension);
-      currentTempo=tempoForGroove(activeGroove);
+      currentTempo=requestedTrack>=THRILLER_START?
+        thrillerTempoForGroove(activeGroove):tempoForGroove(activeGroove);
     }
     return mode;
   }
@@ -378,8 +447,10 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
       if(activeGroove===0)goalResolved=false;
     }
     const layers=musicLayerMix(smoothedTension);
+    const tempoTrack=crossfade?crossfade.to:requestedTrack;
     currentTempo=approachTempo(currentTempo,
-      tempoForGroove(activeGroove),goalResolved?5:3);
+      tempoTrack>=THRILLER_START?thrillerTempoForGroove(activeGroove):
+        tempoForGroove(activeGroove),goalResolved?5:3);
     const beat=60/currentTempo,sixteenth=beat/4;
     // Both themes share the same 16-step clock. No timeline restart on a gate
     // change; only these two buses overlap during the 1.8-second crossfade.
@@ -415,7 +486,7 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     if(requestedTrack!==selectedTrack)beginTrackCrossfade(requestedTrack);
   }
   function setTrack(index){
-    if(!Number.isInteger(index)||index<0||index>=MUSIC_TRACKS.length)
+    if(!Number.isInteger(index)||index<0||index>=GAMEPLAY_TRACKS.length)
       throw new RangeError('Unknown music track');
     requestedTrack=index;
     if(!musicOn){
@@ -477,7 +548,8 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
       nextStep=0;
       activeGroove=grooveForTension(targetTension);
       smoothedTension=targetTension;
-      currentTempo=tempoForGroove(activeGroove);
+      currentTempo=requestedTrack>=THRILLER_START?
+        thrillerTempoForGroove(activeGroove):tempoForGroove(activeGroove);
       selectedTrack=requestedTrack;crossfade=null;
       if(trackBuses){
         for(let i=0;i<trackBuses.length;i++){
@@ -638,7 +710,7 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     get cinematic(){return cinematic;},
     get tension(){return targetTension;},
     get trackId(){return requestedTrack;},
-    get trackName(){return MUSIC_TRACKS[requestedTrack].name;},
+    get trackName(){return GAMEPLAY_TRACKS[requestedTrack].name;},
     get crossfading(){return !!crossfade;},
     get musicLevel(){return musicLevel;},
     get musicVolume(){return musicVolume;},
