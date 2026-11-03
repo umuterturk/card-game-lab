@@ -13,13 +13,13 @@ const SHORT_RELICS=Object.freeze({
   vault_seal:'KEEP HAND ×1',
   swing_coil:'SWING +1'
 });
-export default function OverswingGateBriefing({run,ready=true,onBuy,onSkip,onBack}){
+export default function OverswingGateBriefing({run,ready=true,onBuy,onSkip,onBack,pendingPurchase=null}){
   const level=campaignLevel(run.levelNumber),enemy=opponentForLevel(run.levelNumber);
   const gateIndex=run.shopForGate??run.encounterIndex+1;
   const gate=LAST_FLAME.encounters[gateIndex],price=journeyRelicPrice(run);
   const balance=journeyGoldBalance(run),canAfford=balance>=price;
   return <main className="oj-shell og-briefing">
-    <button type="button" className="oj-back og-back" onClick={onBack}>‹ MAP</button>
+    <button type="button" className="oj-back og-back" onClick={onBack} disabled={!!pendingPurchase}>‹ MAP</button>
     <div className="og-portrait">
       <EnemyPortrait level={run.levelNumber} alt=""/>
       <div className="og-portrait-shade"/>
@@ -37,20 +37,20 @@ export default function OverswingGateBriefing({run,ready=true,onBuy,onSkip,onBac
         <span key={label}>{label}</span>)}</div>
       <div className="og-wallet">
         <span>RELIC · <GoldAmount value={price}/></span>
-        <strong><GoldAmount value={balance}/></strong>
+        <strong data-oj-treasury><GoldAmount value={balance}/></strong>
       </div>
       <div className="og-relics">{run.offeredRelicIds.map(id=>{
         const relic=LAST_FLAME_RELICS[id];
-        return <button key={id} type="button" className="og-relic"
-          disabled={!canAfford} onClick={()=>onBuy(id)}
+        return <button key={id} type="button" className={'og-relic'+(pendingPurchase==='relic:'+id?' og-relic-buying':'')}
+          disabled={!canAfford||!!pendingPurchase} onClick={e=>onBuy(id,e.currentTarget)}
           title={relic.description}
           aria-label={'Buy '+relic.title+' for '+price+' Gold and enter gate'}>
           <b>{relic.symbol}</b><strong>{relic.title}</strong>
           <small>{SHORT_RELICS[id]}</small>
-          <span>{canAfford?'BUY':'LOCKED'}</span>
+          <span>{pendingPurchase==='relic:'+id?'PURCHASING':canAfford?'BUY':'LOCKED'}</span>
         </button>;
       })}</div>
-      <button type="button" className="oj-primary og-fight" onClick={onSkip}>
+      <button type="button" className="oj-primary og-fight" onClick={onSkip} disabled={!!pendingPurchase}>
         FIGHT WITHOUT RELIC ›
       </button>
     </div>

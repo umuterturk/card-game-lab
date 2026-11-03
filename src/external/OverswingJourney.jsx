@@ -1,4 +1,4 @@
-import React,{useEffect,useState} from 'react';
+import React,{useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import OverswingPlay from './OverswingPlay.jsx';
 import OverswingCampaignMap from './OverswingCampaignMap.jsx';
@@ -14,6 +14,8 @@ import {trackForGate} from './overswingTracks.js';
 import OverswingSoundControls from './OverswingSoundControls.jsx';
 import {potCrackForAction} from './overswingFeedback.js';
 import GoldAmount from './GoldCoin.jsx';
+import OverswingPurchaseFlight from './OverswingPurchaseFlight.jsx';
+import {purchaseFlightPoints} from './overswingPurchaseGeometry.js';
 import {campaignNextLevel,campaignLevel,campaignRuleLabels} from './overswingCampaign.js';
 import {LAST_FLAME,LAST_FLAME_RELICS} from './overswingJourneyContent.js';
 import {
@@ -21,7 +23,7 @@ import {
   EMPTY_JOURNEY_PROGRESS,validJourneyProgress,journeyRunScore,recordJourneyGold,
   journeyGoldBalance,journeyRelicPrice,journeyEarnedGold,journeyRetryPrice,
   journeyCanRetry,RETRY_PRICE_RATES,restoreJourneyProgress,restoreJourneyRun,
-  journeyWildBalance,buyRoyal,buyMarketWild,resetJourneyAtLevel
+  journeyWildBalance,buyRoyal,buyMarketWild,MARKET_WILD_PRICES,resetJourneyAtLevel
 } from './overswingJourney.js';
 import {ROYAL_RULES,ROYAL_NAMES,ROYAL_PRICES} from './overswingRoyals.js';
 import {WILD_IDS,WILD_RULES} from './overswingWilds.js';
@@ -34,7 +36,7 @@ const fmt=n=>Number(n).toLocaleString('en-US');
 function GoldProgress({progress,compact=false}){
   return <section className={'oj-gold-progress'+(compact?' oj-gold-compact':'')}
     aria-label="Spendable Gold balance">
-    <div><strong><GoldAmount value={progress.lifetimeGold||0} showLabel size={compact?'hero':'lg'}/></strong>
+    <div><strong data-oj-treasury><GoldAmount value={progress.lifetimeGold||0} showLabel size={compact?'hero':'lg'}/></strong>
       {!compact&&<span>EARN AT CLEARED GATES</span>}</div>
   </section>;
 }
@@ -121,7 +123,7 @@ function Recap({run,onNew,onMenu,progress}){
       <button className="oj-secondary" onClick={onMenu}>MENU</button></div>
   </div>;
 }
-function RetryOffer({run,onRetry,onDecline}){
+function RetryOffer({run,onRetry,onDecline,pendingPurchase=null}){
   const available=journeyCanRetry(run),remaining=RETRY_PRICE_RATES.length-run.retryCount;
   const last=run.completedEncounters.at(-1),price=journeyRetryPrice(run);
   return <main className="oj-shell oj-reward"><div className="oj-panel oj-recap">
@@ -131,16 +133,16 @@ function RetryOffer({run,onRetry,onDecline}){
     <p>{LAST_FLAME.encounters[run.encounterIndex].title}: <GoldAmount value={last.finalScore}/> / <GoldAmount value={last.target}/></p>
     <p>Gold BANKed in this failed gate is lost. Earlier cleared gates remain credited. A relic purchased for this gate also remains active for its retries.</p>
     <div className="oj-shop-wallet">
-      <span>AVAILABLE GOLD <strong><GoldAmount value={journeyGoldBalance(run)}/></strong></span>
+      <span>AVAILABLE GOLD <strong data-oj-treasury><GoldAmount value={journeyGoldBalance(run)}/></strong></span>
       <span>RETRIES LEFT <strong>{remaining} / {RETRY_PRICE_RATES.length}</strong></span>
     </div>
     {remaining>0?<div className="oj-choices">
-      <button className="oj-primary" type="button" onClick={onRetry} disabled={!available}>
+      <button className="oj-primary" type="button" onClick={e=>onRetry(e.currentTarget)} disabled={!available||!!pendingPurchase}>
         RETRY GATE · <GoldAmount value={price}/> ({Math.round(RETRY_PRICE_RATES[run.retryCount]*100)}%)
       </button>
       {!available&&<p className="oj-hint">Not enough Gold for another attempt.</p>}
     </div>:<p className="oj-hint">All three retries for this gate have been used.</p>}
-    <button className="oj-secondary" type="button" onClick={onDecline}>ACCEPT DEFEAT</button>
+    <button className="oj-secondary" type="button" onClick={onDecline} disabled={!!pendingPurchase}>ACCEPT DEFEAT</button>
   </div></main>;
 }
 export default function OverswingJourney({quickState,quickAct,quickRestart,fullView=false}){
@@ -150,6 +152,27 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
   const [briefingReady,setBriefingReady]=useState(true);
   const [bankTransition,setBankTransition]=useState(false);
   const [lossTransition,setLossTransition]=useState(false);
+  const [purchaseFlight,setPurchaseFlight]=useState(null);
+  const [pendingPurchase,setPendingPurchase]=useState(null);
+  const purchaseLock=useRef(false),purchaseTimers=useRef([]);
+  const launchPurchase=(target,price,label,key,commit)=>{
+    if(purchaseLock.current)return;
+    const points=purchaseFlightPoints(target,document);
+    if(!points){commit();return;}
+    purchaseLock.current=true;
+    setPendingPurchase(key);
+    setPurchaseFlight({...points,price,label,serial:Date.now()});
+    purchaseTimers.current.forEach(window.clearTimeout);
+    purchaseTimers.current=[
+      window.setTimeout(()=>{
+        commit();
+        purchaseLock.current=false;
+        setPendingPurchase(null);
+      },850),
+      window.setTimeout(()=>setPurchaseFlight(null),1160)
+    ];
+  };
+  useEffect(()=>()=>purchaseTimers.current.forEach(window.clearTimeout),[]);
   const sound=useOverswingSound();
   useEffect(()=>{
     if(!introClosing)return;
@@ -236,16 +259,47 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
   };
   const useWild=(wildId,index)=>setRun(current=>current?
     stepJourney(current,{type:'USE_WILD',wildId,index}):current);
-  const purchaseReveal=()=>setRun(current=>current?
-    stepJourney(current,{type:'BUY_REVEAL'}):current);
+  const purchaseReveal=target=>{
+    if(run?.phase!=='playing')return;
+    const offer=revealOffer(run);
+    if(!offer||journeyGoldBalance(run)<offer.price)return;
+    launchPurchase(target,offer.price,'DECK REVEALED','reveal',
+      ()=>setRun(current=>current?stepJourney(current,{type:'BUY_REVEAL'}):current));
+  };
   const claimWild=wildId=>setRun(current=>current?
     stepJourney(current,{type:'CHOOSE_WILD',wildId}):current);
-  const buy=relicId=>setRun(current=>current?stepJourney(current,{type:'BUY_RELIC',relicId}):current);
-  const skip=()=>setRun(current=>current?stepJourney(current,{type:'SKIP_RELIC'}):current);
-  const buyRetry=()=>setRun(current=>current?stepJourney(current,{type:'BUY_RETRY'}):current);
-  const acceptDefeat=()=>setRun(current=>current?stepJourney(current,{type:'ACCEPT_DEFEAT'}):current);
-  const purchaseRoyal=id=>setProgress(current=>buyRoyal(current,id));
-  const purchaseWild=id=>setProgress(current=>buyMarketWild(current,id));
+  const buy=(relicId,target)=>{
+    if(run?.phase!=='choosing_relic'||!run.offeredRelicIds.includes(relicId))return;
+    const price=journeyRelicPrice(run);
+    if(journeyGoldBalance(run)<price)return;
+    launchPurchase(target,price,'RELIC SECURED','relic:'+relicId,
+      ()=>setRun(current=>current?stepJourney(current,{type:'BUY_RELIC',relicId}):current));
+  };
+  const skip=()=>{
+    if(purchaseLock.current)return;
+    setRun(current=>current?stepJourney(current,{type:'SKIP_RELIC'}):current);
+  };
+  const buyRetry=target=>{
+    if(!journeyCanRetry(run))return;
+    launchPurchase(target,journeyRetryPrice(run),'GATE REPLAY','retry',
+      ()=>setRun(current=>current?stepJourney(current,{type:'BUY_RETRY'}):current));
+  };
+  const acceptDefeat=()=>{
+    if(purchaseLock.current)return;
+    setRun(current=>current?stepJourney(current,{type:'ACCEPT_DEFEAT'}):current);
+  };
+  const purchaseRoyal=(id,target)=>{
+    const price=ROYAL_PRICES[id];
+    if(!price||progress.ownedRoyalIds.includes(id)||progress.lifetimeGold<price||activeJourney)return;
+    launchPurchase(target,price,'ROYAL ACQUIRED','royal:'+id,
+      ()=>setProgress(current=>buyRoyal(current,id)));
+  };
+  const purchaseWild=(id,target)=>{
+    const price=MARKET_WILD_PRICES[id];
+    if(!price||progress.lifetimeGold<price||activeJourney)return;
+    launchPurchase(target,price,'WILD +1','wild:'+id,
+      ()=>setProgress(current=>buyMarketWild(current,id)));
+  };
   const activeJourney=!!run&&!['won','lost','abandoned'].includes(run.phase);
   const newRoyal=(progress.ownedRoyalIds||[]).find(id=>!(progress.seenRoyalIds||[]).includes(id));
   const reveal=newRoyal?<RoyalReveal id={newRoyal} onContinue={()=>setProgress(old=>({
@@ -258,7 +312,7 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
       fullView={fullView} sound={sound}/>
   </div>;
   if(view==='market')return <OverswingMarket progress={progress}
-    disabled={activeJourney} onRoyal={purchaseRoyal} onWild={purchaseWild}
+    disabled={activeJourney} pendingPurchase={pendingPurchase} onRoyal={purchaseRoyal} onWild={purchaseWild}
     onBack={()=>setView('map')}/>;
   if(!run||view==='menu'||view==='map')return <main className="oj-shell oj-home oj-map-home" onPointerDown={sound.unlock}>
     <header className="oj-title">
@@ -270,7 +324,18 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
     <div className="oj-home-purse"><GoldProgress progress={progress} compact/>
       <button type="button" className="oj-market-button" onClick={()=>{
         sound.unlock();setView('market');
-      }}>✧ MARKET</button></div>
+      }} aria-label="Open Market to buy Royal and Wild cards">
+        <svg className="oj-market-emblem" viewBox="0 0 32 30" shapeRendering="crispEdges" aria-hidden="true">
+          <path d="M7 14H25V27H7Z" fill="#6f3929"/>
+          <path d="M10 20H22V27H10Z" fill="#d3954e"/>
+          <path d="M13 22H19V27H13Z" fill="#34212a"/>
+          <path d="M3 9H29V15H3Z" fill="#a34f30"/>
+          <path d="M5 5H27V9H5Z" fill="#e9a45a"/>
+          <path d="M8 2H24V5H8Z" fill="#ffdc88"/>
+          <path d="M9 10H13V14H9ZM19 10H23V14H19Z" fill="#ffd68c"/>
+        </svg>
+        <span className="oj-market-copy"><strong>MARKET</strong><small>CARDS · WILDS</small></span>
+      </button></div>
     <OverswingCampaignMap progress={progress} selected={selectedLevel}
       onSelect={setSelectedLevel} onStart={()=>{
         if(!begin(selectedLevel))return;
@@ -291,21 +356,21 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
      potCrackForAction(run.encounter?.engineState?.lastAction)))
     return <div className="oj-shell oj-playing">
     <OverswingPlay s={run.encounter.engineState} act={play} onWild={useWild}
-      onReveal={purchaseReveal}
+      onReveal={purchaseReveal} purchasePending={!!pendingPurchase}
       journey={run} fullView={fullView} onBack={()=>setView('menu')}
       sound={sound}/>
     <div className="oj-exit-row"><button type="button" onClick={()=>setView('menu')}>LEAVE BOARD</button></div>
   </div>;
   if(run.phase==='choosing_relic')return <OverswingGateBriefing
-    run={run} ready={briefingReady} onBuy={buy} onSkip={skip}
+    run={run} ready={briefingReady} pendingPurchase={pendingPurchase} onBuy={buy} onSkip={skip}
     onBack={()=>setView('map')}/>;
   if(run.phase==='choosing_wild')return <WildReward run={run} onPick={claimWild}/>;
-  if(run.phase==='retry_offer')return <RetryOffer run={run} onRetry={buyRetry} onDecline={acceptDefeat}/>;
+  if(run.phase==='retry_offer')return <RetryOffer run={run} pendingPurchase={pendingPurchase} onRetry={buyRetry} onDecline={acceptDefeat}/>;
   if(['won','lost','abandoned'].includes(run.phase))return <main className="oj-shell">
     <Recap run={run} progress={progress} onNew={()=>setView('map')} onMenu={()=>setView('map')}/>
   </main>;
   return null;
   })();
-  return <>{screen}{reveal}{introVisible&&<OverswingEnemyIntro
+  return <>{screen}{reveal}<OverswingPurchaseFlight purchase={purchaseFlight}/>{introVisible&&<OverswingEnemyIntro
       level={selectedLevel} closing={introClosing} onContinue={()=>{sound.setAtmosphere('menu');setIntroClosing(true);}}/>}</>;
 }

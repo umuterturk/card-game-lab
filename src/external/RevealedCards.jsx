@@ -17,7 +17,7 @@ function RevealedMiniCard({id}){
     <span className="os8-revealed-footer" aria-hidden="true">{value}</span>
   </span>;
 }
-export default function RevealedCards({deal,run,onPurchase,onClose}){
+export default function RevealedCards({deal,run,onPurchase,onClose,pending=false}){
   const remaining=deal.deck.slice(deal.pos);
   const paid=new Set(run?.revealedCardIds||[]);
   // Cards that have already been drawn are no longer future deck cards.
@@ -28,7 +28,7 @@ export default function RevealedCards({deal,run,onPurchase,onClose}){
       role="dialog" aria-modal="true" aria-labelledby="os8-history-title">
       <div className="os8-history-head">
         <h3 id="os8-history-title">REVEALED DECK</h3>
-        <button type="button" onClick={onClose} aria-label="Close revealed deck">✕</button>
+        <button type="button" onClick={onClose} disabled={pending} aria-label="Close revealed deck">✕</button>
       </div>
       <div className="os8-history-stats" aria-label="Unseen deck intelligence">
         <span><strong>{remaining.length}</strong> IN DECK</span>
@@ -39,9 +39,9 @@ export default function RevealedCards({deal,run,onPurchase,onClose}){
         <p>Reveal every card still in the deck. Cards are sorted by rank
           and suit, never by draw order. The fewer cards remain, the more
           powerful the information—and the higher its Gold price.</p>
-        <div className="os8-reveal-wallet">AVAILABLE <GoldAmount value={gold}/></div>
+        <div className="os8-reveal-wallet" data-oj-treasury>AVAILABLE <GoldAmount value={gold}/></div>
         {offer?<button className="os8-reveal-all" type="button"
-          disabled={gold<offer.price} onClick={()=>onPurchase?.()}
+          disabled={pending||gold<offer.price} onClick={e=>onPurchase?.(e.currentTarget)}
           aria-label={'Reveal all '+offer.count+' deck cards for '+offer.price+' Gold'}>
           <strong>REVEAL ALL {offer.count} CARDS</strong>
           <GoldAmount value={offer.price}/>
@@ -62,7 +62,7 @@ export default function RevealedCards({deal,run,onPurchase,onClose}){
       </section>
       <p className="os8-history-note">Drawn cards disappear from this preview.
         The paid peek reveals identities, not their draw sequence or the next FLIP.</p>
-      <button type="button" className="os8-history-close" onClick={onClose}>BACK TO GAME</button>
+      <button type="button" className="os8-history-close" disabled={pending} onClick={onClose}>BACK TO GAME</button>
     </section>
   </div>;
 }

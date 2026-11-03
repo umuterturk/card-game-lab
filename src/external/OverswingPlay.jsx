@@ -255,7 +255,7 @@ function Factor({id,label,value,onClick,expanded,winning=false}){
     <b>×{value.toLocaleString('en-US')}</b>
   </button>;
 }
-export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,journey=null,onBack=null,fullView=false,sound=null}){
+export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,purchasePending=false,journey=null,onBack=null,fullView=false,sound=null}){
   const [discardPick,setDiscardPick]=useState(false);
   const [openFactor,setOpenFactor]=useState(null);
   const [polarityPick,setPolarityPick]=useState(false);
@@ -640,7 +640,7 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,j
     {potCrack&&<PotCrack key={potCrack.serial} crack={potCrack} onFinish={serial=>
       setPotCrack(current=>current?.serial===serial?null:current)}/>}
     {historyOpen&&isJourney&&<RevealedCards deal={d} run={journey}
-      onPurchase={()=>onReveal?.()} onClose={()=>setHistoryOpen(false)}/>}
+      onPurchase={onReveal} pending={purchasePending} onClose={()=>setHistoryOpen(false)}/>}
     {polarityPick&&isJourney&&<div className="os8-wild-overlay" role="presentation">
       <div className="os8-wild-modal" role="dialog" aria-modal="true"
         aria-labelledby="os8-polarity-title">
