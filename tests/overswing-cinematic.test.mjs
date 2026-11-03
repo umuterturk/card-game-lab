@@ -89,17 +89,21 @@ test('the 12 portraits map to two deterministic sprite sheets with unique cells'
   assert.equal(opponentForLevel(7).slot,0);
 });
 
-test('cinematic UI enters from the side with stepped blur and exits gradually',()=>{
+test('cinematic UI enters from the side and keeps the same image when rules appear',()=>{
   const read=name=>readFileSync(new URL('../src/external/'+name,import.meta.url),'utf8');
   const jsx=read('OverswingJourney.jsx');
   const intro=read('OverswingEnemy.jsx');
   const css=read('overswingEnemy.css');
   assert.match(jsx,/sound\.setAtmosphere\('cinematic'\)/);
   assert.match(jsx,/sound\.setAtmosphere\('menu'\)/);
-  assert.match(jsx,/1850/);
+  assert.match(jsx,/prepared=\{briefingReady\}/);
+  assert.match(jsx,/setBriefingReady\(true\)/);
+  assert.doesNotMatch(jsx,/setIntroClosing\(true\)|1850/);
   assert.match(intro,/oe-intro-image-shell/);
   assert.match(css,/@keyframes oe-side-arrive/);
-  assert.match(css,/@keyframes oe-side-depart/);
+  assert.match(css,/\.oe-intro-prepared \.oe-intro-words/);
+  assert.match(css,/\.oe-intro-preparation/);
+  assert.match(intro,/\{children&&<div className="oe-intro-preparation"/);
   assert.match(css,/filter:blur\(9px\)/);
   assert.match(css,/steps\(18,end\)/);
   assert.match(css,/oe-pixel-haze/);

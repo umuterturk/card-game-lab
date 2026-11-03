@@ -148,7 +148,6 @@ function RetryOffer({run,onRetry,onDecline,pendingPurchase=null}){
 export default function OverswingJourney({quickState,quickAct,quickRestart,fullView=false}){
   const [view,setView]=useState('journey');
   const [introVisible,setIntroVisible]=useState(false);
-  const [introClosing,setIntroClosing]=useState(false);
   const [briefingReady,setBriefingReady]=useState(true);
   const [bankTransition,setBankTransition]=useState(false);
   const [lossTransition,setLossTransition]=useState(false);
@@ -341,7 +340,6 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
         sound.unlock();
         // Each PREPARE press starts a fresh intro and a fresh gate briefing.
         setBriefingReady(false);
-        setIntroClosing(false);
         setIntroVisible(true);
       }}
       onQuick={()=>{sound.unlock();setView('quick');}}

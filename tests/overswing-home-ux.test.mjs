@@ -60,14 +60,21 @@ test('the Market owns Royal purchases and the gate briefing sits below the portr
   assert.match(market,/onWild/);
 });
 
-test('cinematic intro fades in, sparkles, then shrinks into prepare on player tap',()=>{
+test('PREPARE crossfades the controls without moving or replacing the cinematic portrait',()=>{
   const jsx=read('OverswingJourney.jsx'),intro=read('OverswingEnemy.jsx');
   const css=read('overswingEnemy.css');
   assert.match(jsx,/setIntroVisible\(true\)/);
-  assert.match(jsx,/setIntroClosing\(true\)/);
+  assert.match(jsx,/prepared=\{briefingReady\}/);
+  assert.match(jsx,/run\.phase==='choosing_relic'&&introVisible/);
+  assert.match(jsx,/<OverswingGateBriefing run=\{run\} embedded/);
+  assert.doesNotMatch(jsx,/setIntroClosing\(true\)/);
   assert.match(intro,/TAP TO PREPARE/);
   assert.match(intro,/oe-intro-embers/);
-  assert.match(css,/oe-intro-exit \.oe-intro-art/);
+  assert.equal(intro.match(/<EnemyPortrait level=\{level\}/g)?.length,1);
+  assert.match(intro,/\{children&&<div className="oe-intro-preparation"/);
+  assert.match(css,/\.oe-intro-prepared \.oe-intro-words/);
+  assert.match(css,/\.oe-intro-prepared \.oe-intro-preparation/);
+  assert.doesNotMatch(css,/\.oe-intro-prepared \.oe-intro-image-shell/);
   assert.match(css,/prefers-reduced-motion:reduce/);
 });
 
