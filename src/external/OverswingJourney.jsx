@@ -168,8 +168,8 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
         commit();
         purchaseLock.current=false;
         setPendingPurchase(null);
-      },850),
-      window.setTimeout(()=>setPurchaseFlight(null),1160)
+      },1180),
+      window.setTimeout(()=>setPurchaseFlight(null),1450)
     ];
   };
   useEffect(()=>()=>purchaseTimers.current.forEach(window.clearTimeout),[]);
