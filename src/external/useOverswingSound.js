@@ -1,7 +1,10 @@
 import {useEffect,useRef,useState} from 'react';
 import {createOverswingAudio,clampAudioVolume} from './overswingAudio.js';
 import {MUSIC_TRACKS} from './overswingTracks.js';
-import {readSoundPreferences,persistSoundPreferences}
+import {THRILLER_START,GAMEPLAY_TRACKS,
+  thrillerTrackForClassic} from './overswingThriller.js';
+import {readSoundPreferences,persistSoundPreferences,
+  readMusicThemePreferences,persistMusicThemePreferences}
   from './overswingSoundPreferences.js';
 
 // One audio engine shared by the main page, preparation, quick game and journey.
@@ -9,23 +12,36 @@ import {readSoundPreferences,persistSoundPreferences}
 export default function useOverswingSound(){
   const [initial]=useState(()=>typeof window==='undefined'?
     readSoundPreferences(null):readSoundPreferences(window.localStorage));
+  const [initialTheme]=useState(()=>typeof window==='undefined'?
+    readMusicThemePreferences(null):readMusicThemePreferences(window.localStorage));
+  const [theme,setThemeState]=useState(initialTheme.theme);
   const [musicVolume,setMusicVolumeState]=useState(initial.musicVolume);
   const [sfxVolume,setSfxVolumeState]=useState(initial.sfxVolume);
-  const [trackChoice,setTrackChoiceState]=useState(initial.trackChoice);
-  const [gateTrack,setGateTrack]=useState(0);
+  const [trackChoice,setTrackChoiceState]=useState(initialTheme.theme==='thriller'?
+    initialTheme.trackChoice:initial.trackChoice);
+  const [gateTrack,setGateTrack]=useState(initialTheme.theme==='thriller'?THRILLER_START:0);
   const [musicOn,setMusicOn]=useState(false);
   const audioRef=useRef(null),tensionRef=useRef(.06);
   const musicRef=useRef(initial.musicVolume),sfxRef=useRef(initial.sfxVolume);
-  const choiceRef=useRef(initial.trackChoice),gateRef=useRef(0);
+  const choiceRef=useRef(initialTheme.theme==='thriller'?
+    initialTheme.trackChoice:initial.trackChoice);
+  const gateRef=useRef(initialTheme.theme==='thriller'?THRILLER_START:0);
+  const themeRef=useRef(initialTheme.theme),classicGateRef=useRef(0);
   const cinematicRef=useRef(false);
   const atmosphereRef=useRef(null);
 
   const effectiveTrack=trackChoice??gateTrack;
-  const persist=()=>persistSoundPreferences(
-    typeof window==='undefined'?null:window.localStorage,{
+  const persist=()=>{
+    const storage=typeof window==='undefined'?null:window.localStorage;
+    persistSoundPreferences(storage,{
       musicVolume:musicRef.current,sfxVolume:sfxRef.current,
-      trackChoice:choiceRef.current
+      trackChoice:themeRef.current==='thriller'?null:choiceRef.current
     });
+    persistMusicThemePreferences(storage,{
+      theme:themeRef.current,
+      trackChoice:themeRef.current==='thriller'?choiceRef.current:null
+    });
+  };
   const ensure=()=>{
     if(!audioRef.current){
       audioRef.current=createOverswingAudio();
@@ -77,7 +93,8 @@ export default function useOverswingSound(){
   };
   const setTrackChoice=value=>{
     const next=value===null?null:Number(value);
-    if(next!==null&&(!Number.isInteger(next)||next<0||next>=MUSIC_TRACKS.length))
+    if(next!==null&&(!Number.isInteger(next)||next<0||next>=GAMEPLAY_TRACKS.length||
+      (next>=THRILLER_START)!==(themeRef.current==='thriller')))
       throw new RangeError('Unknown track selection');
     choiceRef.current=next;
     setTrackChoiceState(next);
@@ -89,9 +106,26 @@ export default function useOverswingSound(){
     persist();
   };
   const setTrack=index=>{
+    classicGateRef.current=index;
+    if(themeRef.current==='thriller')index=thrillerTrackForClassic(index);
     gateRef.current=index;
     setGateTrack(index);
     if(choiceRef.current===null)audioRef.current?.setTrack(index);
+  };
+  const setTheme=value=>{
+    if(value!=='thriller'&&value!=='synthwave')throw new RangeError('Unknown music theme');
+    if(value===themeRef.current)return;
+    themeRef.current=value;
+    setThemeState(value);
+    choiceRef.current=null;
+    setTrackChoiceState(null);
+    const index=value==='thriller'?
+      thrillerTrackForClassic(classicGateRef.current):classicGateRef.current;
+    gateRef.current=index;
+    setGateTrack(index);
+    audioRef.current?.setTrack(index);
+    if(musicRef.current>0)unlock();
+    persist();
   };
   const setAtmosphere=mode=>{
     atmosphereRef.current=mode;
@@ -138,7 +172,7 @@ export default function useOverswingSound(){
       audioRef.current=null;
     };
   },[]);
-  return {musicVolume,sfxVolume,musicOn,sfxOn:sfxVolume>0,
+  return {theme,setTheme,musicVolume,sfxVolume,musicOn,sfxOn:sfxVolume>0,
     trackChoice,gateTrack,effectiveTrack,setMusicVolume,setSfxVolume,
     setTrackChoice,setTrack,setCinematic,setAtmosphere,unlock,restartAudio,play,setTension};
 }
