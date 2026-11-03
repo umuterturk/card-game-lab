@@ -56,10 +56,11 @@ export default function useOverswingSound(){
     // Gameplay taps must not create a Web Audio session when fully muted.
     if(musicRef.current===0&&sfxRef.current===0)return false;
     const audio=ensure();
-    if(!audio.unlock())return false;
     if(musicRef.current>0&&audio.musicVolume!==musicRef.current){
-      audio.setMusicVolume(musicRef.current);
-    }
+      // The engine is silent until the saved music level is applied.
+      // Set it first so an SFX=0 session can still start on this gesture.
+      if(audio.setMusicVolume(musicRef.current)===0)return false;
+    }else if(!audio.unlock())return false;
     setMusicOn(audio.musicOn);
     return true;
   };
