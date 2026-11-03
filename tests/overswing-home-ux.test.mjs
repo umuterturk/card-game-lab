@@ -81,15 +81,15 @@ test('PREPARE crossfades the controls without moving or replacing the cinematic 
 test('cinematic intro portals outside fullscreen scale and survives refresh without old bordered layout',()=>{
   const jsx=read('OverswingJourney.jsx'),intro=read('OverswingEnemy.jsx');
   const css=read('overswingEnemy.css');
-  assert.match(jsx,/run\\.phase==='choosing_relic'\\)return null/);
-  assert.match(jsx,/run\\?\\.phase==='choosing_relic'&&createPortal\\(/);
-  assert.match(jsx,/document\\.body\\)/);
-  assert.match(jsx,/prepared=\\{!introVisible\\|\\|briefingReady\\}/);
-  assert.match(jsx,/<OverswingGateBriefing run=\\{run\\} embedded/);
-  assert.doesNotMatch(jsx,/<OverswingGateBriefing\\s*\\n\\s*run=\\{run\\} ready=/);
-  assert.match(intro,/oe-intro-image-shell/);
-  assert.match(css,/body>\\.oe-intro\\{position:fixed/);
-  assert.match(intro,/oe-intro-back/);
+  assert.ok(jsx.includes("if(run.phase==='choosing_relic')return null;"));
+  assert.ok(jsx.includes("run?.phase==='choosing_relic'&&createPortal("));
+  assert.ok(jsx.includes("document.body)"));
+  assert.ok(jsx.includes("prepared={!introVisible||briefingReady}"));
+  assert.ok(jsx.includes("<OverswingGateBriefing run={run} embedded"));
+  assert.ok(!jsx.includes("if(run.phase==='choosing_relic')return <OverswingGateBriefing"));
+  assert.ok(intro.includes("oe-intro-image-shell"));
+  assert.ok(css.includes("body>.oe-intro{position:fixed"));
+  assert.ok(intro.includes("oe-intro-back"));
 });
 
 test('permanent royal purchases require no selection and all three enter a fight',()=>{
