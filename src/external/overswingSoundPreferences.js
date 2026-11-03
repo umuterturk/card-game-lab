@@ -37,3 +37,31 @@ export function persistSoundPreferences(storage,prefs){
     return true;
   }catch{return false;}
 }
+
+// Theme preferences use a separate key to preserve compatibility with v1/v2
+// sound settings and their original sixteen-track manual selection.
+export const OVERSWING_THEME_KEY='overswing_music_theme_v1';
+export const DEFAULT_THEME_PREFS=Object.freeze({theme:'synthwave',trackChoice:null});
+export function readMusicThemePreferences(storage){
+  try{
+    const raw=storage?.getItem(OVERSWING_THEME_KEY);
+    const prefs=raw?JSON.parse(raw):null;
+    return {
+      theme:prefs?.theme==='thriller'?'thriller':'synthwave',
+      trackChoice:Number.isInteger(prefs?.trackChoice)&&
+        prefs.trackChoice>=MUSIC_TRACKS.length&&
+        prefs.trackChoice<MUSIC_TRACKS.length+3?prefs.trackChoice:null
+    };
+  }catch{return {...DEFAULT_THEME_PREFS};}
+}
+export function persistMusicThemePreferences(storage,prefs){
+  try{
+    storage?.setItem(OVERSWING_THEME_KEY,JSON.stringify({
+      theme:prefs?.theme==='thriller'?'thriller':'synthwave',
+      trackChoice:Number.isInteger(prefs?.trackChoice)&&
+        prefs.trackChoice>=MUSIC_TRACKS.length&&
+        prefs.trackChoice<MUSIC_TRACKS.length+3?prefs.trackChoice:null
+    }));
+    return true;
+  }catch{return false;}
+}
