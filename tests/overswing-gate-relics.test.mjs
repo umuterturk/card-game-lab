@@ -89,7 +89,9 @@ test('a retry is still the same gate, keeping its purchased relic and its cost',
   assert.deepEqual(retried.relicIds,[id]);
   assert.deepEqual(retried.purchasedRelicIds,[id]);
   assert.deepEqual(retried.encounter.relicUses,{});
-  assert.equal(retried.goldSpent,first.goldSpent+200,'no second relic charge');
+  assert.equal(retried.goldSpent,first.goldSpent+800,'no second relic charge');
+  assert.deepEqual(retried.encounter.engineState.deal.deck,first.encounter.engineState.deal.deck,
+    'gate replay must reuse the original shuffled deck');
 });
 
 test('older saved cumulative relics are cleared or reduced to the current gate purchase',()=>{

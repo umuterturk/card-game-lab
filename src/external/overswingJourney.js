@@ -8,7 +8,7 @@ import {revealOffer} from './overswingReveal.js';
 export const JOURNEY_SCHEMA=4;
 export const JOURNEY_PHASES=['playing','choosing_relic','choosing_wild','retry_offer','won','lost','abandoned'];
 export const RELIC_PRICE_RATE=0.20; // price is 20% of the gate being entered
-export const RETRY_PRICE_RATES=Object.freeze([0.25,0.35,0.50]);
+export const RETRY_PRICE_RATES=Object.freeze([1,1.5,2]);
 const BASE_RELIC_RULES={steerNoncrossPenalty:1,flipCrossJackpotGain:1,
   bankCapacityLoss:1,steerCrossSwingBonus:0};
 
@@ -31,13 +31,13 @@ function drawRandom(seed){
     return ((t^(t>>>14))>>>0)/4294967296;
   };
 }
-function dealFor(runSeed,index,equippedRoyals=[],levelNumber=1,retryCount=0){
+function dealFor(runSeed,index,equippedRoyals=[],levelNumber=1){
   const config=LAST_FLAME.encounters[index],level=campaignLevel(levelNumber);
   const royals=royalCardsForLoadout(equippedRoyals,journeySeed(runSeed,index,'royals'),index);
-  // First attempt remains unchanged; retries receive independent deterministic decks.
-  const deckStream=retryCount===0?'deck':'deck:retry:'+retryCount;
+  // A gate has one immutable deck seed: retries reset the exact same deal,
+  // including the opening hand and subsequent FLIPs.
   return {encounterId:config.id,engineState:newOverswing({
-    seed:journeySeed(runSeed,index,deckStream),mode:'short',royals,
+    seed:journeySeed(runSeed,index,'deck'),mode:'short',royals,
     initialHandSize:level.rules.maxHandSize||8
   }),effectiveTarget:Math.round(config.target*level.targetScale),
   snapCount:0,relicUses:{}};
@@ -207,7 +207,7 @@ export function stepJourney(run,command){
       completedEncounters:run.completedEncounters.filter(e=>e.id!==run.encounter.encounterId),
       wildShieldArmed:false,
       // The one-Wild-per-gate limit survives retries.
-      encounter:dealFor(run.runSeed,run.encounterIndex,run.equippedRoyals,run.levelNumber,retryCount)};
+      encounter:dealFor(run.runSeed,run.encounterIndex,run.equippedRoyals,run.levelNumber)};
   }
   if(run.phase==='choosing_relic'&&
      (command.type==='BUY_RELIC'||command.type==='SKIP_RELIC')){
