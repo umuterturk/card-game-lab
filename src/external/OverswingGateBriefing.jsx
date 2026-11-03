@@ -13,22 +13,13 @@ const SHORT_RELICS=Object.freeze({
   vault_seal:'KEEP HAND ×1',
   swing_coil:'SWING +1'
 });
-export default function OverswingGateBriefing({run,ready=true,onBuy,onSkip,onBack,pendingPurchase=null}){
+export default function OverswingGateBriefing({run,ready=true,onBuy,onSkip,onBack,pendingPurchase=null,embedded=false}){
   const level=campaignLevel(run.levelNumber),enemy=opponentForLevel(run.levelNumber);
   const gateIndex=run.shopForGate??run.encounterIndex+1;
   const gate=LAST_FLAME.encounters[gateIndex],price=journeyRelicPrice(run);
   const balance=journeyGoldBalance(run),canAfford=balance>=price;
-  return <main className="oj-shell og-briefing">
-    <button type="button" className="oj-back og-back" onClick={onBack} disabled={!!pendingPurchase}>‹ MAP</button>
-    <div className="og-portrait">
-      <EnemyPortrait level={run.levelNumber} alt=""/>
-      <div className="og-portrait-shade"/>
-      <div className="og-caption">
-        <small>LEVEL {run.levelNumber} · GATE {gateIndex+1}/3</small>
-        <h2>{enemy.name}</h2>
-      </div>
-    </div>
-    <div className={'og-panel'+(ready?' og-panel-visible':'')} aria-label="Rules and relics">
+  const panel=<div className={'og-panel'+(ready?' og-panel-visible':'')} aria-label="Rules and relics">
+
       <div className="og-top">
         <strong>{gate.title}</strong>
         <span>TARGET <GoldAmount value={Math.round(gate.target*level.targetScale)}/></span>
@@ -53,6 +44,18 @@ export default function OverswingGateBriefing({run,ready=true,onBuy,onSkip,onBac
       <button type="button" className="oj-primary og-fight" onClick={onSkip} disabled={!!pendingPurchase}>
         FIGHT WITHOUT RELIC ›
       </button>
+    </div>;
+  if(embedded)return panel;
+  return <main className="oj-shell og-briefing">
+    <button type="button" className="oj-back og-back" onClick={onBack} disabled={!!pendingPurchase}>‹ MAP</button>
+    <div className="og-portrait">
+      <EnemyPortrait level={run.levelNumber} alt=""/>
+      <div className="og-portrait-shade"/>
+      <div className="og-caption">
+        <small>LEVEL {run.levelNumber} · GATE {gateIndex+1}/3</small>
+        <h2>{enemy.name}</h2>
+      </div>
     </div>
+    {panel}
   </main>;
 }

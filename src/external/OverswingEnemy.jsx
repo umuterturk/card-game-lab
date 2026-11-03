@@ -32,9 +32,9 @@ export function EnemyPortrait({level,className='',alt}){
         decoding="async" onError={()=>setFailedLoads(count=>Math.min(2,count+1))}/>}
   </div>;
 }
-export default function OverswingEnemyIntro({level,closing,onContinue}){
+export default function OverswingEnemyIntro({level,closing=false,onContinue,prepared=false,children=null}){
   const enemy=opponentForLevel(level);
-  return <div className={'oe-intro'+(closing?' oe-intro-exit':'')}
+  return <div className={'oe-intro'+(closing?' oe-intro-exit':'')+(prepared?' oe-intro-prepared':'')}
     role="dialog" aria-modal="true" aria-label={'Level '+level+' opponent: '+enemy.name}>
     <div className="oe-intro-night" aria-hidden="true"/>
     <div className="oe-intro-image-shell">
@@ -53,8 +53,9 @@ export default function OverswingEnemyIntro({level,closing,onContinue}){
       <h2>{enemy.name}</h2>
       <p>{enemy.line}</p>
     </div>
+    {children&&<div className="oe-intro-preparation" aria-hidden={!prepared}>{children}</div>}
     <button type="button" className="oe-intro-continue"
-      onClick={onContinue} disabled={closing} autoFocus>
+      onClick={onContinue} disabled={closing||prepared} autoFocus={!prepared}>
       TAP TO PREPARE <span aria-hidden="true">›</span>
     </button>
   </div>;

@@ -174,11 +174,8 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
   };
   useEffect(()=>()=>purchaseTimers.current.forEach(window.clearTimeout),[]);
   const sound=useOverswingSound();
-  useEffect(()=>{
-    if(!introClosing)return;
-    const timer=window.setTimeout(()=>{setIntroVisible(false);setIntroClosing(false);setBriefingReady(true);},1850);
-    return ()=>window.clearTimeout(timer);
-  },[introClosing]);
+  // The cinematic image remains mounted in exactly the same position while
+  // PREPARE fades away and the gate rules/relic controls fade in below it.
   const [progress,setProgress]=useState(()=>
     restoreJourneyProgress(readSaved(PROFILE_KEY),readSaved(RUN_KEY)));
   const [run,setRun]=useState(()=>restoreJourneyRun(
@@ -273,10 +270,11 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
     const price=journeyRelicPrice(run);
     if(journeyGoldBalance(run)<price)return;
     launchPurchase(target,price,'RELIC SECURED','relic:'+relicId,
-      ()=>setRun(current=>current?stepJourney(current,{type:'BUY_RELIC',relicId}):current));
+      ()=>{setIntroVisible(false);setRun(current=>current?stepJourney(current,{type:'BUY_RELIC',relicId}):current);});
   };
   const skip=()=>{
     if(purchaseLock.current)return;
+    setIntroVisible(false);
     setRun(current=>current?stepJourney(current,{type:'SKIP_RELIC'}):current);
   };
   const buyRetry=target=>{
@@ -361,6 +359,7 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
       sound={sound}/>
     <div className="oj-exit-row"><button type="button" onClick={()=>setView('menu')}>LEAVE BOARD</button></div>
   </div>;
+  if(run.phase==='choosing_relic'&&introVisible)return null;
   if(run.phase==='choosing_relic')return <OverswingGateBriefing
     run={run} ready={briefingReady} pendingPurchase={pendingPurchase} onBuy={buy} onSkip={skip}
     onBack={()=>setView('map')}/>;
@@ -371,6 +370,11 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
   </main>;
   return null;
   })();
-  return <>{screen}{reveal}<OverswingPurchaseFlight purchase={purchaseFlight}/>{introVisible&&<OverswingEnemyIntro
-      level={selectedLevel} closing={introClosing} onContinue={()=>{sound.setAtmosphere('menu');setIntroClosing(true);}}/>}</>;
+  return <>{screen}{reveal}<OverswingPurchaseFlight purchase={purchaseFlight}/>{introVisible&&run?.phase==='choosing_relic'&&<OverswingEnemyIntro
+      level={run.levelNumber} prepared={briefingReady}
+      onContinue={()=>{sound.setAtmosphere('menu');setBriefingReady(true);}}>
+      <OverswingGateBriefing run={run} embedded ready={briefingReady}
+        pendingPurchase={pendingPurchase} onBuy={buy} onSkip={skip}
+        onBack={()=>{setIntroVisible(false);setView('map');}}/>
+    </OverswingEnemyIntro>}</>;
 }
