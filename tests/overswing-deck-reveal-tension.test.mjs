@@ -63,7 +63,7 @@ test('Revealed deck UI is a single paid action and hides cards already drawn',()
   assert.match(js,/remaining\.filter\(id=>paid\.has\(id\)\)\.sort\(sortDeckCards\)/);
   assert.match(js,/REVEAL ALL \{offer\.count\} CARDS/);
   assert.doesNotMatch(js,/REVEAL 3|REVEAL 8|REVEAL_TIERS|options\.map/);
-  assert.match(js,/onClick=\{\(\)=>onPurchase\?\.\(\)\}/);
+  assert.match(js,/onClick=\{e=>onPurchase\?\.\(e\.currentTarget\)\}/);
   assert.match(logic,/deal\.deck\.slice\(deal\.pos\)\.sort\(sortDeckCards\)/);
   const journey=file('OverswingJourney.jsx');
   assert.match(journey,/stepJourney\(current,\{type:'BUY_REVEAL'\}\)/);

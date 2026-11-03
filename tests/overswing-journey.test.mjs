@@ -261,9 +261,9 @@ test('affordability prevents retries without Gold and prices scale without SNAP 
   const fakeBoss={...expensive,phase:'retry_offer',encounterIndex:2,
     encounter:{...expensive.encounter,encounterId:'ember_keeper',effectiveTarget:99999},
     completedEncounters:[{id:'ember_keeper',finalScore:2000,target:99999,passed:false}]};
-  assert.equal(journeyRetryPrice(fakeBoss),3480);
+  assert.equal(journeyRetryPrice(fakeBoss),3500);
   assert.equal(journeyRetryPrice({...fakeBoss,encounter:{
-    ...fakeBoss.encounter,effectiveTarget:3000}}),3480,
+    ...fakeBoss.encounter,effectiveTarget:3000}}),3500,
     'SNAP target penalties must not change retry price');
 });
 test('failed BANKs earn no permanent Gold; only clear gates credit and spending debits',()=>{

@@ -42,7 +42,7 @@ test('only one paid REVEAL ALL button shows sorted still-undrawn cards as mini p
   assert.match(gallery,/remaining\.filter\(id=>paid\.has\(id\)\)\.sort\(sortDeckCards\)/);
   assert.match(gallery,/REVEAL ALL \{offer\.count\} CARDS/);
   assert.match(gallery,/revealOffer\(run\)/);
-  assert.match(gallery,/onClick=\{\(\)=>onPurchase\?\.\(\)\}/);
+  assert.match(gallery,/onClick=\{e=>onPurchase\?\.\(e\.currentTarget\)\}/);
   assert.doesNotMatch(gallery,/RoyalPortrait|CARD_RANKS|history\.groups|REVEAL 3|REVEAL 8/);
   assert.match(gallery,/os8-revealed-pip/);
   assert.match(gallery,/os8-revealed-corner/);
