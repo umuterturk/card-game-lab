@@ -53,6 +53,8 @@ export default function useOverswingSound(){
     return audioRef.current;
   };
   const unlock=()=>{
+    // Gameplay taps must not create a Web Audio session when fully muted.
+    if(musicRef.current===0&&sfxRef.current===0)return false;
     const audio=ensure();
     if(!audio.unlock())return false;
     if(musicRef.current>0&&audio.musicVolume!==musicRef.current){
@@ -62,6 +64,7 @@ export default function useOverswingSound(){
     return true;
   };
   const restartAudio=()=>{
+    if(musicRef.current===0&&sfxRef.current===0)return false;
     const audio=ensure();
     audio.restart();
     // The reset preserves the selected track, but the engine might not have
@@ -149,7 +152,8 @@ export default function useOverswingSound(){
     // iOS may restore a page through pageshow/focus without a reliable
     // visibilitychange, and may require a fresh gesture after interruption.
     const recoverOnGesture=()=>{
-      if(!document.hidden)audioRef.current?.unlock();
+      if(!document.hidden&&(musicRef.current>0||sfxRef.current>0))
+        audioRef.current?.unlock();
     };
     document.addEventListener('visibilitychange',visibility);
     window.addEventListener('pagehide',pause);
