@@ -112,7 +112,7 @@ test('a safe FLIP consumes armed Shield without providing a second use',()=>{
   assert.equal(done.encounter.engineState.lastAction.snap,false);
   assert.equal(done.encounter.engineState.lastAction.shieldFaded,true);
   assert.equal(done.wildShieldArmed,false);
-  assert.deepEqual(done.wildUsedIds,['polarity']);
+  assert.deepEqual(done.wildUsedIds,['shield']);
 });
 
 test('Wild inventory settles once and cannot be spent twice across retries',()=>{
