@@ -71,3 +71,13 @@ export function bankBurstPoints(source,target){
     '--bank-end-x':x(target),'--bank-end-y':y(target)
   };
 }
+
+// A summoned Royal materializes over its actual hand slot, not the Pot.
+// The engine commits the card immediately; visual flight is presentation only.
+export function summonFlightResult(action){
+  if(action?.type!=='summon'||!Number.isInteger(action.card))return null;
+  return {card:action.card,kind:'summon',destination:'hand'};
+}
+export function summonFlightPoints(source,target,viewport){
+  return flipFlightPoints(source,target,viewport);
+}
