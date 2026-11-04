@@ -128,3 +128,16 @@
 @media(prefers-reduced-motion:reduce){
  .sg-flying-card,.sg-flying-gold{transition:none;animation:none}
 }
+
+/* Avoid the star badge covering "Level 1" on narrow iPhones. */
+.sg-level-pill{justify-content:flex-start;min-width:0;padding-left:34px;padding-right:5px}
+.sg-level-pill strong{display:block;min-width:0;white-space:nowrap;letter-spacing:-.35px}
+.sg-level-star{left:-5px;width:34px;height:34px;font-size:23px}
+.sg-top{overflow:visible}
+.sg-wallet{overflow:visible}
+.sg-pause{overflow:visible}
+@media(max-width:390px){
+ .sg-level-pill{padding-left:30px;padding-right:2px}
+ .sg-level-star{left:-5px;width:32px;height:32px;font-size:21px}
+ .sg-level-pill strong{font-size:clamp(12px,3.55vw,15px)}
+}

@@ -39,5 +39,12 @@ if(mode==='standalone'){
   assert.equal(existsSync(join(out,'manifest.webmanifest')),false);
 }else{
   assert.ok(existsSync(join(out,'index.html')),'Original Card Game Lab must remain');
+  assert.ok(existsSync(join(out,'casual.html')),'Casual Swing gameplay entry missing');
+  const casualHtml=read('casual.html');
+  assert.match(casualHtml,/id="swing-visible-build"/,'Always-visible build label missing');
+  assert.match(casualHtml,/Swing v0\.4\.0\s*·\s*(?:[a-f0-9]{8}|local)/,
+    'Casual build SHA was not injected into the page');
+  assert.ok(!casualHtml.includes('__CASUAL_COMMIT__'),'Unreplaced build marker');
+
 }
 console.log(`${mode}: ${files.length} files, ${(bytes/1048576).toFixed(2)} MiB total, ${(precachedBytes/1048576).toFixed(2)} MiB pre-cache.`);
