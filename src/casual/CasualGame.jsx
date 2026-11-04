@@ -118,7 +118,7 @@ export default function CasualGame(){
    <section className="sg-playfield" aria-label="Swing game board">
      <div className="sg-hint" key={tip}><Corgi/><span>{tip}</span></div>
      <SwingGauge position={deal.S} limit={FIRST_LEVEL.rules.snapLimit}/>
-     <ScoreJar banked={shownScore} pending={pending} goal={FIRST_LEVEL.target} burst={event.type}/>
+     <ScoreJar banked={shownScore} pending={pending} goal={FIRST_LEVEL.target} burst={event.type} burstId={event.id}/>
      <span className="sg-multiplier">✦ BONUS ×{overswingMultiplier(deal)}</span>
    </section>
    <section className="sg-controls">
