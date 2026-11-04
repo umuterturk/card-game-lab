@@ -2,7 +2,7 @@ import {defineConfig} from 'vite';
 import {resolve} from 'node:path';
 // GitHub Actions sets GITHUB_SHA to the commit that publishes this release.
 const casualCommit=(process.env.GITHUB_SHA||process.env.VITE_CASUAL_COMMIT||'local').slice(0,8);
-const casualBuild='v0.4.0-'+casualCommit;
+const casualBuild='v0.5.0-'+casualCommit;
 export default defineConfig(({mode})=>({
   base:'./',
   define:{__SWING_BUILD_ID__:JSON.stringify(casualBuild)},
