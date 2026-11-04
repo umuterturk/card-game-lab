@@ -21,7 +21,10 @@ export const LAST_FLAME={
       effect:'first_bank_keep_capacity'},
     {id:'swing_coil',title:'SWING COIL',symbol:'↯',category:'control',
       description:'First STEER crossing this gate gains +1 extra SWING.',
-      effect:'first_steer_cross_extra_swing'}
+      effect:'first_steer_cross_extra_swing'},
+    {id:'herald',title:'HERALD',symbol:'♛',category:'royal',
+      description:'Consecutive Royal SUMMON limit increases from 1 to 2 this gate.',
+      effect:'summon_chain_plus_one'}
   ],
   rewards:{offerCount:3,pickCount:1,maxPerGate:1}
 };
