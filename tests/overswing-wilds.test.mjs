@@ -27,26 +27,26 @@ function finish(run,score){
 function conserved(s){
   const d=s.deal;
   return [...d.deck.slice(d.pos),...d.hand,...d.pot,...d.discard,
-    ...(d.pendingRoyals||[]).map(x=>x.card)].sort((a,b)=>a-b);
+    ...(d.royalQueue||[])].sort((a,b)=>a-b);
 }
 
 test('Wild Shuffle refreshes only ordinary hand, conserves cards and uses deterministic RNG',()=>{
   const run=start(314,'shuffle',{royals:['J']});
   assert.ok(journeyCanUseWild(run,'shuffle'));
   const before=run.encounter.engineState;
-  const royals=before.deal.pendingRoyals;
+  const royals=before.deal.royalQueue;
   assert.equal(before.deal.hand.filter(id=>id>=40).length,0,
     'Royal cards no longer enter the opening hand');
   const updated=stepJourney(run,{type:'USE_WILD',wildId:'shuffle'});
   const next=updated.encounter.engineState;
   assert.notStrictEqual(updated,run);
   assert.equal(updated.phase,'playing');
-  assert.equal(updated.wildUsedGate,true);
+  assert.deepEqual(updated.wildUsedIds,['shuffle']);
   assert.equal(journeyWildBalance(updated).shuffle,0);
   assert.equal(next.deal.hand.length,before.deal.hand.length);
   assert.equal(next.deal.pos,before.deal.pos);
   assert.equal(next.deal.deck.length,before.deal.deck.length);
-  assert.deepEqual(next.deal.pendingRoyals,royals,
+  assert.deepEqual(next.deal.royalQueue,royals,
     'SHUFFLE must not touch the future Royal hand queue');
   assert.equal(next.lastAction.wildId,'shuffle');
   assert.deepEqual(conserved(next),conserved(before),
@@ -68,9 +68,9 @@ test('Polarity Switch reverses exactly one ordinary STEER and applies ZERO BREAK
   assert.equal(action.zeroBreak,true);
   assert.equal(done.encounter.engineState.deal.W,0);
   assert.equal(journeyWildBalance(done).polarity,0);
-  assert.equal(done.wildUsedGate,true);
+  assert.deepEqual(done.wildUsedIds,['polarity']);
   assert.strictEqual(stepJourney(done,{type:'USE_WILD',wildId:'shield'}),done,
-    'one Wild per gate, regardless of type');
+    'cannot use a Tactic without inventory');
   assert.strictEqual(stepJourney(run,{type:'USE_WILD',wildId:'polarity',index:99}),run,
     'invalid hand index must not consume a card');
 });
@@ -112,7 +112,7 @@ test('a safe FLIP consumes armed Shield without providing a second use',()=>{
   assert.equal(done.encounter.engineState.lastAction.snap,false);
   assert.equal(done.encounter.engineState.lastAction.shieldFaded,true);
   assert.equal(done.wildShieldArmed,false);
-  assert.equal(done.wildUsedGate,true);
+  assert.deepEqual(done.wildUsedIds,['polarity']);
 });
 
 test('Wild inventory settles once and cannot be spent twice across retries',()=>{
@@ -127,11 +127,17 @@ test('Wild inventory settles once and cannot be spent twice across retries',()=>
   const failed=finish(used,0);
   assert.equal(failed.phase,'retry_offer');
   const rerun=stepJourney({...failed,goldStart:1000},{type:'BUY_RETRY'});
-  assert.equal(rerun.wildUsedGate,true);
-  assert.strictEqual(stepJourney(rerun,{type:'USE_WILD',wildId:'polarity',index:0}),rerun);
-  const nextGate={...rerun,wildUsedGate:false,encounterIndex:1,
-    encounter:{...rerun.encounter,encounterId:'the_furnace',effectiveTarget:1800}};
-  assert.equal(journeyCanUseWild(nextGate,'polarity'),false,'consumed inventory is not replenished');
+  assert.deepEqual(rerun.wildUsedIds,[]);
+  assert.equal(journeyWildBalance(rerun).polarity,1,'retry restores spent Tactic');
+  let restored=recordJourneyGold(progress,rerun);
+  assert.equal(restored.wildInventory.polarity,1);
+  assert.strictEqual(recordJourneyGold(restored,rerun),restored,'refund settles once');
+  const usedAgain=stepJourney(rerun,{type:'USE_WILD',wildId:'polarity',index:0});
+  assert.notStrictEqual(usedAgain,rerun);
+  assert.equal(journeyWildBalance(usedAgain).polarity,0);
+  const nextGate={...usedAgain,wildUsedIds:[],encounterIndex:1,
+    encounter:{...usedAgain.encounter,encounterId:'the_furnace',effectiveTarget:1800}};
+  assert.equal(journeyCanUseWild(nextGate,'polarity'),false,'second consumption persists');
 });
 
 test('first cleared location awards exactly one chosen Wild with no bonus Gold',()=>{
@@ -176,7 +182,7 @@ test('schema v3 saves preserve Gold and Royal ownership while initializing Wild 
   const v3={...EMPTY_JOURNEY_PROGRESS,schemaVersion:3,lifetimeGold:12345,
     wildInventory:undefined,creditedWildEventIds:undefined};
   const migrated=restoreJourneyProgress(v3);
-  assert.equal(migrated.schemaVersion,4);
+  assert.equal(migrated.schemaVersion,5);
   assert.equal(migrated.lifetimeGold,12345);
   assert.deepEqual(migrated.wildInventory,EMPTY_WILD_INVENTORY);
   const original=startJourney(321,12345);
