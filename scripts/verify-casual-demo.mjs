@@ -50,6 +50,10 @@ try{
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
   await page.goto(url,{waitUntil:'networkidle0',timeout:30000});
   await page.waitForSelector('.sg-card');
+  const version=await page.$eval('#swing-visible-build',e=>e.textContent.trim());
+  assert.match(version,/Swing v0\.4\.0\s*·\s*(?:[a-f0-9]{8}|local)/);
+  assert.equal(await page.$eval('#swing-visible-build',e=>getComputedStyle(e).position),'fixed');
+
   assert.equal(await page.$('.sg-particle-layer')!==null,true);
   assert.equal(await page.$('.sg-gauge-wrap')!==null,true);
   const start=await sizes(page);
