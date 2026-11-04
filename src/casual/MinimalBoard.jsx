@@ -70,7 +70,7 @@ export function IntroTarget({target,onDone,sequence}){
 }
 
 export function SimpleCard({id,index,value,disabled,onPlay}){
- const type=value<0?'cloud':index%2===0?'leaf':'drop';
+ const type=value<0?'cloud':id===4||id%5===0?'drop':'leaf';
  return <button type="button"
    className={'sgv-card sgv-card-'+type}
    aria-label={'Play '+signedValue(value)}
