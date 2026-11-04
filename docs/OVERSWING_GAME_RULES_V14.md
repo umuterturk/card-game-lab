@@ -1,6 +1,6 @@
 # OVERSWING — Game Rules, Mechanics & Content Reference
 
-**Implementation reference:** `umuterturk/card-game-lab`, `main` at tree/commit `4775ece5e9177a56fc9b48f4b813127052ea8972`  
+**Implementation reference:** `umuterturk/card-game-lab`, `main` (current rules as reviewed on 4 November 2026)  
 **Reviewed:** 4 November 2026  
 **Rules engine:** Overswing **v14** (`newOverswing().version === 14`)  
 **Coverage:** actual source-code behavior of the campaign, quick modes, economy, Royal cards, relics, Tactics, reveals, scoring, and player-facing controls. This is **not** a design proposal. Where an interface description and the engine differ, the engine is authoritative.
@@ -22,11 +22,11 @@ A typical gate: start with an ordinary hand → use **FLIP** (unseen deck draw i
 | Ordinary ranks | Ace (1) through 10: **10 ranks per suit** |
 | Ordinary suits | ♥, ♦, ♠, ♣: **4 suits** |
 | Ordinary deck with no Royals | **40 cards**, each unique |
-| Physical card pool with `N` equipped Royals | **40 total** = `40 − N` ordinary deck cards + `N` reserved Royals |
+| Physical card pool with `N` equipped Royals | **40 + N total** = **40 ordinary** deck cards + `N` reserved Royals (`N = 0..3`) |
 | Starting hand / refill capacity | **8** normally, **7** on level 2, **6** on levels 6, 10 and 12 |
 | Minimum capacity after BANKs | **2** |
-| Ordinary deck used for FLIP | **40 − N** cards, including opening hand, where `N = 0..3` |
-| Initial unseen deck cards after hand dealt | `40 − N − initialHandSize` |
+| Ordinary deck used for FLIP | **40 ordinary cards**, including opening hand, regardless of Royals |
+| Initial unseen deck cards after hand dealt | `40 − initialHandSize` (**32**, **33**, or **34**) |
 | Default pendulum bound | **−10 through +10**, inclusive |
 | Restricted bounds | **±9** (levels 3 and 10); **±8** (levels 7 and 12) |
 | FLIP cap | None normally; **18** (level 4), **14** (levels 8 and 11), **12** (level 12) |
@@ -60,13 +60,13 @@ Card IDs `0..39` encode rank and suit. IDs `0..9` are Hearts, `10..19` Diamonds,
 
 Ordinary card movement and base Pot value are separate notions: a black 8 moves **−8** but contributes **+8 points** when deposited in the Pot.
 
-### 3.2 Royal replacement and initial draw
+### 3.2 Royals are additional cards; initial draw
 
-The game shuffles 40 ordinary cards. When `N` Royal ranks are equipped (`N ≤ 3`), it removes the **first N ordinary cards of the shuffled sequence**, then uses the remaining `40−N` ordinary cards as the deal deck. The N Royal cards are held in a **separate reserve queue**, not mixed into that deck. Those removed ordinary cards are not playable in this gate. Physical card count is therefore still 40.
+The game shuffles **all 40 ordinary cards**. Equipping `N` Royal ranks (`N ≤ 3`) adds **N extra Royal cards** to a **separate summon queue**; it does **not** remove, replace or reshuffle any ordinary card. There are **40 + N cards** available in the gate, of which exactly 40 are ordinary cards. The ordinary shuffled deck is identical for the same ordinary seed regardless of Royal loadout.
 
-The initial hand draws the first **8, 7, or 6** cards from the reduced ordinary deck, according to the level. Royals **never appear in the opening hand** and **never appear as ordinary FLIPs**. The remaining ordinary cards are an unseen but deterministic deck.
+The initial hand draws the first **8, 7, or 6** cards from the full 40-card ordinary deck, according to the level. Royals **never appear in the opening hand** and **never appear as ordinary FLIPs**. The remaining ordinary cards are an unseen but deterministic deck.
 
-For example, with all three Royals equipped on a standard level: **37 ordinary cards**, an opening hand of **8**, **29 unseen ordinary cards**, and **3 Royals waiting in the summon queue**.
+For example, with all three Royals equipped on a standard level: **40 ordinary cards**, an opening hand of **8**, **32 unseen ordinary cards**, and **3 extra Royals waiting in the summon queue** (**43 total cards**).
 
 ### 3.3 Refill: precise trigger
 
@@ -308,7 +308,7 @@ Tactics are purchased **outside active runs** in the Market and carried in persi
 
 During a gate, **REVEALED** lets the player purchase the identities of **all currently unseen ordinary deck cards** for that gate, exactly **once per gate**. It shows the cards **sorted by rank then suit**, **not their future draw order**. Cards already drawn disappear from the reveal list. It cannot identify the immediate next FLIP without the separate Scout ability.
 
-If `count` cards are unseen and the ordinary deck has `totalDeckSize` cards (`40−N` with N Royals), the price is:
+If `count` cards are unseen and the ordinary deck has `totalDeckSize` cards (**always 40**, regardless of Royals), the price is:
 
 ```text
 scarcity    = 1 − count / totalDeckSize
@@ -316,7 +316,7 @@ rawPrice    = 400 + 8 × count + 650 × scarcity + 1100 × scarcity^4
 revealPrice = ceil(rawPrice / 5) × 5
 ```
 
-Example prices for a full **40-card ordinary deck**: **720 Gold** with 40 cards unseen, **955** with 20, **1,320** with 10, **1,655** with 5, and **2,040** with 1. The formula uses `totalDeckSize=37`, for example, if three Royals replace three ordinary cards.
+Example prices for a full **40-card ordinary deck**: **720 Gold** with 40 cards unseen, **955** with 20, **1,320** with 10, **1,655** with 5, and **2,040** with 1. The price formula uses `totalDeckSize=40` with or without equipped Royals.
 
 The paid reveal entitlement is **preserved across a purchased replay of that same gate** and is **not charged again**; the displayed revealed identities reset to the corresponding unseen cards in the identical restarted deck. Buying a new gate reveal requires a separate payment. Reveals do not modify deck ordering.
 
@@ -435,7 +435,7 @@ These statements are intentionally specific because they are easy to misundersta
 4. **Entering ±limit is safe; exceeding it snaps**. This matters when using J (±11), Q (±12) and K (±13).
 5. **Bank capacity bottoms out at 2**. Repeated BANKs do not raise tax beyond the level's fixed percentage.
 6. **Royal summons cannot happen during the opening hand**, even if it has empty slots; an actual ordinary refill must happen first.
-7. **Royals replace ordinary cards**. Three equipped Royals mean a 37-card ordinary deck, not a 43-card game.
+7. **Royals add cards without replacement**. Three equipped Royals mean 40 ordinary cards plus 3 in the summon reserve (**43 total**). The ordinary shuffle and FLIP deck never change merely because Royals are equipped.
 8. **King's bonus is contingent on still holding K at BANK**. Playing K for 13 Pot points sacrifices Crown. A King discarded by BANK may eliminate the need to discard any additional hand card.
 9. **A Shielded SNAP still makes the boss harder**. The shield protects the Pot, not the target.
 10. **Relics do not persist across gates**; Tactic inventory and permanent Royal ownership do. Paid retries keep/refund appropriate resources.
@@ -449,19 +449,19 @@ The last two are **source-observed implementation discrepancies**, not game rule
 
 ## 18. Code traceability (exact source locations)
 
-- **Core deck, move legality, scoring, Pot, swing, BANK, SUMMON, refill, completion:** [`src/external/engines.js`, lines 35–335](https://github.com/umuterturk/card-game-lab/blob/4775ece5e9177a56fc9b48f4b813127052ea8972/src/external/engines.js#L35-L335).
-- **Gate journey, relic offers, prices, retries, inventory use, Gold ledger, Royal milestones:** [`src/external/overswingJourney.js`, lines 8–517](https://github.com/umuterturk/card-game-lab/blob/4775ece5e9177a56fc9b48f4b813127052ea8972/src/external/overswingJourney.js#L8-L517).
-- **Royal ranks, ±12 Mirror auto-direction, 100% King / 10-point decay, Royal seeding:** [`src/external/overswingRoyals.js`](https://github.com/umuterturk/card-game-lab/blob/4775ece5e9177a56fc9b48f4b813127052ea8972/src/external/overswingRoyals.js).
-- **Tactics and Shuffle algorithm:** [`src/external/overswingWilds.js`](https://github.com/umuterturk/card-game-lab/blob/4775ece5e9177a56fc9b48f4b813127052ea8972/src/external/overswingWilds.js).
-- **12 level constraints and 1.5%-per-level scaling:** [`src/external/overswingCampaign.js`](https://github.com/umuterturk/card-game-lab/blob/4775ece5e9177a56fc9b48f4b813127052ea8972/src/external/overswingCampaign.js).
-- **Three gates and five relic definitions:** [`src/external/overswingJourneyContent.js`](https://github.com/umuterturk/card-game-lab/blob/4775ece5e9177a56fc9b48f4b813127052ea8972/src/external/overswingJourneyContent.js).
-- **Reveal formula and one-purchase eligibility:** [`src/external/overswingReveal.js`](https://github.com/umuterturk/card-game-lab/blob/4775ece5e9177a56fc9b48f4b813127052ea8972/src/external/overswingReveal.js).
-- **Active-game controls, Queen safe-direction behavior, hand slots, HUD and action labels:** [`src/external/OverswingPlay.jsx`](https://github.com/umuterturk/card-game-lab/blob/4775ece5e9177a56fc9b48f4b813127052ea8972/src/external/OverswingPlay.jsx).
-- **Market prices and ownership controls:** [`src/external/OverswingMarket.jsx`](https://github.com/umuterturk/card-game-lab/blob/4775ece5e9177a56fc9b48f4b813127052ea8972/src/external/OverswingMarket.jsx).
-- **Campaign UI, persistence, PREPARE/RESET/RESUME, seeded music:** [`src/external/OverswingJourney.jsx`](https://github.com/umuterturk/card-game-lab/blob/4775ece5e9177a56fc9b48f4b813127052ea8972/src/external/OverswingJourney.jsx).
-- **Audio options, groove tempos, tension calculation:** [`src/external/overswingSoundPreferences.js`](https://github.com/umuterturk/card-game-lab/blob/4775ece5e9177a56fc9b48f4b813127052ea8972/src/external/overswingSoundPreferences.js), [`overswingGrooves.js`](https://github.com/umuterturk/card-game-lab/blob/4775ece5e9177a56fc9b48f4b813127052ea8972/src/external/overswingGrooves.js), [`overswingThriller.js`](https://github.com/umuterturk/card-game-lab/blob/4775ece5e9177a56fc9b48f4b813127052ea8972/src/external/overswingThriller.js), [`overswingTension.js`](https://github.com/umuterturk/card-game-lab/blob/4775ece5e9177a56fc9b48f4b813127052ea8972/src/external/overswingTension.js).
-- **Tests supporting key edge cases:** [`tests/overswing.test.mjs`](https://github.com/umuterturk/card-game-lab/blob/4775ece5e9177a56fc9b48f4b813127052ea8972/tests/overswing.test.mjs), [`tests/overswing-mechanics-v14.test.mjs`](https://github.com/umuterturk/card-game-lab/blob/4775ece5e9177a56fc9b48f4b813127052ea8972/tests/overswing-mechanics-v14.test.mjs), [`tests/overswing-royals.test.mjs`](https://github.com/umuterturk/card-game-lab/blob/4775ece5e9177a56fc9b48f4b813127052ea8972/tests/overswing-royals.test.mjs), [`tests/overswing-gate-relics.test.mjs`](https://github.com/umuterturk/card-game-lab/blob/4775ece5e9177a56fc9b48f4b813127052ea8972/tests/overswing-gate-relics.test.mjs), and [`tests/overswing-wilds.test.mjs`](https://github.com/umuterturk/card-game-lab/blob/4775ece5e9177a56fc9b48f4b813127052ea8972/tests/overswing-wilds.test.mjs).
+- **Core deck, move legality, scoring, Pot, swing, BANK, SUMMON, refill, completion:** [`src/external/engines.js`, lines 35–335](https://github.com/umuterturk/card-game-lab/blob/main/src/external/engines.js#L35-L335).
+- **Gate journey, relic offers, prices, retries, inventory use, Gold ledger, Royal milestones:** [`src/external/overswingJourney.js`, lines 8–517](https://github.com/umuterturk/card-game-lab/blob/main/src/external/overswingJourney.js#L8-L517).
+- **Royal ranks, ±12 Mirror auto-direction, 100% King / 10-point decay, Royal seeding:** [`src/external/overswingRoyals.js`](https://github.com/umuterturk/card-game-lab/blob/main/src/external/overswingRoyals.js).
+- **Tactics and Shuffle algorithm:** [`src/external/overswingWilds.js`](https://github.com/umuterturk/card-game-lab/blob/main/src/external/overswingWilds.js).
+- **12 level constraints and 1.5%-per-level scaling:** [`src/external/overswingCampaign.js`](https://github.com/umuterturk/card-game-lab/blob/main/src/external/overswingCampaign.js).
+- **Three gates and five relic definitions:** [`src/external/overswingJourneyContent.js`](https://github.com/umuterturk/card-game-lab/blob/main/src/external/overswingJourneyContent.js).
+- **Reveal formula and one-purchase eligibility:** [`src/external/overswingReveal.js`](https://github.com/umuterturk/card-game-lab/blob/main/src/external/overswingReveal.js).
+- **Active-game controls, Queen safe-direction behavior, hand slots, HUD and action labels:** [`src/external/OverswingPlay.jsx`](https://github.com/umuterturk/card-game-lab/blob/main/src/external/OverswingPlay.jsx).
+- **Market prices and ownership controls:** [`src/external/OverswingMarket.jsx`](https://github.com/umuterturk/card-game-lab/blob/main/src/external/OverswingMarket.jsx).
+- **Campaign UI, persistence, PREPARE/RESET/RESUME, seeded music:** [`src/external/OverswingJourney.jsx`](https://github.com/umuterturk/card-game-lab/blob/main/src/external/OverswingJourney.jsx).
+- **Audio options, groove tempos, tension calculation:** [`src/external/overswingSoundPreferences.js`](https://github.com/umuterturk/card-game-lab/blob/main/src/external/overswingSoundPreferences.js), [`overswingGrooves.js`](https://github.com/umuterturk/card-game-lab/blob/main/src/external/overswingGrooves.js), [`overswingThriller.js`](https://github.com/umuterturk/card-game-lab/blob/main/src/external/overswingThriller.js), [`overswingTension.js`](https://github.com/umuterturk/card-game-lab/blob/main/src/external/overswingTension.js).
+- **Tests supporting key edge cases:** [`tests/overswing.test.mjs`](https://github.com/umuterturk/card-game-lab/blob/main/tests/overswing.test.mjs), [`tests/overswing-mechanics-v14.test.mjs`](https://github.com/umuterturk/card-game-lab/blob/main/tests/overswing-mechanics-v14.test.mjs), [`tests/overswing-royals.test.mjs`](https://github.com/umuterturk/card-game-lab/blob/main/tests/overswing-royals.test.mjs), [`tests/overswing-gate-relics.test.mjs`](https://github.com/umuterturk/card-game-lab/blob/main/tests/overswing-gate-relics.test.mjs), and [`tests/overswing-wilds.test.mjs`](https://github.com/umuterturk/card-game-lab/blob/main/tests/overswing-wilds.test.mjs).
 
 ---
 
-**Interpretation rule:** this reference records the rules implemented at the source snapshot above. It intentionally distinguishes player-facing mechanics from exploratory ideas, obsolete specifications, and possible UI bugs. Update this document whenever the gameplay engine, campaign content, or Market prices change.
+**Interpretation rule:** this reference records the rules implemented in `main` at the stated review date. It intentionally distinguishes player-facing mechanics from exploratory ideas, obsolete specifications, and possible UI bugs. Update this document whenever the gameplay engine, campaign content, or Market prices change.

@@ -43,8 +43,9 @@ function dealSwing(rng,override,royals=[],handSize=8){
   if(!Array.isArray(royals)||royals.length>3||new Set(royals).size!==royals.length||
      royals.some(id=>!isRoyal(id)))throw new TypeError('Invalid royal hand');
   // Ordinary FLIPs and player-controlled Royal summons use separate pools.
+  // All 40 ordinary cards remain playable; equipped Royals are additional cards.
   // Journey preorders Royals once per game and reuses that order every gate.
-  const deck=royals.length?ordinary.slice(royals.length):ordinary;
+  const deck=ordinary;
   return {deck,pos:handSize,hand:deck.slice(0,handSize),
     royalQueue:royals.slice(),summonedRoyals:[],consecutiveSummons:0,
     ordinaryRefills:0,

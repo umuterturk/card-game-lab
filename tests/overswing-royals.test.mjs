@@ -39,18 +39,27 @@ test('Royal loadout produces a game-wide seeded summon order and suits',()=>{
     assert.deepEqual(a.encounter.engineState.deal.royalQueue,
       royalCardsForLoadout(a.equippedRoyals,a.royalSeed));
     assert.ok(a.encounter.engineState.deal.deck.every(c=>c<40));
-    assert.equal(a.encounter.engineState.deal.deck.length,37);
+    assert.equal(a.encounter.engineState.deal.deck.length,40);
   }
   assert.throws(()=>royalCardsForLoadout(['J','J'],42),TypeError);
 });
-test('Royal reserve replaces ordinary cards and only SUMMON can release it',()=>{
-  for(const tier of [0,1,2,3]){
-    const royals=pickRoyalCards(tier,321,0),s=newOverswing({seed:123,royals}),d=s.deal;
-    assert.equal(royals.length,Math.min(tier,2));
+test('Royal reserve adds cards without removing or reshuffling any of the 40 ordinary cards',()=>{
+  const baseline=newOverswing({seed:123}).deal.deck;
+  for(const royals of [
+    [],
+    [royalId('J',0)],
+    [royalId('J',0),royalId('Q',1)],
+    [royalId('J',0),royalId('Q',1),royalId('K',2)]
+  ]){
+    const s=newOverswing({seed:123,royals}),d=s.deal;
     assert.equal(d.hand.length,8);
-    assert.equal(d.deck.length+royals.length,40);
+    assert.equal(d.deck.length,40);
+    assert.equal(new Set(d.deck).size,40);
+    assert.deepEqual(d.deck,baseline,'Royal loadout must not alter ordinary deck order');
+    assert.equal(d.pos,8);
+    assert.equal(d.deck.length-d.pos,32,'initial unseen ordinary cards');
     assert.ok(d.deck.every(c=>c<40));
-    assert.equal(totalCards(d),40);
+    assert.equal(totalCards(d),40+royals.length);
     assert.ok(d.hand.every(id=>id<40));
     assert.deepEqual(new Set(royalReserve(d)),new Set(royals));
     assert.equal(overswingActions(s).some(a=>a.type==='summon'),false,'opening hand is full');
@@ -72,11 +81,11 @@ test('SUMMON is deliberate, limited consecutively and never affects ordinary FLI
   assert.equal(s.deal.flips,beforeFlip);
   assert.equal(s.deal.deck[s.deal.pos],nextCard);
   assert.ok(!overswingActions(s).some(a=>a.type==='summon'));
-  assert.equal(totalCards(s.deal),40);
+  assert.equal(totalCards(s.deal),42);
   s=stepOverswing(s,{type:'flip'});
   assert.ok(s.lastAction.card<40);
   assert.equal(s.deal.consecutiveSummons,0);
-  assert.equal(totalCards(s.deal),40);
+  assert.equal(totalCards(s.deal),42);
 });
 test('the same Royal ordering is reused in all three gates of a journey',()=>{
   let run=startJourney(902,0,1,['J','Q','K']);
@@ -184,12 +193,16 @@ test('BANK adds provisional gate Gold but not Treasury or lifetime Royal progres
   assert.strictEqual(recordJourneyGold(EMPTY_JOURNEY_PROGRESS,after),EMPTY_JOURNEY_PROGRESS);
   assert.equal(recordJourneyGold(EMPTY_JOURNEY_PROGRESS,after).lifetimeGold,0);
 });
-test('full 40-card conservation and legal game termination with Royal combinations',()=>{
-  for(const tier of [1,2,3])for(let seed=1;seed<=30;seed++){
-    let s=newOverswing({seed,royals:pickRoyalCards(tier,seed,0)});
+test('full 40 ordinary + N Royal card conservation and legal game termination',()=>{
+  for(const royals of [
+    [royalId('J',0)],
+    [royalId('J',0),royalId('Q',1)],
+    [royalId('J',0),royalId('Q',1),royalId('K',2)]
+  ])for(let seed=1;seed<=30;seed++){
+    let s=newOverswing({seed,royals});
     for(let turn=0;turn<120&&s.status==='playing';turn++){
       const d=s.deal;
-      assert.equal(totalCards(d),40);
+      assert.equal(totalCards(d),40+royals.length);
       const actions=overswingActions(s);
       assert.ok(actions.length>0,'legal actions at seed '+seed+' turn '+turn);
       const banks=actions.filter(a=>a.type==='bank');
@@ -208,7 +221,7 @@ test('full 40-card conservation and legal game termination with Royal combinatio
       assert.notStrictEqual(next,s);
       s=next;
     }
-    assert.equal(s.status,'over','seed '+seed+' tier '+tier);
-    assert.equal(totalCards(s.deal),40);
+    assert.equal(s.status,'over','seed '+seed+' royals '+royals.length);
+    assert.equal(totalCards(s.deal),40+royals.length);
   }
 });
