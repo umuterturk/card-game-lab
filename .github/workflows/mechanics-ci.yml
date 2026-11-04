@@ -1,7 +1,7 @@
 name: Overswing Mechanics CI
 on:
   push:
-    branches: [feature/overswing-mechanics-v14]
+    branches: [feature/overswing-mechanics-v14, feature/royal-summon-ritual]
   workflow_dispatch:
 permissions:
   contents: read
