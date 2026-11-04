@@ -401,13 +401,13 @@ export function restoreJourneyRun(value,progress=EMPTY_JOURNEY_PROGRESS){
       e.id?.includes('|wild:use:'+value.encounterIndex))
       .map(e=>e.wildId).slice(0,2),
     encounter:{...value.encounter,engineState:restoredEngine},
-    goldStart:value.schemaVersion===3?value.goldStart:goldStart,
-    equippedRoyals:value.schemaVersion===3?value.equippedRoyals:selected,
+    goldStart:value.schemaVersion>=3?value.goldStart:goldStart,
+    equippedRoyals:value.schemaVersion>=3?value.equippedRoyals:selected,
     retryCount:value.retryCount||0,retryGoldSpent:value.retryGoldSpent||0,
-    treasuryEvents:value.schemaVersion===3?value.treasuryEvents:oldEvents,
+    treasuryEvents:value.schemaVersion>=3?value.treasuryEvents:oldEvents,
     goldSpent:value.goldSpent||0,
-    wildInventoryStart:wildInventory(progress.wildInventory),
-    wildEvents:value.wildEvents||[],wildShieldArmed:false,
+    wildInventoryStart:wildInventory(value.wildInventoryStart||progress.wildInventory),
+    wildEvents:value.wildEvents||[],wildShieldArmed:!!value.wildShieldArmed,
     wildRewardAvailable:false,wildRewardId:null};
   delete migration.treasuryStart;
   return isValidJourney(migration)?restoreGateRelicState(migration):null;
