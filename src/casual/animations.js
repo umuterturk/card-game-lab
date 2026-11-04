@@ -117,20 +117,20 @@ export function animateBankIntoJar({root,fromScore,toScore,onCount,onComplete}){
   tweens.push(gsap.to(counter,{value:toScore,duration:.78,delay:.22,ease:'power2.out',onUpdate:()=>{
     if(!stopped)onCount(Math.round(counter.value));
   }}));
-  const jarTween=gsap.fromTo(jar,{filter:'brightness(1)'},{
-    filter:'brightness(1.28)',duration:.25,delay:.4,repeat:1,yoyo:true,ease:'sine.inOut'
+  const jarTween=gsap.to(jar,{
+    scale:1.055,transformOrigin:'50% 65%',duration:.22,delay:.4,repeat:1,yoyo:true,ease:'sine.inOut'
   });
   tweens.push(jarTween);
   const endTime=.73+(quantity-1)*.064;
   const done=gsap.delayedCall(endTime+.08,()=>{
     if(stopped)return;
-    stopped=true;onCount(toScore);onComplete();
+    stopped=true;gsap.set(jar,{clearProps:'scale,transformOrigin'});onCount(toScore);onComplete();
   });
   tweens.push(done);
   return ()=>{
     stopped=true;
     for(const tween of tweens)tween.kill();
     for(const node of nodes)node.remove();
-    gsap.set(jar,{clearProps:'filter'});
+    gsap.set(jar,{clearProps:'scale,transformOrigin'});
   };
 }
