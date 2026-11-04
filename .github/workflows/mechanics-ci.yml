@@ -15,12 +15,12 @@ jobs:
         with:
           node-version: 22
       - run: npm install --no-audit --no-fund
-      - name: Run game tests
-        run: npm test
       - name: Verify production build
         run: npm run build
       - name: Verify release package
         run: npm run verify:release
+      - name: Run game tests
+        run: npm test
       - name: Extended deterministic simulation
         run: node experiments/run-overswing-royals.mjs 1000 900000
       - uses: actions/upload-artifact@v4
