@@ -315,3 +315,60 @@
 .os8-carry-options>div{display:flex;justify-content:center;gap:7px;margin-top:5px}
 .os8-carry-options button{border:2px solid #bb8eaa;background:#553555;color:#fff1f5;
   padding:5px 8px;font:13px 'VT323',monospace;cursor:pointer}
+
+
+/* Royal summons: one cheap, transform-only gothic portal flight from the
+   existing SUMMON button into the actual hand slot. No extra HUD space. */
+.os8-flip-flight.os8-summon-flight{
+  z-index:1065;
+  animation:os8-summon-ritual 1040ms steps(15,end) both;
+}
+.os8-summon-flight .os8-summon-face{
+  background:linear-gradient(155deg,#fff0bb,#bd9354 54%,#67422d);
+  border:5px solid #dbaf65;
+  color:#3a253b;
+  box-shadow:inset 0 0 0 3px #fbe5a4,0 0 0 5px #26142c,
+    0 0 28px 8px #a86bc2cc,0 0 54px 16px #4b215b77;
+  animation:os8-summon-face-reveal 1040ms steps(15,end) both;
+}
+.os8-summon-flight .os8-summon-crown{
+  font:60px/.8 'VT323',monospace;
+  color:#573657;text-shadow:2px 2px #ffdb97;
+}
+.os8-summon-flight .os8-summon-value{
+  font:30px/1 'VT323',monospace;color:#552e41;
+}
+.os8-summon-flight .os8-flip-face-tag{
+  color:#422546;font-weight:700;letter-spacing:2px;
+}
+.os8-summon-flight::before{
+  content:"";position:absolute;inset:-30px;border:7px double #ce9eec;
+  border-radius:50%;pointer-events:none;opacity:0;
+  box-shadow:0 0 0 5px #3d173a,0 0 22px 12px #ba80f6;
+  animation:os8-summon-portal 1040ms steps(11,end) both;
+}
+@keyframes os8-summon-ritual{
+  0%{transform:translate3d(var(--flip-start-x),var(--flip-start-y),0) scale(.12) rotate(-14deg);opacity:0}
+  12%{transform:translate3d(var(--flip-start-x),var(--flip-start-y),0) scale(.44) rotate(-6deg);opacity:1}
+  31%{transform:translate3d(var(--flip-center-x),var(--flip-center-y),0) scale(1.45) rotate(-12deg);opacity:1}
+  38%,57%{transform:translate3d(var(--flip-center-x),var(--flip-center-y),0) scale(1.58) rotate(0deg);opacity:1}
+  76%{transform:translate3d(var(--flip-end-x),var(--flip-end-y),0) scale(.82) rotate(8deg);opacity:1}
+  91%{transform:translate3d(var(--flip-end-x),var(--flip-end-y),0) scale(.65) rotate(0deg);opacity:1}
+  100%{transform:translate3d(var(--flip-end-x),var(--flip-end-y),0) scale(.65) rotate(0deg);opacity:0}
+}
+@keyframes os8-summon-face-reveal{
+  0%,30%{filter:brightness(.18) sepia(1) saturate(1.5)}
+  38%{filter:brightness(3)}
+  45%,51%{filter:brightness(.4)}
+  57%{filter:brightness(2.2)}
+  64%,100%{filter:brightness(1)}
+}
+@keyframes os8-summon-portal{
+  0%,17%,72%,100%{opacity:0;transform:scale(.38)}
+  31%{opacity:.85;transform:scale(.75)}
+  43%{opacity:1;transform:scale(1.25)}
+  56%{opacity:.8;transform:scale(1.05)}
+}
+@media(prefers-reduced-motion:reduce){
+  .os8-flip-flight.os8-summon-flight{display:none!important;animation:none!important}
+}
