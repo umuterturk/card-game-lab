@@ -42,18 +42,13 @@ function dealSwing(rng,override,royals=[],handSize=8){
   const ordinary=override?override.slice():shuffle(all40(),rng);
   if(!Array.isArray(royals)||royals.length>3||new Set(royals).size!==royals.length||
      royals.some(id=>!isRoyal(id)))throw new TypeError('Invalid royal hand');
-  // Royal cards replace ordinary cards in the forty-card total, but do NOT
-  // belong to the FLIP deck and do NOT enter the opening hand. Each Royal is
-  // queued for a seeded, randomized future hand-refill position instead.
-  // Drawing/FLIPing ordinary cards never draws or exposes a queued Royal.
+  // Ordinary FLIPs and player-controlled Royal summons use separate pools.
+  // Journey preorders Royals once per game and reuses that order every gate.
   const deck=royals.length?ordinary.slice(royals.length):ordinary;
-  const pendingRoyals=shuffle(royals,rng).map(card=>({
-    card,afterPos:handSize+Math.floor(rng()*Math.max(1,deck.length-handSize))
-  })).sort((a,b)=>a.afterPos-b.afterPos);
   return {deck,pos:handSize,hand:deck.slice(0,handSize),
-    pendingRoyals,
+    royalQueue:royals.slice(),summonedRoyals:[],consecutiveSummons:0,
     handCap:handSize,bankCount:0,scoutNext:null,
-    crownBonus:0,
+    crownBonus:0,resonancePoints:0,
     pot:[],discard:[],S:0,W:0,T:0,swingNo:1,flips:0,plays:0,
     flipStreak:0,flipFactor:1,jackpotFactor:1};
 }
@@ -61,7 +56,7 @@ export function newOverswing({seed,mode='short',deckOverride,royals=[],initialHa
   const base=seed??Date.now();
   const tutorial=mode==='tutorial';
   if(!Number.isInteger(initialHandSize)||initialHandSize<2||initialHandSize>8)throw new RangeError('Invalid initial hand size');
-  return {game:'overswing',version:13,seed:base,mode,dealIndex:0,dealTotals:[],
+  return {game:'overswing',version:14,seed:base,mode,dealIndex:0,dealTotals:[],
     deal:dealSwing(seeded(base),tutorial?OVERSWING_TUTORIAL_DECK:deckOverride,tutorial?[]:royals,tutorial?8:initialHandSize),
     tutorialStep:tutorial?0:null,tutorialIntroDone:!tutorial,history:[],status:'playing',
     last:tutorial?'Learn FLIP, STEER, Pot, and Score before you begin.':
@@ -75,7 +70,8 @@ export function overswingMultiplier(d){
 const OVERSWING_BASE_RULES=Object.freeze({
   steerNoncrossPenalty:1,flipCrossJackpotGain:1,bankCapacityLoss:1,
   steerCrossSwingBonus:0,flipNoncrossPenalty:1,snapLimit:10,
-  maxFlips:null,bankTax:0,polarityReverse:false,shieldNextFlip:false
+  maxFlips:null,bankTax:0,polarityReverse:false,shieldNextFlip:false,
+  maxConsecutiveSummons:1
 });
 function overswingEffectiveRules(input={}){
   const rules={...OVERSWING_BASE_RULES,...input};
@@ -87,6 +83,8 @@ function overswingEffectiveRules(input={}){
   }))if(!allowed.includes(rules[name]))throw new RangeError('Invalid Overswing rule: '+name);
   if(rules.maxFlips!==null&&(!Number.isInteger(rules.maxFlips)||rules.maxFlips<1||rules.maxFlips>40))
     throw new RangeError('Invalid Overswing rule: maxFlips');
+  if(!Number.isInteger(rules.maxConsecutiveSummons)||rules.maxConsecutiveSummons<1||
+     rules.maxConsecutiveSummons>3)throw new RangeError('Invalid Overswing rule: maxConsecutiveSummons');
   return rules;
 }
 export function overswingActions(s,rules={}){
@@ -94,12 +92,16 @@ export function overswingActions(s,rules={}){
   const effective=overswingEffectiveRules(rules);
   const d=s.deal,a=[];
   if(d.pos<d.deck.length&&(effective.maxFlips===null||d.flips<effective.maxFlips))a.push({type:'flip'});
+  if((d.royalQueue?.length||0)>0&&d.hand.length<d.handCap&&
+      (d.consecutiveSummons||0)<effective.maxConsecutiveSummons)a.push({type:'summon'});
+  if(d.pos<d.deck.length&&d.hand.length>1&&d.hand.every(isRoyal))
+    d.hand.forEach((_,index)=>a.push({type:'carry',index}));
   d.hand.forEach((id,index)=>{
     if(royalRank(id)==='Q'){
       a.push({type:'steer',index,direction:1},{type:'steer',index,direction:-1});
     }else a.push({type:'steer',index});
   });
-  if(d.pot.length&&(d.plays>=2||(d.pos>=d.deck.length&&!d.hand.length))){
+  if(d.pot.length&&(d.plays>=2||(d.pos>=d.deck.length&&!d.hand.some(id=>!isRoyal(id))))){
     const newCap=Math.max(2,d.handCap-effective.bankCapacityLoss);
     const remaining=d.hand.filter(id=>royalRank(id)!=='K').length;
     if(remaining>newCap)d.hand.forEach((id,dropIndex)=>{
@@ -116,7 +118,7 @@ export function overswingActions(s,rules={}){
   return a;
 }
 export function overswingPayout(s,rules={}){
-  const d=s.deal,base=d.pot.reduce((a,c)=>a+rank(c),0)*overswingMultiplier(d);
+  const d=s.deal,base=(d.pot.reduce((a,c)=>a+rank(c),0)+(d.resonancePoints||0))*overswingMultiplier(d);
   const crown=d.hand.some(id=>royalRank(id)==='K')?(d.crownBonus||0):0;
   const gross=Math.floor(base*(100+crown)/100);
   return Math.floor(gross*(100-overswingEffectiveRules(rules).bankTax)/100);
@@ -126,26 +128,17 @@ function resetMultipliers(d){
   d.flipFactor=1;d.jackpotFactor=1;
 }
 function clearSwing(d){
-  d.S=0;d.pot=[];d.plays=0;
+  d.S=0;d.pot=[];d.plays=0;d.resonancePoints=0;
   resetMultipliers(d);
   d.swingNo++;
 }
 function refillEmptyHand(d){
   const drawn=[];
-  if(d.hand.length===0){
-    while(d.hand.length<d.handCap&&
-      (d.pos<d.deck.length||(d.pendingRoyals?.length||0)>0)){
-      const due=(d.pendingRoyals||[])[0];
-      let card;
-      // On a refill, a scheduled Royal joins the HAND, never the FLIP draw.
-      // If ordinary cards have run out, release any remaining Royals so a
-      // run can always finish instead of leaving cards stranded in the queue.
-      if(due&&(d.pos>=due.afterPos||d.pos>=d.deck.length)){
-        card=d.pendingRoyals.shift().card;
-        if(royalRank(card)==='K')d.crownBonus=KING_INITIAL_BANK_BONUS;
-      }else{
-        card=d.deck[d.pos++];
-      }
+  // Preserve a single Royal across ordinary refills. Multiple held Royals
+  // require choosing one to carry, rather than silently discarding another.
+  if(d.pos<d.deck.length&&!d.hand.some(id=>!isRoyal(id))&&d.hand.length<=1){
+    while(d.hand.length<d.handCap&&d.pos<d.deck.length){
+      const card=d.deck[d.pos++];
       d.hand.push(card);drawn.push(card);
     }
   }
@@ -158,19 +151,37 @@ export function stepOverswing(s,a,rules={}){
   const effective=overswingEffectiveRules(rules);
   if(!a||!overswingActions(s,effective).some(x=>x.type===a.type
       &&(x.type!=='steer'||x.index===a.index&&x.direction===a.direction)
-      &&(x.type!=='bank'||x.dropIndex===a.dropIndex)))return s;
+      &&(x.type!=='bank'||x.dropIndex===a.dropIndex)
+      &&(x.type!=='carry'||x.index===a.index)))return s;
   const d={...s.deal,hand:[...s.deal.hand],pot:[...s.deal.pot],discard:[...s.deal.discard],
-    pendingRoyals:(s.deal.pendingRoyals||[]).map(royal=>({...royal}))};
+    royalQueue:[...(s.deal.royalQueue||[])],
+    summonedRoyals:[...(s.deal.summonedRoyals||[])]};
   let n={...s,deal:d,dealTotals:[...s.dealTotals],history:[...s.history]};
   let msg='',ended=false;
-  const previousS=d.S,previousW=d.W,previousPot=d.pot.reduce((sum,c)=>sum+rank(c),0);
+  const previousS=d.S,previousW=d.W,previousPot=d.pot.reduce((sum,c)=>sum+rank(c),0)+(d.resonancePoints||0);
   const previousMultiplier=overswingMultiplier(d);
   const previousFlipFactor=d.flipFactor,previousJackpotFactor=d.jackpotFactor;
-  if(a.type==='bank'){
+  if(a.type==='summon'){
+    const card=d.royalQueue.shift();
+    d.hand.push(card);d.summonedRoyals.push(card);
+    d.consecutiveSummons=(d.consecutiveSummons||0)+1;
+    d.flipStreak=0;
+    if(royalRank(card)==='K')d.crownBonus=KING_INITIAL_BANK_BONUS;
+    n.lastAction={type:'summon',card,remaining:d.royalQueue.length,
+      chain:d.consecutiveSummons,destination:'hand'};
+    msg='SUMMON: '+label(card)+' joins your hand.';
+  }else if(a.type==='carry'){
+    const kept=d.hand[a.index];
+    d.discard.push(...d.hand.filter((_,i)=>i!==a.index));
+    d.hand=[kept];
+    n.lastAction={type:'carry',card:kept};
+    msg='CARRY: '+label(kept)+' retained.';
+  }else if(a.type==='bank'){
+    d.consecutiveSummons=0;
     const gross=overswingPayout(s,{...effective,bankTax:0});
     const gain=overswingPayout(s,effective);
     const crownBonus=d.hand.some(id=>royalRank(id)==='K')?(d.crownBonus||0):0;
-    d.T+=gain;d.discard.push(...d.pot);
+    d.T+=gain;d.discard.push(...d.pot);d.resonancePoints=0;
     const requestedDrop=a.dropIndex==null?null:d.hand[a.dropIndex];
     const crowned=d.hand.filter(id=>royalRank(id)==='K');
     d.hand=d.hand.filter(id=>royalRank(id)!=='K');
@@ -190,6 +201,7 @@ export function stepOverswing(s,a,rules={}){
       (dropped===null?'':'; discarded '+label(dropped))+'.';
     ended=true;
   }else{
+    d.consecutiveSummons=0;
     const opening=d.plays===0;
     const c=a.type==='flip'?d.deck[d.pos++]:d.hand.splice(a.index,1)[0];
     if(a.type==='flip'){d.flips++;d.scoutNext=null;}
@@ -202,7 +214,7 @@ export function stepOverswing(s,a,rules={}){
         d.discard.push(...expired);
       }
     }else d.crownBonus=0;
-    const reversed=a.type==='steer'&&!isRoyal(c)&&effective.polarityReverse;
+    const reversed=a.type==='steer'&&royalRank(c)!=='Q'&&effective.polarityReverse;
     const movement=royalRank(c)==='Q'?a.direction*12:signed(c)*(reversed?-1:1);
     const shielded=a.type==='flip'&&effective.shieldNextFlip;
     const outcome=applySwing(d.S,d.W,movement,effective.snapLimit);
@@ -227,11 +239,14 @@ export function stepOverswing(s,a,rules={}){
         d.pot.push(c);destination='pot';
         if(!outcome.swung&&!zeroBreak)d.W=Math.max(0,d.W-effective.flipNoncrossPenalty);
         if(!zeroBreak){
-          // Every safe FLIP continues its current streak, including zero crossings.
-          // Earned FLIP tiers persist across STEER; only the streak counter restarts.
-          d.flipStreak++;
-          d.flipFactor=Math.max(d.flipFactor,d.flipStreak+1);
-          if(outcome.swung)d.jackpotFactor+=effective.flipCrossJackpotGain;
+          // Crossing grows JACKPOT only. A noncrossing FLIP grows FLIP.
+          if(outcome.swung){
+            d.flipStreak=0;
+            d.jackpotFactor+=effective.flipCrossJackpotGain;
+          }else{
+            d.flipStreak++;
+            d.flipFactor=Math.max(d.flipFactor,d.flipStreak+1);
+          }
         }
       }else{
         d.flipStreak=0;
@@ -239,12 +254,15 @@ export function stepOverswing(s,a,rules={}){
         if(!outcome.swung&&!zeroBreak)d.W=Math.max(0,d.W-effective.steerNoncrossPenalty);
         // Exact zero still deposits a STEER card in the Pot, without any bonus.
         if(opening||outcome.swung||zeroBreak){
+          if(d.pot.length&&suit(d.pot.at(-1))===suit(c)&&d.resonancePoints<6)
+            d.resonancePoints+=2;
           d.pot.push(c);destination='pot';
         }else{d.discard.push(c);destination='discard';}
       }
       if(zeroBreak)resetMultipliers(d);
       if(royalRank(c)==='J'&&d.pos<d.deck.length)d.scoutNext=d.deck[d.pos];
       const addedToPot=destination==='pot'?rank(c):0;
+      const resonanceGained=(d.resonancePoints||0)-(s.deal.resonancePoints||0);
       n.lastAction={type:a.type,card:c,from:previousS,to:d.S,
         snap:false,swung:outcome.swung,zeroBreak,
         polarityReversed:reversed,shieldFaded:shielded,
@@ -252,7 +270,7 @@ export function stepOverswing(s,a,rules={}){
         gain:zeroBreak?0:outcome.gain+(a.type==='steer'&&outcome.swung?effective.steerCrossSwingBonus:0),
         swingPenalty:!outcome.swung&&!zeroBreak&&d.W<previousW,
         destination,
-        openingSteer:opening&&a.type==='steer',addedToPot,scouted:royalRank(c)==='J'?d.scoutNext:null,
+        openingSteer:opening&&a.type==='steer',addedToPot,resonanceGained,scouted:royalRank(c)==='J'?d.scoutNext:null,
         flipStreak:d.flipStreak,flipFactor:d.flipFactor,
         jackpotFactor:d.jackpotFactor,multiplier:overswingMultiplier(d),
         swingTierGained:d.W>previousW,flipTierGained:d.flipFactor>previousFlipFactor,
@@ -292,7 +310,9 @@ export function stepOverswing(s,a,rules={}){
     if(n.lastAction)n.lastAction={...n.lastAction,refilled:refill};
   }else n.lastRefill=[];
   // A deal is finished only after every card has been used (including hand cards).
-  if(d.pos>=d.deck.length&&!d.hand.length&&!d.pot.length&&!d.pendingRoyals.length){
+  if(d.pos>=d.deck.length&&!d.hand.some(id=>!isRoyal(id))&&!d.pot.length){
+    // Never force unsafe Royal STEERs at the end of the ordinary deck.
+    d.discard.push(...d.hand,...d.royalQueue);d.hand=[];d.royalQueue=[];
     n.dealTotals.push(d.T);
     if(n.mode==='match'&&n.dealIndex<2){
       n.dealIndex++;
