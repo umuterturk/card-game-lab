@@ -3,7 +3,7 @@ import {LAST_FLAME,LAST_FLAME_RELICS} from './overswingJourneyContent.js';
 import {ROYAL_NAMES,royalCardsForLoadout,ROYAL_PRICES,royalRank} from './overswingRoyals.js';
 import {campaignLevel,campaignNextLevel,CAMPAIGN_LEVELS} from './overswingCampaign.js';
 import {WILD_IDS,wildInventory,wildBalance,shuffleWildHand} from './overswingWilds.js';
-import {revealOffer} from './overswingReveal.js';
+import {revealOffer,sortDeckCards} from './overswingReveal.js';
 
 export const JOURNEY_SCHEMA=5;
 export const JOURNEY_PHASES=['playing','choosing_relic','choosing_wild','retry_offer','won','lost','abandoned'];
@@ -210,7 +210,12 @@ export function stepJourney(run,command){
     const spent=run.wildEvents.filter(e=>e.amount===-1&&e.id.startsWith(prefix));
     const refunds=spent.map(e=>({id:run.runId+'|wild:refund:'+
       run.encounterIndex+':'+run.retryCount+':'+e.wildId,wildId:e.wildId,amount:1}));
+    const encounter=dealFor(run.runSeed,run.encounterIndex,run.equippedRoyals,
+      run.levelNumber,run.royalSeed);
+    const deck=encounter.engineState.deal;
     return {...run,phase:'playing',retryCount,
+      revealedCardIds:run.revealPurchaseCount?
+        deck.deck.slice(deck.pos).sort(sortDeckCards):[],
       wildEvents:[...run.wildEvents,...refunds],wildUsedIds:[],
       goldSpent:run.goldSpent+price,retryGoldSpent:run.retryGoldSpent+price,
       treasuryEvents:treasuryEvent(run,'retry:'+run.encounterIndex+':'+retryCount,-price),
@@ -218,7 +223,7 @@ export function stepJourney(run,command){
       completedEncounters:run.completedEncounters.filter(e=>e.id!==run.encounter.encounterId),
       wildShieldArmed:false,
       // Same deck, Royal order, Relic and reveal entitlement each attempt.
-      encounter:dealFor(run.runSeed,run.encounterIndex,run.equippedRoyals,run.levelNumber,run.royalSeed)};
+      encounter};
   }
   if(run.phase==='choosing_relic'&&
      (command.type==='BUY_RELIC'||command.type==='SKIP_RELIC')){
