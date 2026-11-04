@@ -7,6 +7,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  statuses: write
 concurrency:
   group: pages
   cancel-in-progress: true
@@ -26,11 +27,13 @@ jobs:
           # npm cache disabled (no lockfile)
       - run: npm install --no-audit --no-fund
       - run: npm test
-      - run: npm run build
+      - id: web_build
+        run: npm run build
       - run: npm run verify:release
       # Browser-level smoke: exercise PREPARE and refresh in the scaled mobile UI.
       - run: node scripts/verify-overswing-briefing.mjs
-      - run: node scripts/verify-casual-demo.mjs
+      - id: casual_smoke
+        run: node scripts/verify-casual-demo.mjs
       - run: npm run verify:offline
       - run: npm run package:crazygames
       - uses: actions/upload-artifact@v4
@@ -44,3 +47,36 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+      # Commit statuses are readable through the GitHub connection.
+      - name: Report page publication status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_RESULT: ${{ job.status }}
+          WEB_BUILD: ${{ steps.web_build.outcome }}
+          CASUAL_SMOKE: ${{ steps.casual_smoke.outcome }}
+          DEPLOY_RESULT: ${{ steps.deployment.outcome }}
+          COMMIT_SHA: ${{ github.sha }}
+          REPO_NAME: ${{ github.repository }}
+          API_URL: ${{ github.api_url }}
+          ACTIONS_RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          state="$JOB_RESULT"
+          if [ "$state" = "cancelled" ]; then state="error"; fi
+          export STATUS_STATE="$state"
+          payload="$(node -e '
+            console.log(JSON.stringify({
+              state:process.env.STATUS_STATE,
+              context:"swing-casual-pages",
+              description:"build="+process.env.WEB_BUILD+
+                " browser="+process.env.CASUAL_SMOKE+
+                " deploy="+process.env.DEPLOY_RESULT,
+              target_url:process.env.ACTIONS_RUN
+            }))
+          ')"
+          curl --fail --silent --show-error --retry 3 -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "$API_URL/repos/$REPO_NAME/statuses/$COMMIT_SHA" \
+            -d "$payload"
