@@ -2,15 +2,16 @@ import React,{useEffect,useRef,useState} from 'react';
 import {gsap} from 'gsap';
 import {overswingActions,overswingPayout,overswingMultiplier,signed} from '../external/engines.js';
 import {FIRST_LEVEL,newRound,stepFirstLevel} from './firstLevel.js';
+import {animateCardTravel,animateBankIntoJar} from './animations.js';
 import {GardenScene,Corgi,SwingGauge,ScoreJar,TileGlyph} from './CasualArt.jsx';
 
 const signedLabel=id=>(signed(id)>0?'+':'')+signed(id);
 
 function Card({id,index,disabled,onPlay}){
  const value=signed(id),positive=value>0;
- const kind=id===2?'leaf':id===21?'cloud':id===4?'drop':['leaf','cloud','drop'][id%3];
+ const kind=!positive?'cloud':id===4?'drop':id===2?'leaf':id%2?'drop':'leaf';
  return <button type="button" className={'sg-card sg-card-'+kind} disabled={disabled}
-   onClick={()=>onPlay(index)} aria-label={'Play '+(positive?'plus ':'minus ')+Math.abs(value)}>
+   onClick={event=>onPlay(index,event.currentTarget)} aria-label={'Play '+(positive?'plus ':'minus ')+Math.abs(value)}>
    <span className="sg-card-icon"><TileGlyph type={kind}/></span>
    <strong>{signedLabel(id)}</strong>
  </button>;
@@ -52,12 +53,16 @@ function ParticleLayer({event}){
 export default function CasualGame(){
  const [round,setRound]=useState(newRound);
  const [paused,setPaused]=useState(false);
+ const [moving,setMoving]=useState(false);
+ const [shownScore,setShownScore]=useState(0);
+ const stageRef=useRef(null),busyRef=useRef(false),cancelRef=useRef(null);
+ useEffect(()=>()=>{cancelRef.current?.();},[]);
  const {game,snaps,turn,event}=round,deal=game.deal;
  const score=deal.T,pending=overswingPayout(game,FIRST_LEVEL.rules);
  const deckRemaining=deal.deck.length-deal.pos;
  const won=score>=FIRST_LEVEL.target;
  const over=won||snaps>=FIRST_LEVEL.maxSnaps||game.status==='over';
- const legal=(over||paused)?[]:overswingActions(game,FIRST_LEVEL.rules);
+ const legal=(over||paused||moving)?[]:overswingActions(game,FIRST_LEVEL.rules);
  const canFlip=legal.some(a=>a.type==='flip'),canBank=legal.some(a=>a.type==='bank'&&a.dropIndex==null);
  const tip=won?'Beautiful! The jar is full!':snaps>=FIRST_LEVEL.maxSnaps?'Out of chances. Try again!':
    turn===0?'Tap a card to move the swing!':
@@ -65,20 +70,45 @@ export default function CasualGame(){
    canBank&&pending>0?'Save your stars! Tap BANK.':
    event.type==='bank'?'Amazing! Keep collecting!':
    'Watch the swing. Bank before it snaps!';
- const play=action=>{if(!over&&!paused)setRound(old=>stepFirstLevel(old,action));};
- const restart=()=>{setRound(newRound());setPaused(false);};
+ const play=(action,source)=>{
+   if(over||paused||busyRef.current)return;
+   const next=stepFirstLevel(round,action);
+   if(next===round)return;
+   busyRef.current=true;
+   setMoving(true);
+   const finish=()=>{
+     cancelRef.current=null;
+     busyRef.current=false;
+     setMoving(false);
+     setRound(next);
+     if(action.type!=='bank')setShownScore(next.game.deal.T);
+   };
+   const root=stageRef.current;
+   if(!root){setShownScore(next.game.deal.T);finish();return;}
+   if(action.type==='bank'){
+     cancelRef.current=animateBankIntoJar({root,fromScore:score,toScore:next.game.deal.T,onCount:setShownScore,onComplete:finish});
+   }else if(action.type==='steer'||action.type==='flip'){
+     const node=source||root.querySelector('.sg-next-card');
+     const value=signed(next.game.lastAction?.card??0);
+     cancelRef.current=animateCardTravel({root,source:node,action,nextCard:value,onComplete:finish});
+   }else finish();
+ };
+ const restart=()=>{
+   cancelRef.current?.();cancelRef.current=null;busyRef.current=false;
+   setMoving(false);setShownScore(0);setRound(newRound());setPaused(false);
+ };
  const snapLeft=Math.max(0,FIRST_LEVEL.maxSnaps-snaps);
- return <main className="sg-page"><div className={'sg-phone sg-event-'+event.type}>
+ return <main className="sg-page"><div ref={stageRef} aria-busy={moving} className={'sg-phone sg-event-'+event.type}>
    <GardenScene/><div className="sg-sun-haze" aria-hidden="true"/><ParticleLayer event={event}/>
    <header className="sg-top">
      <div className="sg-level-pill"><span className="sg-level-star">★</span><strong>Level 1</strong></div>
      <div className="sg-progress" aria-label="Level 1 of 200"><span className="sg-progress-glow"/><b>1 / 200</b></div>
-     <div className="sg-wallet" aria-label={score+' collected stars'}><span>★</span><b>{score}</b></div>
+     <div className="sg-wallet" aria-label={shownScore+' collected stars'}><span>★</span><b className="sg-tabular">{shownScore}</b></div>
      <button className="sg-pause" type="button" onClick={()=>setPaused(true)} aria-label="Pause game">Ⅱ</button>
    </header>
    <section className="sg-objective" aria-label="Level target">
      <div className="sg-target-icon" aria-hidden="true"><span>◎</span><i>➤</i></div>
-     <div className="sg-objective-label">TARGET</div><strong className="sg-objective-value">{FIRST_LEVEL.target}</strong>
+     <div className="sg-objective-label">Target</div><strong className="sg-objective-value">{FIRST_LEVEL.target}</strong>
    </section>
    <div className="sg-tiny-stats">
      <span className="sg-stat"><span className="sg-stat-icon">▣</span> Deck: <b>{deckRemaining}</b></span>
@@ -88,20 +118,20 @@ export default function CasualGame(){
    <section className="sg-playfield" aria-label="Swing game board">
      <div className="sg-hint" key={tip}><Corgi/><span>{tip}</span></div>
      <SwingGauge position={deal.S} limit={FIRST_LEVEL.rules.snapLimit}/>
-     <ScoreJar banked={score} pending={pending} goal={FIRST_LEVEL.target} burst={event.type}/>
+     <ScoreJar banked={shownScore} pending={pending} goal={FIRST_LEVEL.target} burst={event.type}/>
      <span className="sg-multiplier">✦ BONUS ×{overswingMultiplier(deal)}</span>
    </section>
    <section className="sg-controls">
      <div className="sg-hand-shelf" aria-hidden="true"/>
      <div className="sg-hand" aria-label="Your cards">
-       {deal.hand.map((id,i)=><Card key={id} id={id} index={i} disabled={over||!legal.some(a=>a.type==='steer'&&a.index===i)} onPlay={index=>play({type:'steer',index})}/>)}
+       {deal.hand.map((id,i)=><Card key={id} id={id} index={i} disabled={over||!legal.some(a=>a.type==='steer'&&a.index===i)} onPlay={(index,node)=>play({type:'steer',index},node)}/>)}
        {Array.from({length:Math.max(0,FIRST_LEVEL.handSize-deal.hand.length)},(_,i)=><div key={'empty-'+i} className="sg-card sg-empty" aria-hidden="true"><span>✕</span></div>)}
      </div>
      <div className="sg-buttons">
        <button type="button" className="sg-button sg-bank" disabled={!canBank} onClick={()=>play({type:'bank'})}>
          <span className="sg-button-icon sg-chest">▣<i>★</i></span><span className="sg-action-name">Bank</span>
        </button>
-       <button type="button" className="sg-button sg-flip" disabled={!canFlip} onClick={()=>play({type:'flip'})}>
+       <button type="button" className="sg-button sg-flip" disabled={!canFlip} onClick={event=>play({type:'flip'},event.currentTarget.querySelector('.sg-next-card'))}>
          <span className="sg-button-icon sg-arrow">⟳</span><span className="sg-action-name">Flip</span>
          <span className="sg-next"><small>NEXT</small><span className="sg-next-card">?</span></span>
        </button>
