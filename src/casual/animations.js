@@ -68,10 +68,12 @@ export function animateCardTravel({root,source,action,nextCard,onComplete}) {
   },onComplete:()=>{
     if(stopped)return;
     stopped=true;source.style.opacity=originalOpacity;
+    gsap.set(source,{clearProps:'scale'});
     node.remove();onComplete();
   }});
   return ()=>{
     stopped=true;tween.kill();press.kill();
+    gsap.set(source,{clearProps:'scale'});
     source.style.opacity=originalOpacity;node.remove();
   };
 }
