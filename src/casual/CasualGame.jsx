@@ -1,10 +1,8 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {gsap} from 'gsap';
-import {newOverswing,stepOverswing,overswingActions,overswingPayout,overswingMultiplier,signed} from '../external/engines.js';
+import {overswingActions,overswingPayout,overswingMultiplier,signed} from '../external/engines.js';
+import {FIRST_LEVEL,newRound,stepFirstLevel} from './firstLevel.js';
 
-// Real engine, tiny deterministic deck, no Royals, relics or abilities.
-export const FIRST_LEVEL={target:24,maxSnaps:2,deck:[2,21,4,12,23,10,22,3,20,5],handSize:3,rules:{snapLimit:8,bankCapacityLoss:0}};
-const newRound=()=>({game:newOverswing({mode:'short',seed:20261104,deckOverride:FIRST_LEVEL.deck,initialHandSize:3}),snaps:0,turn:0,event:{id:0,type:'start'}});
 const signedLabel=id=>(signed(id)>0?'+':'')+signed(id);
 
 function Garden(){return <svg className="sg-garden" viewBox="0 0 440 930" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
@@ -132,20 +130,8 @@ export default function CasualGame(){
    canBank&&pending>0?'Tap BANK to save your gold!':
    event.type==='bank'?'Nice! Fill the jar to win.':
    'Flip for a surprise, or choose a tile.';
- function play(action){
-   if(over)return;
-   setRound(old=>{
-     const available=overswingActions(old.game,FIRST_LEVEL.rules);
-     if(!available.some(a=>a.type===action.type&&(a.type!=='steer'||a.index===action.index)&&(a.type!=='bank'||a.dropIndex===action.dropIndex)))return old;
-     const next=stepOverswing(old.game,action,FIRST_LEVEL.rules);
-     if(next===old.game)return old;
-     const snapped=!!next.lastAction?.snap;
-     const snapCount=old.snaps+(snapped?1:0),victory=next.deal.T>=FIRST_LEVEL.target;
-     const crossed=!!next.lastAction?.swung;
-     const kind=victory?'win':snapped?'snap':action.type==='bank'?'bank':crossed?'cross':action.type;
-     return {game:next,snaps:snapCount,turn:old.turn+1,event:{id:old.turn+1,type:kind,message:next.last}};
-   });
- }
+ function play(action){if(!over)setRound(old=>stepFirstLevel(old,action));}
+
  return <main className="sg-page"><div className="sg-phone">
    <Garden/><div className="sg-sun-haze" aria-hidden="true"/><ParticleLayer event={event}/>
    <header className="sg-top"><div className="sg-level-pill"><span>★</span> LEVEL 1</div><div className="sg-progress"><span>1</span><div><i/></div><span>200</span></div></header>
