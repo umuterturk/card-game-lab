@@ -113,13 +113,13 @@ export function SwingGauge({position,limit=8}){
  </div>;
 }
 
-export function ScoreJar({banked,pending,goal,burst}){
+export function ScoreJar({banked,pending,goal,burst,burstId}){
  const jar=useRef(null);
  useEffect(()=>{
   if(!jar.current||!['bank','win'].includes(burst))return;
   const tween=gsap.fromTo(jar.current,{scale:.94,rotate:-3},{scale:1,rotate:0,duration:.65,ease:'elastic.out(1,.45)',overwrite:true});
   return ()=>tween.kill();
- },[banked,burst]);
+ },[burstId]);
  const stars=Math.min(15,Math.ceil(banked/3));
  return <div className="sg-score-cluster">
   <div className="sg-jar" ref={jar}>
