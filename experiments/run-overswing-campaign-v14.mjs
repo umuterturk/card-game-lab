@@ -101,7 +101,7 @@ for(const level of CAMPAIGN_LEVELS){
         rows.push({
           level:level.number,levelId:level.id,gate:gate+1,
           build:build.name,strategy,seeds,
-          passPct:Number((100*avg('passed')).toFixed(2)),
+          passPct:Number((100*totals.passed/seeds).toFixed(2)),
           avgScore:avg('score'),median:scores[Math.floor(seeds*.5)],
           p90:scores[Math.floor(seeds*.9)],p99:scores[Math.floor(seeds*.99)],
           avgTarget:avg('target'),avgSnaps:avg('snaps'),avgSummons:avg('summons'),
