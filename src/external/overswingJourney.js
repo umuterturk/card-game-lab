@@ -459,7 +459,7 @@ export function buyRoyal(progress,id){
   if(!ROYAL_NAMES.includes(id)||old.ownedRoyalIds.includes(id)||old.lifetimeGold<price)return old;
   const owned=[...old.ownedRoyalIds,id];
   return {...old,lifetimeGold:old.lifetimeGold-price,
-    ownedRoyalIds:owned,equippedRoyalIds:[...owned]};
+    ownedRoyalIds:owned,equippedRoyalIds:[...new Set([...old.equippedRoyalIds,id])].slice(0,3)};
 }
 // Consumables can be purchased only outside active runs. In-run wild usage
 // remains bound to the existing one-per-gate rule and idempotent event ledger.
