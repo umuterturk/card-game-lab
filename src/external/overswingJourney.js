@@ -343,9 +343,25 @@ export function restoreJourneyProgress(value,oldRun=null){
      !Number.isInteger(value.totalRuns)||
      !Array.isArray(value.recordedRunIds)||!Array.isArray(value.discoveredRelicIds))
     return EMPTY_JOURNEY_PROGRESS;
-  if(value.schemaVersion===3||value.schemaVersion===4)return {...EMPTY_JOURNEY_PROGRESS,...value,
+  if(value.schemaVersion===3)return {...EMPTY_JOURNEY_PROGRESS,...value,
     schemaVersion:JOURNEY_SCHEMA,wildInventory:wildInventory(value.wildInventory),
     creditedWildEventIds:[]};
+  if(value.schemaVersion===4){
+    // V4 already has a settled Tactic ledger. Never clear its credited IDs:
+    // doing so could debit charges twice or award the same reward again.
+    const cleared=new Set(value.clearedChapterIds||[]);
+    const unlocked=[
+      ...(cleared.has('first_ember')||cleared.has('last_flame_v1')?['J']:[]),
+      ...(cleared.has('flip_discipline')?['Q']:[]),
+      ...(cleared.has('scarce_chances')?['K']:[])
+    ];
+    const owned=[...new Set([...(value.ownedRoyalIds||[]),...unlocked])];
+    return {...EMPTY_JOURNEY_PROGRESS,...value,
+      schemaVersion:JOURNEY_SCHEMA,wildInventory:wildInventory(value.wildInventory),
+      creditedWildEventIds:value.creditedWildEventIds||[],
+      ownedRoyalIds:owned,
+      equippedRoyalIds:[...new Set([...(value.equippedRoyalIds||[]),...unlocked])].slice(0,3)};
+  }
   const oldGold=Math.max(0,value.lifetimeGold||0);
   const owned=ROYAL_NAMES.filter((_,i)=>oldGold>=[40000,100000,180000][i]);
   // V2 credits successful gates but did not charge relics and retries against
@@ -413,7 +429,8 @@ export function restoreJourneyRun(value,progress=EMPTY_JOURNEY_PROGRESS){
     goldSpent:value.goldSpent||0,
     wildInventoryStart:wildInventory(value.wildInventoryStart||progress.wildInventory),
     wildEvents:value.wildEvents||[],wildShieldArmed:!!value.wildShieldArmed,
-    wildRewardAvailable:false,wildRewardId:null};
+    wildRewardAvailable:value.schemaVersion>=4?!!value.wildRewardAvailable:false,
+    wildRewardId:value.schemaVersion>=4?value.wildRewardId:null};
   delete migration.treasuryStart;
   return isValidJourney(migration)?restoreGateRelicState(migration):null;
 }
