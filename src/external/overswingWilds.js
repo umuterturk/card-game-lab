@@ -5,7 +5,7 @@ export const WILD_RULES=Object.freeze({
   shuffle:{name:'WILD SHUFFLE',symbol:'⟳',
     description:'Replace ordinary hand cards from the unseen deck. Royals stay put.'},
   polarity:{name:'POLARITY SWITCH',symbol:'±',
-    description:'Reverse one ordinary hand card and immediately STEER it.'},
+    description:'Reverse one ordinary, Jack, or King card and immediately STEER it.'},
   shield:{name:'EMBER SHIELD',symbol:'◇',
     description:'Protect your Pot from the next FLIP SNAP. Resets multipliers; boss SNAP tax still applies.'}
 });

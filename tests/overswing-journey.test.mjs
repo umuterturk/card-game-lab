@@ -40,7 +40,7 @@ test('journey creates three distinct deterministic decks with independent reward
   assert.equal(a.phase,'playing');
   assert.equal(a.encounterId,undefined);
   assert.equal(a.encounter.encounterId,'ash_gate');
-  assert.equal(a.encounter.engineState.version,13);
+  assert.equal(a.encounter.engineState.version,14);
   assert.equal(journeySeed(seed,0,'deck'),journeySeed(seed,0,'deck'));
   assert.notEqual(journeySeed(seed,0,'deck'),journeySeed(seed,0,'rewards'));
   const first=finish(a,800);
@@ -326,7 +326,7 @@ test('legacy lifetime Gold becomes the sole balance; owned Royals are grandfathe
   const upgraded=restoreJourneyProgress(legacy);
   assert.equal(upgraded.lifetimeGold,100000);
   assert.equal(upgraded.treasuryGold,undefined);
-  assert.equal(upgraded.schemaVersion,4);
+  assert.equal(upgraded.schemaVersion,5);
   assert.deepEqual(upgraded.ownedRoyalIds,['J','Q']);
   assert.deepEqual(upgraded.equippedRoyalIds,['J','Q']);
   assert.equal(upgraded.creditedBankIds,undefined);
@@ -349,7 +349,7 @@ test('legacy lifetime Gold becomes the sole balance; owned Royals are grandfathe
   assert.equal(after.lifetimeGold,9640,'previously deducted expense must not be applied again');
   assert.strictEqual(recordJourneyGold(after,resumed),after);
 });
-test('all purchased Royals remain active and appear in later hand refills',()=>{
+test('purchased Royals can be equipped independently and summoned deliberately',()=>{
   let progress={...EMPTY_JOURNEY_PROGRESS,lifetimeGold:350000};
   progress=buyRoyal(progress,'K');
   assert.equal(progress.lifetimeGold,170000);
@@ -363,12 +363,13 @@ test('all purchased Royals remain active and appear in later hand refills',()=>{
   assert.deepEqual(progress.ownedRoyalIds,['K','J','Q']);
   assert.deepEqual(progress.equippedRoyalIds,['K','J','Q']);
   progress=toggleRoyalEquipped(progress,'Q');
-  assert.deepEqual(progress.equippedRoyalIds,['K','J','Q'],'owning a card makes it permanently active');
-  const run=startJourney(2100,progress.lifetimeGold,1,progress.ownedRoyalIds);
-  assert.deepEqual(run.equippedRoyals,['K','J','Q']);
+  assert.deepEqual(progress.equippedRoyalIds,['K','J'],'owning and equipping are independent');
+  const run=startJourney(2100,progress.lifetimeGold,1,progress.equippedRoyalIds);
+  assert.deepEqual(run.equippedRoyals,['K','J']);
   assert.equal(run.encounter.engineState.deal.hand.length,8);
   assert.equal(run.encounter.engineState.deal.hand.filter(id=>id>=40).length,0);
-  assert.equal(run.encounter.engineState.deal.pendingRoyals.length,3);
+  assert.equal(run.encounter.engineState.deal.royalQueue.length,2);
+  assert.ok(!journeyActions(run).some(a=>a.type==='summon'),'opening hand is full');
   assert.equal(run.encounter.effectiveTarget,800);
   assert.equal(startJourney(2101,30000,1,[]).encounter.effectiveTarget,800);
   assert.throws(()=>startJourney(2102,0,1,['J','J']),TypeError);

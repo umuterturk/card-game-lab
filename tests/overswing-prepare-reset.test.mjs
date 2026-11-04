@@ -26,7 +26,7 @@ test('each PREPARE creates a fresh three-gate run and settles the old run once',
   assert.equal(next.progress.recordedRunIds.includes(playing.runId),true);
   assert.equal(next.run.offeredRelicIds.length,3);
   assert.deepEqual(next.run.relicIds,[]);
-  assert.equal(next.run.wildUsedGate,false);
+  assert.deepEqual(next.run.wildUsedIds,[]);
   assert.equal(next.run.retryCount,0);
   assert.deepEqual(next.run.completedEncounters,[]);
 

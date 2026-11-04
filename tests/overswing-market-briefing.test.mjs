@@ -64,7 +64,7 @@ test('cinematic intro leads into a single fading gate briefing under the charact
   assert.doesNotMatch(briefing,/ROYAL|AUTO-EQUIPPED|RoyalWorkshop/);
   assert.match(css,/animation:og-panel-in 1\.45s/);
   assert.match(market,/ROYALS/);
-  assert.match(market,/WILDS/);
+  assert.match(market,/TACTICS/);
 });
 
 test('home audio is a distinct longer 74 BPM horror loop and crossfades to game',()=>{

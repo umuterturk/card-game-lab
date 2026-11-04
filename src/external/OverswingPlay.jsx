@@ -46,12 +46,14 @@ function Card({id,onClick,caption,chosen=false,mini=false,potCard=false,handCard
 }
 function Outcome({e}){
   if(!e)return <>Tap any hand card to <b>STEER</b>, or <b>FLIP</b> a random card.</>;
+  if(e.type==='summon')return <><b>SUMMONED {name(e.card)}</b> · {e.remaining} Royals left.</>;
+  if(e.type==='carry')return <><b>CARRIED {name(e.card)}</b> into the next hand.</>;
   if(e.type==='wild')return <><b>WILD SHUFFLE!</b> Refreshed {e.replaced} ordinary hand cards.</>;
   if(e.type==='bank')return <><b><GoldAmount value={e.points} prefix="+"/> BANKED</b>{e.taxPaid>0?<> · TAX <GoldAmount value={e.taxPaid} prefix="−"/></>:''}{e.crownBonus?' · CROWN +'+e.crownBonus+'%':''} · Hand limit {e.oldCap} → {e.newCap}. {e.dropped!=null?name(e.dropped)+' discarded. ':''}{e.refilled?.length?'Hand refilled.':''}</>;
   if(e.snap&&e.shielded)return <><b>EMBER SHIELD!</b> SNAP contained: <b>{name(e.card)}</b>. Pot saved, multipliers reset to ×1.</>;
   if(e.snap)return <><b>SNAP!</b> <b>{name(e.card)}</b>: {val(e.from)} → {val(e.to)}. Lost {e.lostPayout.toLocaleString('en-US')} potential points.</>;
   if(e.zeroBreak)return <><b>ZERO BREAK!</b> {name(e.card)}: {val(e.from)} → 0. <b>All multipliers reset to ×1.</b> Pot kept{e.refilled?.length?', hand refilled':''}.</>;
-  return <><b>{e.polarityReversed?'POLARITY ':e.type==='flip'?'FLIP ':'STEER '}{name(e.card)}</b> · {val(e.from)} → {val(e.to)} · <b>{target[e.destination]}</b>{e.scouted!=null?<b> · NEXT FLIP: {name(e.scouted)}</b>:null}{e.swung?<b> · SWING +{e.gain}</b>:null}{e.swingPenalty?<b> · SWING −1</b>:null} · total ×{e.multiplier.toLocaleString('en-US')}{e.refilled?.length?' · '+e.refilled.length+' cards refilled':''}{e.shieldFaded?' · SHIELD SPENT':''}</>;
+  return <><b>{e.polarityReversed?'POLARITY ':e.type==='flip'?'FLIP ':'STEER '}{name(e.card)}</b> · {val(e.from)} → {val(e.to)} · <b>{target[e.destination]}</b>{e.scouted!=null?<b> · NEXT FLIP: {name(e.scouted)}</b>:null}{e.swung?<b> · SWING +{e.gain}</b>:null}{e.swingPenalty?<b> · SWING −1</b>:null}{e.resonanceGained>0?<b> · SUIT +{e.resonanceGained}</b>:null} · total ×{e.multiplier.toLocaleString('en-US')}{e.refilled?.length?' · '+e.refilled.length+' cards refilled':''}{e.shieldFaded?' · SHIELD SPENT':''}</>;
 }
 
 function FlameMeter({position,limit=10,action=null}){
@@ -348,7 +350,7 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,p
   const tutorial=s.mode==='tutorial';
   const isJourney=!!journey;
   const tutorialStep=tutorial?OVERSWING_TUTORIAL_STEPS[s.tutorialStep]:null;
-  const d=s.deal,legal=isJourney?journeyActions(journey):overswingActions(s),pot=d.pot.reduce((a,c)=>a+rank(c),0);
+  const d=s.deal,legal=isJourney?journeyActions(journey):overswingActions(s),pot=d.pot.reduce((a,c)=>a+rank(c),0)+(d.resonancePoints||0);
   const rules=isJourney?journeyRules(journey):{};
   const limit=rules.snapLimit||10;
   const payout=overswingPayout(s,rules),multiplier=overswingMultiplier(d);
@@ -359,6 +361,10 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,p
   useEffect(()=>sound?.setTension(tension,{goalMet}),[tension,goalMet]);
   const total=s.dealTotals.reduce((a,b)=>a+b,0)+(s.status==='over'?0:d.T);
   const canFlip=legal.some(a=>a.type==='flip'),canBank=legal.some(a=>a.type==='bank');
+  const canSummon=legal.some(a=>a.type==='summon');
+  const canCarry=legal.some(a=>a.type==='carry');
+  const royalRemaining=(d.royalQueue||[]).length;
+  const showSummon=isJourney&&journey.equippedRoyals?.length>0;
   const wildCounts=isJourney?journeyWildBalance(journey):null;
   const nextCap=Math.max(2,d.handCap-(isJourney?journeyRules(journey).bankCapacityLoss:1)),mustDiscard=d.hand.filter(id=>royalRank(id)!=='K').length>nextCap;
   // Only enabled gameplay actions pulse after five seconds without input.
@@ -431,7 +437,7 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,p
   const scoutedFlip=canFlip?d.scoutNext:null;
   const deckRemaining=Math.max(0,d.deck.length-d.pos);
   const actionButtons=<div className="os8-controls">
-    <div className="os8-actions os8-actions-primary">
+    <div className={'os8-actions os8-actions-primary'+(showSummon?' os8-actions-summon':'')}>
       <button type="button" ref={flipButtonRef} disabled={!canFlip||discardPick}
         className={'os8-flip '+(tutorial&&canFlip?'os8-guide-action':'')}
         onClick={()=>dispatch({type:'flip'})}>
@@ -444,6 +450,15 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,p
         <b>FLIP</b>
         <small>{scoutedFlip!=null?'SCOUTED · NEXT CARD':rules.maxFlips?'USED '+d.flips+'/'+rules.maxFlips:'RANDOM CARD'}</small>
       </button>
+      {showSummon&&<button type="button" className="os8-summon"
+        disabled={!canSummon||discardPick}
+        title={!royalRemaining?'No Royals left':d.hand.length>=d.handCap?'Hand full':
+          !canSummon?'Summon chain limit reached':'Summon the next Royal'}
+        onClick={()=>dispatch({type:'summon'})}>
+        <span className="os8-action-icon" aria-hidden="true">♛</span>
+        <b>SUMMON</b>
+        <small>{royalRemaining?'ROYALS '+royalRemaining+' · '+(d.consecutiveSummons||0)+'/'+journeyRules(journey).maxConsecutiveSummons:'NONE LEFT'}</small>
+      </button>}
       <button type="button" ref={bankButtonRef} disabled={!canBank||discardPick}
         className={'os8-bank '+(tutorial&&canBank?'os8-guide-action':'')} onClick={bank}>
         <span className="os8-action-icon" aria-hidden="true">▰</span><b>BANK</b>
@@ -460,7 +475,7 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,p
         onClick={()=>id==='polarity'?setPolarityPick(true):triggerWild(id)}>
         <AbilityIcon kind={id}/>
         <span>{id==='shuffle'?'SHUFFLE':id==='polarity'?'POLARITY':'SHIELD'}</span>
-        <b>{journey.wildUsedGate?'USED':'×'+wildCounts[id]}</b>
+        <b>{journey.wildUsedIds.includes(id)?'USED':'×'+wildCounts[id]}</b>
       </button>)}
       {isJourney&&<button type="button" ref={discardTargetRef} className="os8-ability os8-history-button"
         onClick={()=>setHistoryOpen(true)} aria-label="Reveal remaining deck for Gold"
@@ -499,15 +514,15 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,p
   if(fullView&&helpOpen)return <section className="os8 os8-full os8-help-screen" aria-label="How to play Overswing">
     <div className="os8-help-heading"><h2>HOW TO PLAY</h2><button type="button" onClick={()=>setHelpOpen(false)}>✕ CLOSE</button></div>
     <h3>FLIP · STEER · BANK</h3>
-    <p><b>FLIP</b> draws a random card into your Pot. <b>STEER</b> plays a card from your hand. <b>BANK</b> secures Pot points multiplied by SWING × FLIP × JACKPOT.</p>
+    <p><b>FLIP</b> draws into your Pot. <b>STEER</b> plays from hand. <b>SUMMON</b> calls a Royal into a free hand slot. <b>BANK</b> secures your points.</p>
     <h3>THE PENDULUM</h3>
     <p>Red cards move right (+), black cards left (−). Keep the meter between −10 and +10. Crossing zero grows SWING. Landing exactly on zero resets all multipliers.</p>
     <h3>MULTIPLIERS</h3>
-    <p>Consecutive safe FLIPs build FLIP ×2, ×3, ×4… Crossing zero with a FLIP adds a JACKPOT tier. A noncrossing FLIP or STEER costs one SWING tier. SNAP loses your Pot.</p>
+    <p>Noncrossing FLIPs grow FLIP. Crossing FLIPs grow JACKPOT and SWING, but not FLIP. Matching-suit STEER deposits earn +2 Pot (up to +6 per Swing). SNAP loses your Pot.</p>
     <h3>THE JOURNEY</h3>
     <p>Follow the level map. Each level changes visible rules: hand size, SNAP limit, FLIP cap or BANK tax. Buy relics between gates or skip. Boss SNAPs increase the target.</p>
     <h3>WILD CARDS &amp; REVEALED</h3>
-    <p>SHUFFLE, POLARITY and SHIELD are consumable Wild Cards. REVEALED lets
+    <p>SHUFFLE, POLARITY and SHIELD are Tactics: use up to two different ones per gate. REVEALED lets
       you buy all remaining deck card identities, sorted by rank and suit—not draw order.
       The fewer cards remain, the higher the Gold price.</p>
     <button type="button" className="os8-help-return" onClick={()=>setHelpOpen(false)}>BACK TO GAME</button>
@@ -609,7 +624,7 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,p
           }
           const o=applySwing(d.S,d.W,signed(id),limit);
           const royal=royalRank(id);
-          const caption=discardPick?'REMOVE':royal==='K'?'CROWN +'+(d.crownBonus||0)+'%':royal==='J'?'SCOUT':royal==='Q'?'':o.snap?'SNAP':d.S!==0&&o.S===0?'ZERO BREAK':d.plays===0||o.swung?'POT +'+rank(id):d.W>0?'SWING −1':'DISCARD';
+          const caption=discardPick?'REMOVE':o.snap?'SNAP':royal==='K'?'CROWN +'+(d.crownBonus||0)+'%':royal==='J'?'SCOUT':royal==='Q'?'MIRROR':d.S!==0&&o.S===0?'ZERO BREAK':d.plays===0||o.swung?'POT +'+rank(id):d.W>0?'SWING −1':'DISCARD';
           const allowed=discardPick?legal.some(a=>a.type==='bank'&&a.dropIndex===index):legal.some(a=>a.type==='steer'&&a.index===index);
           const highlighted=tutorial&&allowed;
           return <span className="os8-hand-slot os8-hand-slot-occupied" key={id}>
@@ -618,19 +633,24 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,p
           </span>;
         })}
       </div>
+      {canCarry&&<div className="os8-carry-options" aria-label="Select one Royal to carry">
+        <strong>KEEP ONE ROYAL FOR NEXT HAND</strong>
+        <div>{legal.filter(a=>a.type==='carry').map(a=>
+          <button type="button" key={a.index} onClick={()=>dispatch(a)}>KEEP {name(d.hand[a.index])}</button>)}</div>
+      </div>}
     </section>
     {!guidedActionFirst&&actionButtons}
     <footer className="os8-footer">
       <span>{s.mode==='match'?'Deck '+(s.dealIndex+1)+'/3 · ':''}{d.pos}/{d.deck.length} drawn</span>
       <details><summary>Rules & multipliers</summary>
-        <p>Start with up to 8 cards. Hearts and diamonds move right (+); spades and clubs move left (−). Exceed the level's SNAP limit and lose the Pot.</p>
-        <p>FLIP draws a random card into the Pot. Consecutive safe FLIPs grow FLIP: ×2, ×3, ×4… Crossing zero counts.</p>
+        <p>Start with up to 8 cards. Hearts and diamonds move right (+); spades and clubs move left (−). Same-suit STEER cards in the Pot earn a Resonance bonus. Exceed the level's SNAP limit and lose the Pot.</p>
+        <p>FLIP draws a random card into the Pot. Consecutive noncrossing FLIPs grow FLIP: ×2, ×3, ×4… Crossing zero grows JACKPOT instead.</p>
         <p>Crossing zero with FLIP raises SWING and adds +1 JACKPOT tier. A noncrossing FLIP lowers SWING by 1 and keeps JACKPOT unchanged.</p>
         <p>ZERO BREAK: Land exactly on zero to reset all multipliers to ×1, but keep the Pot. SNAP: Go outside ±{limit} and lose the Pot.</p>
         <p>STEER ends the current FLIP streak but preserves FLIP and JACKPOT tiers. Every noncrossing FLIP or STEER costs 1 SWING tier (minimum ×1).</p>
         <p>The first STEER of a Pot, crossing STEER, and ZERO BREAK STEER enter the Pot; other STEER cards are discarded.</p>
         <p>BANK becomes available after at least 2 card actions. Each BANK reduces hand capacity from 8 toward 2 (unless a relic prevents it). Choose which card to discard if necessary.</p>
-        <p>An empty hand refills automatically from the remaining deck, up to its capacity.</p>
+        <p>When ordinary cards run out of hand, carry one Royal across the refill. SUMMON calls a Royal into an empty hand slot and has a consecutive limit.</p>
       </details>
     </footer>
     {flight&&<FlipFlight flight={flight} onFinish={serial=>
@@ -649,9 +669,9 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,p
           <button type="button" onClick={()=>setPolarityPick(false)}
             aria-label="Cancel Polarity Switch">✕</button>
         </div>
-        <p>Pick an ordinary card to reverse its sign and STEER immediately.</p>
+        <p>Pick an ordinary card, Jack or King to reverse its sign and STEER immediately.</p>
         <div className="os8-wild-polarity-cards">
-          {d.hand.map((id,index)=>id<40&&
+          {d.hand.map((id,index)=>(id<40||['J','K'].includes(royalRank(id)))&&
             <button key={id} type="button" onClick={()=>triggerWild('polarity',index)}
               aria-label={'Reverse and STEER '+name(id)}>
               <strong>{name(id)}</strong>

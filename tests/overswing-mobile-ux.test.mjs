@@ -52,7 +52,7 @@ test('mobile gate briefing uses compact rule chips and Market holds Royals',()=>
   assert.doesNotMatch(journey,/view==='prepare'/);
   assert.match(briefing,/og-rules/);
   assert.match(briefing,/campaignRuleLabels\(level\)/);
-  assert.match(market,/AUTO-EQUIPPED/);
+  assert.match(market,/TAP OWNED TO EQUIP/);
   assert.match(controls,/<MusicNoteIcon\/>/);
   assert.match(controls,/sound\.restartAudio/);
 });
@@ -91,7 +91,7 @@ test('Queen shows no directional suit/type, and a single ±12 value',()=>{
   assert.match(jsx,/const cardName=isQueen\?'Q':name\(id\)/);
   assert.match(jsx,/const cardValue=isQueen\?'±12':val\(signed\(id\)\)/);
   assert.match(jsx,/isQueen\?'os8-queen'/);
-  assert.match(jsx,/royal==='Q'\?'':o\.snap/);
+  assert.match(jsx,/royal==='Q'\?'MIRROR'/);
   assert.match(jsx,/!isQueen&&<strong className="os8-flip-face-suit"/);
   assert.match(jsx,/isQueen\?'±12':val\(signed\(flight\.card\)\)/);
 });

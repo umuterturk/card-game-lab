@@ -1,15 +1,15 @@
 import {newOverswing,overswingActions,stepOverswing,overswingFinal} from './engines.js';
 import {LAST_FLAME,LAST_FLAME_RELICS} from './overswingJourneyContent.js';
-import {ROYAL_NAMES,royalCardsForLoadout,ROYAL_PRICES} from './overswingRoyals.js';
+import {ROYAL_NAMES,royalCardsForLoadout,ROYAL_PRICES,royalRank} from './overswingRoyals.js';
 import {campaignLevel,campaignNextLevel,CAMPAIGN_LEVELS} from './overswingCampaign.js';
 import {WILD_IDS,wildInventory,wildBalance,shuffleWildHand} from './overswingWilds.js';
-import {revealOffer} from './overswingReveal.js';
+import {revealOffer,sortDeckCards} from './overswingReveal.js';
 
-export const JOURNEY_SCHEMA=4;
+export const JOURNEY_SCHEMA=5;
 export const JOURNEY_PHASES=['playing','choosing_relic','choosing_wild','retry_offer','won','lost','abandoned'];
 export const RELIC_PRICE_RATE=0.20; // price is 20% of the gate being entered
 export const RETRY_PRICE_RATES=Object.freeze([1,1.5,2]);
-const BASE_RELIC_RULES={steerNoncrossPenalty:1,flipCrossJackpotGain:1,
+const BASE_RELIC_RULES={maxConsecutiveSummons:1,steerNoncrossPenalty:1,flipCrossJackpotGain:1,
   bankCapacityLoss:1,steerCrossSwingBonus:0};
 
 // Stable independent streams for decks and reward offers.
@@ -31,9 +31,9 @@ function drawRandom(seed){
     return ((t^(t>>>14))>>>0)/4294967296;
   };
 }
-function dealFor(runSeed,index,equippedRoyals=[],levelNumber=1){
+function dealFor(runSeed,index,equippedRoyals=[],levelNumber=1,royalSeed=journeySeed(runSeed,0,'royals')){
   const config=LAST_FLAME.encounters[index],level=campaignLevel(levelNumber);
-  const royals=royalCardsForLoadout(equippedRoyals,journeySeed(runSeed,index,'royals'),index);
+  const royals=royalCardsForLoadout(equippedRoyals,royalSeed);
   // A gate has one immutable deck seed: retries reset the exact same deal,
   // including the opening hand and subsequent FLIPs.
   return {encounterId:config.id,engineState:newOverswing({
@@ -45,7 +45,7 @@ function dealFor(runSeed,index,equippedRoyals=[],levelNumber=1){
 export function offerJourneyRelics(run){
   // Each gate is a fresh purchase: a relic used in an earlier gate can appear
   // again, and the offer RNG is independent of card draw RNG.
-  const choices=LAST_FLAME.relics.map(r=>r.id);
+  const choices=LAST_FLAME.relics.filter(r=>r.id!=='herald'||run.equippedRoyals?.length>=2).map(r=>r.id);
   const gateIndex=run.shopForGate??run.encounterIndex+1;
   const random=drawRandom(journeySeed(run.runSeed,gateIndex,'rewards'));
   for(let i=choices.length-1;i>0;i--){
@@ -62,20 +62,20 @@ export function startJourney(runSeed=Date.now(),goldBalance=0,levelNumber=1,equi
      new Set(equippedRoyals).size!==equippedRoyals.length||
      equippedRoyals.some(id=>!ROYAL_NAMES.includes(id)))
     throw new TypeError('Invalid Royal loadout');
-  const seed=runSeed,loadout=equippedRoyals.slice();
+  const seed=runSeed,royalSeed=journeySeed(seed,0,'royals'),loadout=equippedRoyals.slice();
   const inventory=wildInventory(options.wildInventory);
   const initialShop=options.shopBeforeFirstGate===true;
   const draft={schemaVersion:JOURNEY_SCHEMA,contentPackId:LAST_FLAME.id,
     contentVersion:LAST_FLAME.version,runId:'last-flame-'+seed.toString(36),
-    runSeed:seed,equippedRoyals:loadout,levelNumber,goldSpent:0,retryGoldSpent:0,
+    runSeed:seed,royalSeed,equippedRoyals:loadout,levelNumber,goldSpent:0,retryGoldSpent:0,
     goldStart:goldBalance,treasuryEvents:[],retryCount:0,
     revealedCardIds:[],revealPurchaseCount:0,revealGoldSpent:0,
-    wildInventoryStart:inventory,wildEvents:[],wildUsedGate:false,wildShieldArmed:false,
+    wildInventoryStart:inventory,wildEvents:[],wildUsedIds:[],wildShieldArmed:false,
     wildRewardAvailable:options.rewardAvailable===true,wildRewardId:null,
     phase:initialShop?'choosing_relic':'playing',
     encounterIndex:0,relicIds:[],purchasedRelicIds:[],
     shopForGate:initialShop?0:null,
-    offeredRelicIds:[],encounter:dealFor(seed,0,loadout,levelNumber),
+    offeredRelicIds:[],encounter:dealFor(seed,0,loadout,levelNumber,royalSeed),
     completedEncounters:[]};
   return initialShop?{...draft,offeredRelicIds:offerJourneyRelics(draft)}:draft;
 }
@@ -84,6 +84,7 @@ export function isValidJourney(run){
     run.contentPackId===LAST_FLAME.id&&run.contentVersion===LAST_FLAME.version&&
     JOURNEY_PHASES.includes(run.phase)&&
     Number.isSafeInteger(run.runSeed)&&run.runSeed>=0&&
+    Number.isSafeInteger(run.royalSeed)&&run.royalSeed>=0&&
     !!campaignLevel(run.levelNumber??1)&&
     Number.isInteger(run.encounterIndex)&&run.encounterIndex>=0&&
     run.encounterIndex<LAST_FLAME.encounters.length&&
@@ -108,7 +109,10 @@ export function isValidJourney(run){
       (e.amount===1||e.amount===-1)&&typeof e.id==='string')&&
     WILD_IDS.every(id=>Number.isSafeInteger(run.wildInventoryStart?.[id])&&
       run.wildInventoryStart[id]>=0)&&
-    typeof run.wildUsedGate==='boolean'&&typeof run.wildShieldArmed==='boolean'&&
+    Array.isArray(run.wildUsedIds)&&run.wildUsedIds.length<=2&&
+    new Set(run.wildUsedIds).size===run.wildUsedIds.length&&
+    run.wildUsedIds.every(id=>WILD_IDS.includes(id))&&
+    typeof run.wildShieldArmed==='boolean'&&
     typeof run.wildRewardAvailable==='boolean'&&
     (run.wildRewardId===null||WILD_IDS.includes(run.wildRewardId))&&
     Array.isArray(run.equippedRoyals)&&run.equippedRoyals.length<=3&&
@@ -117,7 +121,7 @@ export function isValidJourney(run){
     Number.isInteger(run.retryCount)&&run.retryCount>=0&&run.retryCount<=RETRY_PRICE_RATES.length&&
     !!run.encounter&&
     run.encounter.encounterId===LAST_FLAME.encounters[run.encounterIndex].id&&
-    run.encounter.engineState?.version===13;
+    run.encounter.engineState?.version===14;
 }
 export function journeyRules(run){
   const stage=campaignLevel(run.levelNumber||1);
@@ -127,6 +131,7 @@ export function journeyRules(run){
   if(available.has('jackpot_spark'))rules.flipCrossJackpotGain=2;
   if(available.has('vault_seal'))rules.bankCapacityLoss=0;
   if(available.has('swing_coil'))rules.steerCrossSwingBonus=1;
+  if(available.has('herald'))rules.maxConsecutiveSummons=2;
   return rules;
 }
 export function journeyActions(run){
@@ -149,11 +154,11 @@ export function journeyWildBalance(run){
   return wildBalance(run.wildInventoryStart,run.wildEvents);
 }
 export function journeyCanUseWild(run,id){
-  if(!isValidJourney(run)||run.phase!=='playing'||run.wildUsedGate||
+  if(!isValidJourney(run)||run.phase!=='playing'||run.wildUsedIds.length>=2||run.wildUsedIds.includes(id)||
      !WILD_IDS.includes(id)||journeyWildBalance(run)[id]<1)return false;
   const d=run.encounter.engineState.deal;
   if(id==='shuffle')return d.hand.some(card=>card<40)&&d.pos<d.deck.length;
-  if(id==='polarity')return d.hand.some(card=>card<40);
+  if(id==='polarity')return d.hand.some(card=>card<40||['J','K'].includes(royalRank(card)));
   return journeyActions(run).some(action=>action.type==='flip');
 }
 function wildEvent(run,id,amount,source){
@@ -199,15 +204,26 @@ export function stepJourney(run,command){
     if(command.type==='ACCEPT_DEFEAT')return {...run,phase:'lost'};
     if(command.type!=='BUY_RETRY'||!journeyCanRetry(run))return run;
     const price=journeyRetryPrice(run),retryCount=run.retryCount+1;
+    // Each consumed Tactic has its own transaction; refund the failed
+    // attempt without undoing the real Gold cost of retrying.
+    const prefix=run.runId+'|wild:use:'+run.encounterIndex+':'+run.retryCount+':';
+    const spent=run.wildEvents.filter(e=>e.amount===-1&&e.id.startsWith(prefix));
+    const refunds=spent.map(e=>({id:run.runId+'|wild:refund:'+
+      run.encounterIndex+':'+run.retryCount+':'+e.wildId,wildId:e.wildId,amount:1}));
+    const encounter=dealFor(run.runSeed,run.encounterIndex,run.equippedRoyals,
+      run.levelNumber,run.royalSeed);
+    const deck=encounter.engineState.deal;
     return {...run,phase:'playing',retryCount,
-      revealedCardIds:[],revealPurchaseCount:0,
+      revealedCardIds:run.revealPurchaseCount?
+        deck.deck.slice(deck.pos).sort(sortDeckCards):[],
+      wildEvents:[...run.wildEvents,...refunds],wildUsedIds:[],
       goldSpent:run.goldSpent+price,retryGoldSpent:run.retryGoldSpent+price,
       treasuryEvents:treasuryEvent(run,'retry:'+run.encounterIndex+':'+retryCount,-price),
       // Failed gate earnings are discarded, not counted toward Treasury or lifetime Gold.
       completedEncounters:run.completedEncounters.filter(e=>e.id!==run.encounter.encounterId),
       wildShieldArmed:false,
-      // The one-Wild-per-gate limit survives retries.
-      encounter:dealFor(run.runSeed,run.encounterIndex,run.equippedRoyals,run.levelNumber)};
+      // Same deck, Royal order, Relic and reveal entitlement each attempt.
+      encounter};
   }
   if(run.phase==='choosing_relic'&&
      (command.type==='BUY_RELIC'||command.type==='SKIP_RELIC')){
@@ -220,7 +236,7 @@ export function stepJourney(run,command){
        journeyGoldBalance(run)<price))return run;
     return {...run,phase:'playing',encounterIndex:nextIndex,retryCount:0,
       revealedCardIds:[],revealPurchaseCount:0,
-      wildUsedGate:false,wildShieldArmed:false,
+      wildUsedIds:[],wildShieldArmed:false,
       goldSpent:run.goldSpent+(buying?price:0),
       treasuryEvents:buying?treasuryEvent(run,'relic:'+nextIndex,-price):run.treasuryEvents,
       // One purchased relic is usable only in this gate, never the next one.
@@ -228,7 +244,7 @@ export function stepJourney(run,command){
       purchasedRelicIds:buying?[...(run.purchasedRelicIds||run.relicIds),command.relicId]:
         (run.purchasedRelicIds||run.relicIds),
       shopForGate:null,offeredRelicIds:[],
-      encounter:dealFor(run.runSeed,nextIndex,run.equippedRoyals,run.levelNumber||1)};
+      encounter:dealFor(run.runSeed,nextIndex,run.equippedRoyals,run.levelNumber||1,run.royalSeed)};
   }
   if(run.phase!=='playing')return run;
   if(command.type==='BUY_REVEAL'){
@@ -244,15 +260,15 @@ export function stepJourney(run,command){
   if(command.type==='USE_WILD'&&command.wildId!=='polarity'){
     const id=command.wildId;
     if(!journeyCanUseWild(run,id))return run;
-    const events=wildEvent(run,id,-1,'use:'+run.encounterIndex);
-    if(id==='shield')return {...run,wildEvents:events,wildUsedGate:true,
+    const events=wildEvent(run,id,-1,'use:'+run.encounterIndex+':'+run.retryCount+':'+id);
+    if(id==='shield')return {...run,wildEvents:events,wildUsedIds:[...run.wildUsedIds,id],
       wildShieldArmed:true};
     if(id==='shuffle'){
       const seed=journeySeed(run.runSeed,run.encounterIndex,
-        'wild-shuffle:'+run.retryCount+':'+run.encounter.engineState.deal.pos);
+        'wild-shuffle:'+run.encounter.engineState.deal.pos+':'+run.encounter.engineState.deal.plays);
       const engine=shuffleWildHand(run.encounter.engineState,seed);
       if(engine===run.encounter.engineState)return run;
-      return {...run,wildEvents:events,wildUsedGate:true,
+      return {...run,wildEvents:events,wildUsedIds:[...run.wildUsedIds,id],
         encounter:{...run.encounter,engineState:engine}};
     }
     return run;
@@ -260,7 +276,7 @@ export function stepJourney(run,command){
   const polarity=command.type==='USE_WILD'&&command.wildId==='polarity';
   if(polarity&&(!journeyCanUseWild(run,'polarity')||
       !Number.isInteger(command.index)||
-      !(run.encounter.engineState.deal.hand[command.index]<40)))return run;
+      !(()=>{const card=run.encounter.engineState.deal.hand[command.index];return Number.isInteger(card)&&(card<40||['J','K'].includes(royalRank(card)));})()))return run;
   if(!polarity&&(command.type!=='PLAY'||!command.action))return run;
   const action=polarity?{type:'steer',index:command.index}:command.action;
   const old=run.encounter;
@@ -269,7 +285,7 @@ export function stepJourney(run,command){
     shieldNextFlip:run.wildShieldArmed&&action.type==='flip'});
   if(engine===old.engineState)return run;
   const nextWildEvents=polarity?
-    wildEvent(run,'polarity',-1,'use:'+run.encounterIndex):run.wildEvents;
+    wildEvent(run,'polarity',-1,'use:'+run.encounterIndex+':'+run.retryCount+':polarity'):run.wildEvents;
   const pendingShield=run.wildShieldArmed&&action.type!=='flip';
   const triggered=engine.lastAction?.modifiersApplied||[];
   const uses={...old.relicUses};
@@ -282,7 +298,7 @@ export function stepJourney(run,command){
     (objective?.type==='snap_target_tax'?snapCount*objective.pointsPerSnap:0);
   const encounter={...old,engineState:engine,relicUses:uses,snapCount,effectiveTarget};
   const advanced={...run,encounter,wildEvents:nextWildEvents,
-    wildUsedGate:run.wildUsedGate||polarity,wildShieldArmed:pendingShield};
+    wildUsedIds:polarity?[...run.wildUsedIds,'polarity']:run.wildUsedIds,wildShieldArmed:pendingShield};
   if(engine.status!=='over')return advanced;
   const finalScore=overswingFinal(engine);
   const result={id:content.id,finalScore,target:effectiveTarget,
@@ -323,13 +339,29 @@ export function validJourneyProgress(value){
 // Royals previously gained through milestones remain permanently owned.
 export function restoreJourneyProgress(value,oldRun=null){
   if(validJourneyProgress(value))return value;
-  if(!value||![1,2,3].includes(value.schemaVersion)||
+  if(!value||![1,2,3,4].includes(value.schemaVersion)||
      !Number.isInteger(value.totalRuns)||
      !Array.isArray(value.recordedRunIds)||!Array.isArray(value.discoveredRelicIds))
     return EMPTY_JOURNEY_PROGRESS;
   if(value.schemaVersion===3)return {...EMPTY_JOURNEY_PROGRESS,...value,
     schemaVersion:JOURNEY_SCHEMA,wildInventory:wildInventory(value.wildInventory),
     creditedWildEventIds:[]};
+  if(value.schemaVersion===4){
+    // V4 already has a settled Tactic ledger. Never clear its credited IDs:
+    // doing so could debit charges twice or award the same reward again.
+    const cleared=new Set(value.clearedChapterIds||[]);
+    const unlocked=[
+      ...(cleared.has('first_ember')||cleared.has('last_flame_v1')?['J']:[]),
+      ...(cleared.has('flip_discipline')?['Q']:[]),
+      ...(cleared.has('scarce_chances')?['K']:[])
+    ];
+    const owned=[...new Set([...(value.ownedRoyalIds||[]),...unlocked])];
+    return {...EMPTY_JOURNEY_PROGRESS,...value,
+      schemaVersion:JOURNEY_SCHEMA,wildInventory:wildInventory(value.wildInventory),
+      creditedWildEventIds:value.creditedWildEventIds||[],
+      ownedRoyalIds:owned,
+      equippedRoyalIds:[...new Set([...(value.equippedRoyalIds||[]),...unlocked])].slice(0,3)};
+  }
   const oldGold=Math.max(0,value.lifetimeGold||0);
   const owned=ROYAL_NAMES.filter((_,i)=>oldGold>=[40000,100000,180000][i]);
   // V2 credits successful gates but did not charge relics and retries against
@@ -363,7 +395,7 @@ function restoreGateRelicState(run){
 }
 export function restoreJourneyRun(value,progress=EMPTY_JOURNEY_PROGRESS){
   if(isValidJourney(value))return restoreGateRelicState(value);
-  if(!value||![1,2,3].includes(value.schemaVersion)||
+  if(!value||![1,2,3,4].includes(value.schemaVersion)||
      !Number.isSafeInteger(value.runSeed)||!campaignLevel(value.levelNumber??1)||
      !Array.isArray(value.completedEncounters)||!Array.isArray(value.relicIds)||
      !value.encounter)return null;
@@ -376,15 +408,29 @@ export function restoreJourneyRun(value,progress=EMPTY_JOURNEY_PROGRESS){
   const settledSum=oldEvents.filter(e=>seen.has(e.id))
     .reduce((sum,e)=>sum+e.amount,0);
   const goldStart=Math.max(0,progress.lifetimeGold-settledSum);
+  const oldDeal=value.encounter?.engineState?.deal;
+  // Preserve an active v13 fight, including all remaining physical Royal cards.
+  // Future gates receive the new game-wide Royal seed.
+  const restoredEngine=value.encounter?.engineState?.version===13&&oldDeal?
+    {...value.encounter.engineState,version:14,deal:{...oldDeal,
+      royalQueue:(oldDeal.pendingRoyals||[]).map(x=>x.card),
+      summonedRoyals:oldDeal.hand.filter(id=>id>=40),
+      consecutiveSummons:0,resonancePoints:0}}:value.encounter?.engineState;
   const migration={...value,schemaVersion:JOURNEY_SCHEMA,
-    goldStart:value.schemaVersion===3?value.goldStart:goldStart,
-    equippedRoyals:value.schemaVersion===3?value.equippedRoyals:selected,
+    royalSeed:journeySeed(value.runSeed,0,'royals'),
+    wildUsedIds:(value.wildEvents||[]).filter(e=>e.amount===-1&&
+      e.id?.includes('|wild:use:'+value.encounterIndex))
+      .map(e=>e.wildId).slice(0,2),
+    encounter:{...value.encounter,engineState:restoredEngine},
+    goldStart:value.schemaVersion>=3?value.goldStart:goldStart,
+    equippedRoyals:value.schemaVersion>=3?value.equippedRoyals:selected,
     retryCount:value.retryCount||0,retryGoldSpent:value.retryGoldSpent||0,
-    treasuryEvents:value.schemaVersion===3?value.treasuryEvents:oldEvents,
+    treasuryEvents:value.schemaVersion>=3?value.treasuryEvents:oldEvents,
     goldSpent:value.goldSpent||0,
-    wildInventoryStart:wildInventory(progress.wildInventory),
-    wildEvents:[],wildUsedGate:false,wildShieldArmed:false,
-    wildRewardAvailable:false,wildRewardId:null};
+    wildInventoryStart:wildInventory(value.wildInventoryStart||progress.wildInventory),
+    wildEvents:value.wildEvents||[],wildShieldArmed:!!value.wildShieldArmed,
+    wildRewardAvailable:value.schemaVersion>=4?!!value.wildRewardAvailable:false,
+    wildRewardId:value.schemaVersion>=4?value.wildRewardId:null};
   delete migration.treasuryStart;
   return isValidJourney(migration)?restoreGateRelicState(migration):null;
 }
@@ -400,7 +446,8 @@ export function resetJourneyAtLevel(progress,previousRun,levelNumber,runSeed){
   if(!stage||levelNumber>campaignNextLevel(settled.clearedChapterIds))return null;
   const firstClear=!settled.clearedChapterIds.includes(stage.id)&&
     !(levelNumber===1&&settled.clearedChapterIds.includes('last_flame_v1'));
-  const royals=(settled.ownedRoyalIds||[]).filter(id=>ROYAL_NAMES.includes(id));
+  const royals=(settled.equippedRoyalIds||[]).filter(id=>
+    ROYAL_NAMES.includes(id)&&settled.ownedRoyalIds.includes(id));
   return {progress:settled,run:startJourney(runSeed,settled.lifetimeGold,levelNumber,royals,{
     wildInventory:settled.wildInventory,
     rewardAvailable:firstClear,
@@ -412,7 +459,7 @@ export function buyRoyal(progress,id){
   if(!ROYAL_NAMES.includes(id)||old.ownedRoyalIds.includes(id)||old.lifetimeGold<price)return old;
   const owned=[...old.ownedRoyalIds,id];
   return {...old,lifetimeGold:old.lifetimeGold-price,
-    ownedRoyalIds:owned,equippedRoyalIds:[...owned]};
+    ownedRoyalIds:owned,equippedRoyalIds:[...new Set([...old.equippedRoyalIds,id])].slice(0,3)};
 }
 // Consumables can be purchased only outside active runs. In-run wild usage
 // remains bound to the existing one-per-gate rule and idempotent event ledger.
@@ -426,10 +473,12 @@ export function buyMarketWild(progress,id){
     wildInventory:{...old.wildInventory,[id]:(old.wildInventory[id]||0)+1}};
 }
 export function toggleRoyalEquipped(progress,id){
-  // Compatibility for old clients; the equipment picker has been retired.
   const old=restoreJourneyProgress(progress);
   if(!old.ownedRoyalIds.includes(id))return old;
-  return {...old,equippedRoyalIds:[...old.ownedRoyalIds]};
+  const equipped=old.equippedRoyalIds.includes(id)?
+    old.equippedRoyalIds.filter(x=>x!==id):
+    [...old.equippedRoyalIds,id].slice(0,3);
+  return {...old,equippedRoyalIds:equipped};
 }
 export function recordJourneyGold(progress,run){
   if(!isValidJourney(run))return progress;
@@ -451,7 +500,13 @@ export function recordJourneyProgress(progress,run){
   if(!isValidJourney(run)||!['won','lost','abandoned'].includes(run.phase))return progress;
   const old=restoreJourneyProgress(progress);
   if(old.recordedRunIds.includes(run.runId))return old;
+  const freeUnlock=run.phase==='won'?({1:'J',4:'Q',8:'K'})[run.levelNumber]:null;
+  const newlyOwned=freeUnlock&&!old.ownedRoyalIds.includes(freeUnlock)?
+    [...old.ownedRoyalIds,freeUnlock]:old.ownedRoyalIds;
   return {...old,totalRuns:old.totalRuns+1,wins:old.wins+(run.phase==='won'?1:0),
+    ownedRoyalIds:newlyOwned,
+    equippedRoyalIds:freeUnlock&&!old.equippedRoyalIds.includes(freeUnlock)?
+      [...old.equippedRoyalIds,freeUnlock].slice(0,3):old.equippedRoyalIds,
     bestRunScore:Math.max(old.bestRunScore,journeyRunScore(run)),
     recordedRunIds:[...old.recordedRunIds,run.runId],
     discoveredRelicIds:[...new Set([...old.discoveredRelicIds,
