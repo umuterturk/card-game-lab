@@ -2,9 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {newOverswing,overswingActions,stepOverswing,overswingPayout} from '../src/external/engines.js';
 import {royalCardsForLoadout,royalId,royalRank} from '../src/external/overswingRoyals.js';
+import {revealOffer,sortDeckCards} from '../src/external/overswingReveal.js';
 import {
   startJourney,stepJourney,journeySeed,journeyActions,journeyRules,
-  journeyCanUseWild,journeyWildBalance,recordJourneyGold,EMPTY_JOURNEY_PROGRESS
+  journeyCanUseWild,journeyWildBalance,recordJourneyGold,restoreJourneyProgress,
+  EMPTY_JOURNEY_PROGRESS
 } from '../src/external/overswingJourney.js';
 
 const action=(s,kind)=>overswingActions(s).find(a=>a.type===kind);
@@ -131,4 +133,41 @@ test('Paid retry restores consumed Tactic, Herald, and exact Royal queue',()=>{
   progress=recordJourneyGold(progress,retried);
   assert.equal(progress.wildInventory.shuffle,1);
   assert.equal(recordJourneyGold(progress,retried).wildInventory.shuffle,1);
+});
+
+test('Legacy v4 migration preserves settled Tactic IDs and grants already-cleared Royals',()=>{
+  const v4={...EMPTY_JOURNEY_PROGRESS,schemaVersion:4,lifetimeGold:12345,
+    ownedRoyalIds:[],equippedRoyalIds:[],
+    clearedChapterIds:['first_ember','flip_discipline'],
+    wildInventory:{shuffle:2,polarity:1,shield:0},
+    creditedWildEventIds:['old-wild-transaction']};
+  const updated=restoreJourneyProgress(v4);
+  assert.equal(updated.schemaVersion,5);
+  assert.deepEqual(updated.creditedWildEventIds,['old-wild-transaction']);
+  assert.deepEqual(updated.wildInventory,v4.wildInventory);
+  assert.deepEqual(updated.ownedRoyalIds,['J','Q']);
+  assert.deepEqual(updated.equippedRoyalIds,['J','Q']);
+  assert.equal(updated.lifetimeGold,12345);
+});
+
+test('A paid deck REVEALED purchase is retained after retry and never charged again',()=>{
+  let run=startJourney(989,6000,1,['J']);
+  assert.ok(revealOffer(run));
+  run=stepJourney(run,{type:'BUY_REVEAL'});
+  const originalExpense=run.revealGoldSpent;
+  assert.equal(run.revealPurchaseCount,1);
+  const engine=run.encounter.engineState;
+  run={...run,encounter:{...run.encounter,engineState:{...engine,deal:{
+    ...engine.deal,pos:engine.deal.deck.length,hand:[],pot:[0],plays:2,T:0}}}};
+  run=stepJourney(run,{type:'PLAY',action:{type:'bank'}});
+  assert.equal(run.phase,'retry_offer');
+  const retry=stepJourney(run,{type:'BUY_RETRY'});
+  assert.equal(retry.phase,'playing');
+  assert.equal(retry.revealPurchaseCount,1);
+  assert.equal(retry.revealGoldSpent,originalExpense);
+  assert.deepEqual(retry.revealedCardIds,
+    retry.encounter.engineState.deal.deck.slice(retry.encounter.engineState.deal.pos)
+      .sort(sortDeckCards));
+  assert.equal(revealOffer(retry),null);
+  assert.strictEqual(stepJourney(retry,{type:'BUY_REVEAL'}),retry);
 });
