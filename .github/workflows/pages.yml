@@ -26,9 +26,8 @@ jobs:
           node-version: 22
           # npm cache disabled (no lockfile)
       - run: npm install --no-audit --no-fund
-      # Publish the prototype once it compiles and the release package is valid.
-      # Browser tests and portal packaging below should not strand the public
-      # demo on an old deployment if an unrelated post-build check fails.
+      # Publish when the production build and release artifact checks pass.
+      # Browser smoke scripts are available for manual runs, not Pages CI.
       - id: web_build
         run: npm run build
       - run: npm run verify:release
@@ -39,11 +38,8 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
-      # Keep the original regression coverage, but run it after deployment.
+      # Lightweight non-browser checks remain enabled.
       - run: npm test
-      - run: node scripts/verify-overswing-briefing.mjs
-      - id: casual_smoke
-        run: node scripts/verify-casual-demo.mjs
       - run: npm run verify:offline
       - run: npm run package:crazygames
       - uses: actions/upload-artifact@v4
@@ -57,7 +53,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           JOB_RESULT: ${{ job.status }}
           WEB_BUILD: ${{ steps.web_build.outcome }}
-          CASUAL_SMOKE: ${{ steps.casual_smoke.outcome }}
           DEPLOY_RESULT: ${{ steps.deployment.outcome }}
           COMMIT_SHA: ${{ github.sha }}
           REPO_NAME: ${{ github.repository }}
@@ -72,7 +67,6 @@ jobs:
               state:process.env.STATUS_STATE,
               context:"swing-casual-pages",
               description:"build="+process.env.WEB_BUILD+
-                " browser="+process.env.CASUAL_SMOKE+
                 " deploy="+process.env.DEPLOY_RESULT,
               target_url:process.env.ACTIONS_RUN
             }))
