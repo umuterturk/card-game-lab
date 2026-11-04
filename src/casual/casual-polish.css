@@ -80,3 +80,9 @@
 @media(max-width:375px){.sg-phone{padding-left:10px;padding-right:10px}.sg-level-pill{padding-left:24px;padding-right:9px}.sg-level-star{left:-9px;width:33px;height:33px}.sg-progress{max-width:91px}.sg-wallet{min-width:50px;padding-right:5px}.sg-pause{width:38px;height:42px}.sg-controls{margin-left:-10px;margin-right:-10px}.sg-hint{width:90%;padding-left:45px;font-size:12px}.sg-hint .sg-corgi{width:79px;left:-32px}.sg-button{font-size:14px}.sg-button-icon{font-size:24px}.sg-chest{width:26px;height:22px}.sg-chest i{left:4px}.sg-tiny-stats .sg-stat{font-size:10px}}
 @media(max-height:720px){.sg-phone{padding-top:calc(env(safe-area-inset-top,0px) + 5px)}.sg-top{min-height:41px}.sg-level-pill{min-height:38px;padding-top:6px;padding-bottom:6px}.sg-objective{margin-top:9px;height:58px}.sg-target-icon{width:44px;height:44px;font-size:47px}.sg-objective-value{font-size:40px}.sg-tiny-stats{height:39px}.sg-playfield{grid-template-rows:18% 47% 35%}.sg-hint{padding-top:3px;padding-bottom:3px}.sg-hint .sg-corgi{height:67px}.sg-controls{height:clamp(183px,28dvh,213px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 7px)}.sg-hand{height:clamp(97px,15dvh,121px);margin-bottom:9px}.sg-button{min-height:57px}.sg-multiplier{bottom:calc(clamp(183px,28dvh,213px) + 1px);font-size:10px}}
 @media(prefers-reduced-motion:reduce){.sg-event-snap .sg-gauge,.sg-event-cross .sg-gauge-wrap,.sg-jar-glints{animation:none}}
+
+/* The multiplier is attached to the jar, not the fixed controls. */
+.sg-multiplier{bottom:1px;left:50%;right:auto;transform:translateX(-50%);white-space:nowrap}
+@media(max-height:720px){.sg-multiplier{bottom:1px}}
+/* The generated mock has no white control panel; allow the meadow to show through. */
+.sg-phone .sg-controls{border-top:0!important}
