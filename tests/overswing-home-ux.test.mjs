@@ -55,7 +55,7 @@ test('the Market owns Royal purchases and the gate briefing sits below the portr
   assert.match(css,/\.og-panel-visible/);
   assert.match(css,/@keyframes og-panel-in/);
   assert.match(market,/ROYALS/);
-  assert.match(market,/WILDS/);
+  assert.match(market,/TACTICS/);
   assert.match(market,/onRoyal/);
   assert.match(market,/onWild/);
 });
@@ -93,20 +93,20 @@ test('cinematic intro portals outside fullscreen scale and survives refresh with
   assert.ok(intro.includes("oe-intro-back"));
 });
 
-test('permanent royal purchases require no selection and all three enter a fight',()=>{
+test('purchased Royals are equipped in the Market and summoned during gameplay',()=>{
   let progress={...EMPTY_JOURNEY_PROGRESS,lifetimeGold:350000};
   for(const id of ['K','J','Q'])progress=buyRoyal(progress,id);
   assert.deepEqual(progress.ownedRoyalIds,['K','J','Q']);
   assert.deepEqual(progress.equippedRoyalIds,['K','J','Q']);
   const run=startJourney(8127,progress.lifetimeGold,1,progress.ownedRoyalIds);
   assert.deepEqual(run.equippedRoyals,['K','J','Q']);
-  assert.equal(run.encounter.engineState.deal.pendingRoyals.length,3);
+  assert.equal(run.encounter.engineState.deal.royalQueue.length,3);
   assert.equal(run.encounter.engineState.deal.hand.filter(id=>id>=40).length,0);
   const jsx=read('OverswingJourney.jsx');
   const coordinator=read('overswingJourney.js');
   assert.match(jsx,/resetJourneyAtLevel\(progress,run,level,Date\.now\(\)\)/);
-  assert.match(coordinator,/settled\.ownedRoyalIds/);
-  assert.match(read('OverswingMarket.jsx'),/AUTO-EQUIPPED/);
+  assert.match(coordinator,/settled\.equippedRoyalIds/);
+  assert.match(read('OverswingMarket.jsx'),/TAP OWNED TO EQUIP/);
 });
 
 test('homepage still has ambient hell pendulum and no Royal store',()=>{
