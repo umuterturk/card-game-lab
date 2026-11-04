@@ -47,6 +47,7 @@ function dealSwing(rng,override,royals=[],handSize=8){
   const deck=royals.length?ordinary.slice(royals.length):ordinary;
   return {deck,pos:handSize,hand:deck.slice(0,handSize),
     royalQueue:royals.slice(),summonedRoyals:[],consecutiveSummons:0,
+    ordinaryRefills:0,
     handCap:handSize,bankCount:0,scoutNext:null,
     crownBonus:0,resonancePoints:0,
     pot:[],discard:[],S:0,W:0,T:0,swingNo:1,flips:0,plays:0,
@@ -92,7 +93,7 @@ export function overswingActions(s,rules={}){
   const effective=overswingEffectiveRules(rules);
   const d=s.deal,a=[];
   if(d.pos<d.deck.length&&(effective.maxFlips===null||d.flips<effective.maxFlips))a.push({type:'flip'});
-  if((d.royalQueue?.length||0)>0&&d.hand.length<d.handCap&&
+  if((d.ordinaryRefills||0)>0&&(d.royalQueue?.length||0)>0&&d.hand.length<d.handCap&&
       (d.consecutiveSummons||0)<effective.maxConsecutiveSummons)a.push({type:'summon'});
   if(d.pos<d.deck.length&&d.hand.length>1&&d.hand.every(isRoyal))
     d.hand.forEach((_,index)=>a.push({type:'carry',index}));
@@ -142,6 +143,7 @@ function refillEmptyHand(d){
       d.hand.push(card);drawn.push(card);
     }
   }
+  if(drawn.length)d.ordinaryRefills=(d.ordinaryRefills||0)+1;
   return drawn;
 }
 export function stepOverswing(s,a,rules={}){
