@@ -39,10 +39,10 @@ test('JACKPOT increases linearly on strict FLIP crossings; STEER preserves it',(
   s={...s,deal:{...s.deal,S:-1,jackpotFactor:4,plays:1,pot:[30]}};
   s=stepOverswing(s,{type:'flip'}); // +2: -1 -> +1, JACKPOT 5
   assert.equal(s.deal.S,1);assert.equal(s.deal.jackpotFactor,5);
-  assert.equal(s.deal.flipFactor,2);
+  assert.equal(s.deal.flipFactor,1);
   s=stepOverswing(s,{type:'flip'}); // -2: +1 -> -1, JACKPOT 6
   assert.equal(s.deal.S,-1);assert.equal(s.deal.jackpotFactor,6);
-  assert.equal(s.deal.flipFactor,3);
+  assert.equal(s.deal.flipFactor,1);
   s=stepOverswing(s,{type:'steer',index:0}); // -1 -> -2 without a crossing
   assert.equal(s.deal.jackpotFactor,6);
 });
@@ -61,7 +61,7 @@ test('tutorial short fixed deck and concise basics',()=>{
 });
 test('tutorial start requires glossary; every scripted action is forced and completes',()=>{
   let s=newOverswing({mode:'tutorial',seed:33});
-  assert.equal(s.version,13);
+  assert.equal(s.version,14);
   assert.equal(s.tutorialStep,0);
   assert.equal(s.tutorialIntroDone,false);
   assert.deepEqual(overswingActions(s),[]);
@@ -98,7 +98,7 @@ test('tutorial start requires glossary; every scripted action is forced and comp
 });
 test('normal mode remains playable and does not accept tutorial-start',()=>{
   const s=newOverswing({mode:'short',seed:11});
-  assert.equal(s.version,13);
+  assert.equal(s.version,14);
   assert.ok(overswingActions(s).some(a=>a.type==='flip'));
   assert.strictEqual(stepOverswing(s,{type:'tutorial-start'}),s);
 });
