@@ -75,7 +75,7 @@ export function SwingGauge({position,limit=8}){
   return ()=>tween.kill();
  },[position,limit]);
  return <div className="sg-gauge-wrap" role="img" aria-label={'Swing '+position+', safe between minus '+limit+' and plus '+limit}>
- <svg viewBox="0 0 440 280" className="sg-gauge">
+ <svg viewBox="0 0 440 280" className="sg-gauge" preserveAspectRatio="none">
  <defs>
   <linearGradient id="sw-gold" x2="0" y2="1"><stop stopColor="#ffeeb0"/><stop offset=".28" stopColor="#d79857"/><stop offset=".78" stopColor="#f4bb63"/><stop offset="1" stopColor="#a56037"/></linearGradient>
   <linearGradient id="sw-purple" x2="0" y2="1"><stop stopColor="#ad75db"/><stop offset=".7" stopColor="#7847b7"/><stop offset="1" stopColor="#503391"/></linearGradient>
