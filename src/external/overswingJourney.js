@@ -9,7 +9,7 @@ export const JOURNEY_SCHEMA=5;
 export const JOURNEY_PHASES=['playing','choosing_relic','choosing_wild','retry_offer','won','lost','abandoned'];
 export const RELIC_PRICE_RATE=0.20; // price is 20% of the gate being entered
 export const RETRY_PRICE_RATES=Object.freeze([1,1.5,2]);
-const BASE_RELIC_RULES={steerNoncrossPenalty:1,flipCrossJackpotGain:1,
+const BASE_RELIC_RULES={maxConsecutiveSummons:1,steerNoncrossPenalty:1,flipCrossJackpotGain:1,
   bankCapacityLoss:1,steerCrossSwingBonus:0};
 
 // Stable independent streams for decks and reward offers.
