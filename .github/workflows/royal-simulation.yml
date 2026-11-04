@@ -8,6 +8,7 @@ on:
       - 'src/external/overswingJourney.js'
       - 'src/external/overswingJourneyContent.js'
       - 'experiments/run-overswing-royals.mjs'
+      - 'experiments/run-overswing-campaign-v14.mjs'
       - '.github/workflows/royal-simulation.yml'
   workflow_dispatch:
 permissions:
@@ -26,8 +27,12 @@ jobs:
           node-version: 22
       - name: Run 96,000 seeded Royal encounters
         run: node experiments/run-overswing-royals.mjs 2000 900000
+      - name: Simulate all 12 campaign levels (108,000 encounters)
+        run: node experiments/run-overswing-campaign-v14.mjs 500 950000
       - name: Upload full CSV and JSON findings
         uses: actions/upload-artifact@v4
         with:
           name: overswing-royal-simulation
-          path: artifacts/royal-simulation.*
+          path: |
+            artifacts/royal-simulation.*
+            artifacts/campaign-v14.*
