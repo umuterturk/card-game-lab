@@ -1,7 +1,7 @@
 import React,{useState,useEffect,useLayoutEffect,useRef} from 'react';
 import {createPortal} from 'react-dom';
 import {rank,suit,signed,label,applySwing,overswingActions,overswingPayout,overswingMultiplier} from './engines.js';
-import {royalRank} from './overswingRoyals.js';
+import {royalRank,mirrorAutoDirection} from './overswingRoyals.js';
 import './overswing.css';
 import './overswingVisualFix.css';
 import {OVERSWING_TUTORIAL_STEPS,OVERSWING_TUTORIAL_INTRO} from './overswingTutorial.js';
@@ -18,7 +18,7 @@ import AbilityIcon from './OverswingAbilityIcon.jsx';
 import {revealOffer} from './overswingReveal.js';
 import {overswingTension} from './overswingTension.js';
 import {pixelPendulumFrame,PENDULUM_FPS,PENDULUM_REGULAR_MS,PENDULUM_SNAP_MS} from './overswingPendulum.js';
-import {cardFlightResult,flipFlightPoints,bankCoinBurst,bankBurstPoints} from './overswingFlipFlight.js';
+import {cardFlightResult,flipFlightPoints,bankCoinBurst,bankBurstPoints,summonFlightResult,summonFlightPoints} from './overswingFlipFlight.js';
 import OverswingSoundControls from './OverswingSoundControls.jsx';
 import {multiplierFeedbackForAction,potCrackForAction} from './overswingFeedback.js';
 import {MultiplierBurst,PotCrack} from './OverswingFeedback.jsx';
@@ -217,6 +217,28 @@ function FlipFlight({flight,onFinish}){
 }
 
 
+// A Royal appears through a short gothic portal and travels from SUMMON to
+// its real hand slot. This is presentation-only; the engine already owns it.
+function SummonFlight({flight,onFinish}){
+  if(!flight)return null;
+  const isQueen=royalRank(flight.card)==='Q';
+  const isRed=suit(flight.card)<2;
+  return createPortal(
+    <div className={'os8-flip-flight os8-summon-flight '+
+      (isRed?'os8-flip-flight-red':'os8-flip-flight-black')}
+      style={flight.style} key={flight.serial} aria-hidden="true"
+      onAnimationEnd={event=>{
+        if(event.target===event.currentTarget)onFinish(flight.serial);
+      }}>
+      <div className="os8-flip-face os8-summon-face">
+        <span className="os8-flip-face-corner">{isQueen?'Q':name(flight.card)}</span>
+        <span className="os8-summon-crown">♛</span>
+        <strong className="os8-summon-value">{isQueen?'±12':val(signed(flight.card))}</strong>
+        <span className="os8-flip-face-tag">ROYAL</span>
+      </div>
+    </div>,document.body);
+}
+
 function BankCoinBurst({burst,onFinish}){
   if(!burst)return null;
   const onEnd=event=>{
@@ -245,7 +267,7 @@ function BankCoinBurst({burst,onFinish}){
 
 const FACTOR_HELP={
   swing:{title:'SWING',text:'Cross zero to gain SWING. Any safe noncrossing FLIP or STEER loses 1 SWING tier (minimum ×1).'},
-  flip:{title:'FLIP',text:'Each consecutive safe FLIP builds ×2, ×3, ×4… even when it crosses zero. STEER ends the streak but preserves earned FLIP.'},
+  flip:{title:'FLIP',text:'Consecutive noncrossing FLIPs build ×2, ×3, ×4… Crossing FLIPs grow JACKPOT instead. STEER ends the streak but preserves earned FLIP.'},
   jackpot:{title:'JACKPOT',text:'Every zero crossing made by FLIP adds one tier: ×2, ×3, ×4… A noncrossing FLIP does not reduce it. Exact zero resets all multipliers.'}
 };
 function Factor({id,label,value,onClick,expanded,winning=false}){
@@ -267,16 +289,17 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,p
   const [queenPick,setQueenPick]=useState(null);
   const [impact,setImpact]=useState(null);
   const [flight,setFlight]=useState(null);
+  const [summonFlight,setSummonFlight]=useState(null);
   const [coinBurst,setCoinBurst]=useState(null);
   const [multiplierBurst,setMultiplierBurst]=useState(null);
   const [potCrack,setPotCrack]=useState(null);
   const lastAudioAction=useRef(s.lastAction);
-  const flipButtonRef=useRef(null),bankButtonRef=useRef(null);
+  const flipButtonRef=useRef(null),summonButtonRef=useRef(null),bankButtonRef=useRef(null);
   const potTargetRef=useRef(null),potSectionRef=useRef(null);
   const meterRef=useRef(null),goldTargetRef=useRef(null);
   const discardTargetRef=useRef(null),handContainerRef=useRef(null);
   const steerSourceRef=useRef(null);
-  const previousFlightAction=useRef(s.lastAction),flightSerial=useRef(0),bankSerial=useRef(0);
+  const previousFlightAction=useRef(s.lastAction),flightSerial=useRef(0),summonSerial=useRef(0),bankSerial=useRef(0);
   const previousFeedbackAction=useRef(s.lastAction),bonusSerial=useRef(0),crackSerial=useRef(0);
 
   const dispatch=command=>{sound?.unlock();act(command);};
@@ -294,6 +317,22 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,p
     if(action===previousFlightAction.current)return;
     previousFlightAction.current=action;
     const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    const summoned=summonFlightResult(action);
+    if(summoned){
+      setFlight(null);
+      setCoinBurst(null);
+      const source=summonButtonRef.current;
+      const destination=handContainerRef.current?.querySelector(
+        '[data-hand-card="'+summoned.card+'"]');
+      if(source&&destination&&!reduced){
+        const style=summonFlightPoints(
+          source.getBoundingClientRect(),destination.getBoundingClientRect(),
+          {width:window.innerWidth,height:window.innerHeight});
+        setSummonFlight({...summoned,style,serial:++summonSerial.current});
+      }else setSummonFlight(null);
+      return;
+    }
+    setSummonFlight(null);
     const bank=bankCoinBurst(action);
     if(bank){
       setFlight(null);
@@ -421,6 +460,10 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,p
         a.index===index&&Math.abs(d.S+a.direction*12)<=limit);
       if(safeDirections.length===1){
         dispatch({type:'steer',index,direction:safeDirections[0].direction});
+      }else if(safeDirections.length===0){
+        // Never open a choice dialog when both outcomes are SNAP.
+        // Choose the least overshooting direction, tie-breaking by suit.
+        dispatch({type:'steer',index,direction:mirrorAutoDirection(d.S,limit,d.hand[index])});
       }else setQueenPick(index);
     }else if(legal.some(a=>a.type==='steer'&&a.index===index)){
       saveSteerSource(index,element);
@@ -450,14 +493,16 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,p
         <b>FLIP</b>
         <small>{scoutedFlip!=null?'SCOUTED · NEXT CARD':rules.maxFlips?'USED '+d.flips+'/'+rules.maxFlips:'RANDOM CARD'}</small>
       </button>
-      {showSummon&&<button type="button" className="os8-summon"
+      {showSummon&&<button type="button" ref={summonButtonRef} className="os8-summon"
         disabled={!canSummon||discardPick}
-        title={!royalRemaining?'No Royals left':d.hand.length>=d.handCap?'Hand full':
+        title={!royalRemaining?'No Royals left':!(d.ordinaryRefills>0)?
+          'Unlocks after your first ordinary hand refill':d.hand.length>=d.handCap?'Hand full':
           !canSummon?'Summon chain limit reached':'Summon the next Royal'}
         onClick={()=>dispatch({type:'summon'})}>
         <span className="os8-action-icon" aria-hidden="true">♛</span>
         <b>SUMMON</b>
-        <small>{royalRemaining?'ROYALS '+royalRemaining+' · '+(d.consecutiveSummons||0)+'/'+journeyRules(journey).maxConsecutiveSummons:'NONE LEFT'}</small>
+        <small>{!royalRemaining?'NONE LEFT':!(d.ordinaryRefills>0)?'AFTER REFILL':
+          'ROYALS '+royalRemaining+' · '+(d.consecutiveSummons||0)+'/'+journeyRules(journey).maxConsecutiveSummons}</small>
       </button>}
       <button type="button" ref={bankButtonRef} disabled={!canBank||discardPick}
         className={'os8-bank '+(tutorial&&canBank?'os8-guide-action':'')} onClick={bank}>
@@ -624,12 +669,15 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,p
           }
           const o=applySwing(d.S,d.W,signed(id),limit);
           const royal=royalRank(id);
-          const caption=discardPick?'REMOVE':o.snap?'SNAP':royal==='K'?'CROWN +'+(d.crownBonus||0)+'%':royal==='J'?'SCOUT':royal==='Q'?'MIRROR':d.S!==0&&o.S===0?'ZERO BREAK':d.plays===0||o.swung?'POT +'+rank(id):d.W>0?'SWING −1':'DISCARD';
+          const snapRisk=royal==='Q'?
+            Math.abs(d.S+12)>limit&&Math.abs(d.S-12)>limit:o.snap;
+          const caption=discardPick?'REMOVE':snapRisk?'SNAP':royal==='K'?'CROWN +'+(d.crownBonus||0)+'%':royal==='J'?'SCOUT':royal==='Q'?'MIRROR':d.S!==0&&o.S===0?'ZERO BREAK':d.plays===0||o.swung?'POT +'+rank(id):d.W>0?'SWING −1':'DISCARD';
           const allowed=discardPick?legal.some(a=>a.type==='bank'&&a.dropIndex===index):legal.some(a=>a.type==='steer'&&a.index===index);
           const highlighted=tutorial&&allowed;
           return <span className="os8-hand-slot os8-hand-slot-occupied" key={id}>
             <Card id={id} handCard chosen={highlighted||(!tutorial&&discardPick)}
-              onClick={allowed?event=>doSteer(index,event.currentTarget):null} caption={caption}/>
+              onClick={allowed?event=>doSteer(index,event.currentTarget):null}
+              caption={caption} flightHidden={summonFlight?.card===id}/>
           </span>;
         })}
       </div>
@@ -650,11 +698,13 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,p
         <p>STEER ends the current FLIP streak but preserves FLIP and JACKPOT tiers. Every noncrossing FLIP or STEER costs 1 SWING tier (minimum ×1).</p>
         <p>The first STEER of a Pot, crossing STEER, and ZERO BREAK STEER enter the Pot; other STEER cards are discarded.</p>
         <p>BANK becomes available after at least 2 card actions. Each BANK reduces hand capacity from 8 toward 2 (unless a relic prevents it). Choose which card to discard if necessary.</p>
-        <p>When ordinary cards run out of hand, carry one Royal across the refill. SUMMON calls a Royal into an empty hand slot and has a consecutive limit.</p>
+        <p>After your first ordinary hand refill, SUMMON calls a Royal into an empty hand slot (one consecutive call unless Herald is active). Carry one Royal across later refills. A Mirror whose ±12 moves both SNAP plays automatically.</p>
       </details>
     </footer>
     {flight&&<FlipFlight flight={flight} onFinish={serial=>
       setFlight(current=>current?.serial===serial?null:current)}/>}
+    {summonFlight&&<SummonFlight flight={summonFlight} onFinish={serial=>
+      setSummonFlight(current=>current?.serial===serial?null:current)}/>}
     {coinBurst&&<BankCoinBurst burst={coinBurst} onFinish={serial=>
       setCoinBurst(current=>current?.serial===serial?null:current)}/>}
     {potCrack&&<PotCrack key={potCrack.serial} crack={potCrack} onFinish={serial=>
