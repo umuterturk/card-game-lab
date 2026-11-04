@@ -1,11 +1,11 @@
 import {newOverswing,overswingActions,stepOverswing,overswingFinal} from './engines.js';
 import {LAST_FLAME,LAST_FLAME_RELICS} from './overswingJourneyContent.js';
-import {ROYAL_NAMES,royalCardsForLoadout,ROYAL_PRICES} from './overswingRoyals.js';
+import {ROYAL_NAMES,royalCardsForLoadout,ROYAL_PRICES,royalRank} from './overswingRoyals.js';
 import {campaignLevel,campaignNextLevel,CAMPAIGN_LEVELS} from './overswingCampaign.js';
 import {WILD_IDS,wildInventory,wildBalance,shuffleWildHand} from './overswingWilds.js';
 import {revealOffer} from './overswingReveal.js';
 
-export const JOURNEY_SCHEMA=4;
+export const JOURNEY_SCHEMA=5;
 export const JOURNEY_PHASES=['playing','choosing_relic','choosing_wild','retry_offer','won','lost','abandoned'];
 export const RELIC_PRICE_RATE=0.20; // price is 20% of the gate being entered
 export const RETRY_PRICE_RATES=Object.freeze([1,1.5,2]);
@@ -31,9 +31,9 @@ function drawRandom(seed){
     return ((t^(t>>>14))>>>0)/4294967296;
   };
 }
-function dealFor(runSeed,index,equippedRoyals=[],levelNumber=1){
+function dealFor(runSeed,index,equippedRoyals=[],levelNumber=1,royalSeed=journeySeed(runSeed,0,'royals')){
   const config=LAST_FLAME.encounters[index],level=campaignLevel(levelNumber);
-  const royals=royalCardsForLoadout(equippedRoyals,journeySeed(runSeed,index,'royals'),index);
+  const royals=royalCardsForLoadout(equippedRoyals,royalSeed);
   // A gate has one immutable deck seed: retries reset the exact same deal,
   // including the opening hand and subsequent FLIPs.
   return {encounterId:config.id,engineState:newOverswing({
@@ -45,7 +45,7 @@ function dealFor(runSeed,index,equippedRoyals=[],levelNumber=1){
 export function offerJourneyRelics(run){
   // Each gate is a fresh purchase: a relic used in an earlier gate can appear
   // again, and the offer RNG is independent of card draw RNG.
-  const choices=LAST_FLAME.relics.map(r=>r.id);
+  const choices=LAST_FLAME.relics.filter(r=>r.id!=='herald'||run.equippedRoyals?.length>=2).map(r=>r.id);
   const gateIndex=run.shopForGate??run.encounterIndex+1;
   const random=drawRandom(journeySeed(run.runSeed,gateIndex,'rewards'));
   for(let i=choices.length-1;i>0;i--){
@@ -62,20 +62,20 @@ export function startJourney(runSeed=Date.now(),goldBalance=0,levelNumber=1,equi
      new Set(equippedRoyals).size!==equippedRoyals.length||
      equippedRoyals.some(id=>!ROYAL_NAMES.includes(id)))
     throw new TypeError('Invalid Royal loadout');
-  const seed=runSeed,loadout=equippedRoyals.slice();
+  const seed=runSeed,royalSeed=journeySeed(seed,0,'royals'),loadout=equippedRoyals.slice();
   const inventory=wildInventory(options.wildInventory);
   const initialShop=options.shopBeforeFirstGate===true;
   const draft={schemaVersion:JOURNEY_SCHEMA,contentPackId:LAST_FLAME.id,
     contentVersion:LAST_FLAME.version,runId:'last-flame-'+seed.toString(36),
-    runSeed:seed,equippedRoyals:loadout,levelNumber,goldSpent:0,retryGoldSpent:0,
+    runSeed:seed,royalSeed,equippedRoyals:loadout,levelNumber,goldSpent:0,retryGoldSpent:0,
     goldStart:goldBalance,treasuryEvents:[],retryCount:0,
     revealedCardIds:[],revealPurchaseCount:0,revealGoldSpent:0,
-    wildInventoryStart:inventory,wildEvents:[],wildUsedGate:false,wildShieldArmed:false,
+    wildInventoryStart:inventory,wildEvents:[],wildUsedIds:[],wildShieldArmed:false,
     wildRewardAvailable:options.rewardAvailable===true,wildRewardId:null,
     phase:initialShop?'choosing_relic':'playing',
     encounterIndex:0,relicIds:[],purchasedRelicIds:[],
     shopForGate:initialShop?0:null,
-    offeredRelicIds:[],encounter:dealFor(seed,0,loadout,levelNumber),
+    offeredRelicIds:[],encounter:dealFor(seed,0,loadout,levelNumber,royalSeed),
     completedEncounters:[]};
   return initialShop?{...draft,offeredRelicIds:offerJourneyRelics(draft)}:draft;
 }
@@ -84,6 +84,7 @@ export function isValidJourney(run){
     run.contentPackId===LAST_FLAME.id&&run.contentVersion===LAST_FLAME.version&&
     JOURNEY_PHASES.includes(run.phase)&&
     Number.isSafeInteger(run.runSeed)&&run.runSeed>=0&&
+    Number.isSafeInteger(run.royalSeed)&&run.royalSeed>=0&&
     !!campaignLevel(run.levelNumber??1)&&
     Number.isInteger(run.encounterIndex)&&run.encounterIndex>=0&&
     run.encounterIndex<LAST_FLAME.encounters.length&&
@@ -108,7 +109,10 @@ export function isValidJourney(run){
       (e.amount===1||e.amount===-1)&&typeof e.id==='string')&&
     WILD_IDS.every(id=>Number.isSafeInteger(run.wildInventoryStart?.[id])&&
       run.wildInventoryStart[id]>=0)&&
-    typeof run.wildUsedGate==='boolean'&&typeof run.wildShieldArmed==='boolean'&&
+    Array.isArray(run.wildUsedIds)&&run.wildUsedIds.length<=2&&
+    new Set(run.wildUsedIds).size===run.wildUsedIds.length&&
+    run.wildUsedIds.every(id=>WILD_IDS.includes(id))&&
+    typeof run.wildShieldArmed==='boolean'&&
     typeof run.wildRewardAvailable==='boolean'&&
     (run.wildRewardId===null||WILD_IDS.includes(run.wildRewardId))&&
     Array.isArray(run.equippedRoyals)&&run.equippedRoyals.length<=3&&
@@ -117,7 +121,7 @@ export function isValidJourney(run){
     Number.isInteger(run.retryCount)&&run.retryCount>=0&&run.retryCount<=RETRY_PRICE_RATES.length&&
     !!run.encounter&&
     run.encounter.encounterId===LAST_FLAME.encounters[run.encounterIndex].id&&
-    run.encounter.engineState?.version===13;
+    run.encounter.engineState?.version===14;
 }
 export function journeyRules(run){
   const stage=campaignLevel(run.levelNumber||1);
@@ -127,6 +131,7 @@ export function journeyRules(run){
   if(available.has('jackpot_spark'))rules.flipCrossJackpotGain=2;
   if(available.has('vault_seal'))rules.bankCapacityLoss=0;
   if(available.has('swing_coil'))rules.steerCrossSwingBonus=1;
+  if(available.has('herald'))rules.maxConsecutiveSummons=2;
   return rules;
 }
 export function journeyActions(run){
@@ -149,11 +154,11 @@ export function journeyWildBalance(run){
   return wildBalance(run.wildInventoryStart,run.wildEvents);
 }
 export function journeyCanUseWild(run,id){
-  if(!isValidJourney(run)||run.phase!=='playing'||run.wildUsedGate||
+  if(!isValidJourney(run)||run.phase!=='playing'||run.wildUsedIds.length>=2||run.wildUsedIds.includes(id)||
      !WILD_IDS.includes(id)||journeyWildBalance(run)[id]<1)return false;
   const d=run.encounter.engineState.deal;
   if(id==='shuffle')return d.hand.some(card=>card<40)&&d.pos<d.deck.length;
-  if(id==='polarity')return d.hand.some(card=>card<40);
+  if(id==='polarity')return d.hand.some(card=>card<40||['J','K'].includes(royalRank(card)));
   return journeyActions(run).some(action=>action.type==='flip');
 }
 function wildEvent(run,id,amount,source){
