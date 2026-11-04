@@ -24,17 +24,29 @@ test('Royal summon order and suit are independent of gate index',()=>{
   assert.notEqual(startJourney(111).royalSeed,startJourney(112).royalSeed);
 });
 
-test('Royal SUMMON occupies a free hand slot, preserves ordinary deck and cannot chain by default',()=>{
-  let s=newOverswing({seed:1,royals:[royalId('J',0),royalId('K',1)]});
-  const initial=s.deal.deck[s.deal.pos];
+test('Royal SUMMON unlocks only after the first full ordinary hand refill',()=>{
+  let s=newOverswing({seed:1,royals:[royalId('J',0),royalId('K',1)],initialHandSize:3});
   assert.equal(action(s,'summon'),undefined);
+  assert.equal(s.deal.ordinaryRefills,0);
+  // Just freeing a slot in the opening hand must NOT unlock SUMMON.
+  s=stepOverswing(s,{type:'steer',index:0});
+  assert.equal(action(s,'summon'),undefined);
+  assert.equal(s.deal.ordinaryRefills,0);
+  assert.strictEqual(stepOverswing(s,{type:'summon'}),s);
+  // Exhaust the opening hand to obtain its first ordinary refill.
+  s=stepOverswing(s,{type:'steer',index:0});
+  s=stepOverswing(s,{type:'steer',index:0});
+  assert.equal(s.deal.ordinaryRefills,1);
+  assert.equal(s.deal.hand.length,3);
   s=stepOverswing(s,{type:'steer',index:0});
   assert.ok(action(s,'summon'));
+  const nextOrdinary=s.deal.deck[s.deal.pos];
+  const previousPlays=s.deal.plays,previousFlips=s.deal.flips;
   s=stepOverswing(s,{type:'summon'});
   assert.equal(s.lastAction.card,royalId('J',0));
-  assert.equal(s.deal.deck[s.deal.pos],initial);
-  assert.equal(s.deal.flips,0);
-  assert.equal(s.deal.plays,1);
+  assert.equal(s.deal.deck[s.deal.pos],nextOrdinary);
+  assert.equal(s.deal.flips,previousFlips);
+  assert.equal(s.deal.plays,previousPlays);
   assert.equal(s.deal.consecutiveSummons,1);
   assert.equal(action(s,'summon'),undefined);
   const held=s.deal.hand.filter(x=>royalRank(x));
@@ -47,7 +59,8 @@ test('Herald increases consecutive summons from one to two without granting more
   // Free two slots, recording ordinary cards as discarded to preserve counts.
   const hand=d.hand.slice(0,-2);
   run={...run,relicIds:['herald'],encounter:{...run.encounter,
-    engineState:{...run.encounter.engineState,deal:{...d,hand,discard:d.hand.slice(-2)}}}};
+    engineState:{...run.encounter.engineState,deal:{...d,hand,
+      ordinaryRefills:1,discard:d.hand.slice(-2)}}}};
   assert.equal(journeyRules(run).maxConsecutiveSummons,2);
   assert.ok(journeyActions(run).some(x=>x.type==='summon'));
   run=stepJourney(run,{type:'PLAY',action:{type:'summon'}});

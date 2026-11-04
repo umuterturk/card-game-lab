@@ -79,7 +79,7 @@ test('BANK coin fountain grows granularly below 10K, reaches 50 at 10K and caps 
 
 test('music is an original deterministic score and all requested cues are distinct',()=>{
   assert.equal(MUSIC_TEMPO,132);
-  assert.deepEqual(AUDIO_CUES,['flip','steer','zero','snap','bank']);
+  assert.deepEqual(AUDIO_CUES,['flip','steer','zero','snap','bank','summon']);
   assert.equal(MUSIC_RIFF.length,4);
   assert.ok(MUSIC_RIFF.every(bar=>bar.length===16));
   assert.equal(scoreNoteAt(0),82.41);
@@ -94,6 +94,7 @@ test('music is an original deterministic score and all requested cues are distin
   assert.equal(audioCueForAction({type:'steer',snap:true}),'snap');
   assert.equal(audioCueForAction({type:'steer',snap:true,zeroBreak:true}),'snap');
   assert.equal(audioCueForAction({type:'bank',points:10000}),'bank');
+  assert.equal(audioCueForAction({type:'summon',card:40}),'summon');
   assert.equal(audioCueForAction({type:'bank',points:0}),null);
   assert.equal(audioCueForAction({type:'wild',wildId:'shuffle'}),null);
 });

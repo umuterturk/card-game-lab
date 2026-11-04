@@ -10,7 +10,7 @@ import {THRILLER_TRACKS,THRILLER_START,GAMEPLAY_TRACKS,
   thrillerNoteAt,thrillerTempoForGroove} from './overswingThriller.js';
 export {MUSIC_RIFF,MUSIC_TRACKS} from './overswingTracks.js';
 
-export const AUDIO_CUES=Object.freeze(['flip','steer','zero','snap','bank']);
+export const AUDIO_CUES=Object.freeze(['flip','steer','zero','snap','bank','summon']);
 export const BONUS_AUDIO_CUES=Object.freeze(['jackpot','swing','flipTier','potCrack']);
 export function bonusAudioCuesForAction(action){
   if(potCrackForAction(action))return ['potCrack'];
@@ -28,6 +28,7 @@ export function lostCoinClinkCount(action){
 export function audioCueForAction(action){
   if(!action)return null;
   if(action.type==='bank')return Number(action.points)>0?'bank':null;
+  if(action.type==='summon')return 'summon';
   if(action.type!=='flip'&&action.type!=='steer')return null;
   if(action.snap)return 'snap';
   if(action.zeroBreak)return 'zero';
@@ -607,6 +608,18 @@ export function createOverswingAudio(host=typeof window!=='undefined'?window:nul
     // Gesture normally unlocks audio before the game state update.
     const time=context.currentTime+.006;
     switch(cue){
+      case 'summon':
+        // Haunting Royal ritual: sub-bass portal, ascending dissonant chimes,
+        // then a short resolving bell as the card reaches the hand.
+        // Everything shares the existing SFX bus and mute/audio-session rules.
+        tone(82.41,time,.48,.105,'sawtooth',sfxBus,41.2);
+        blast(time+.06,.16,.065,sfxBus,1100);
+        tone(185,time+.075,.32,.105,'triangle',sfxBus,370);
+        tone(293.66,time+.19,.27,.072,'square',sfxBus,415);
+        tone(440,time+.30,.26,.067,'triangle',sfxBus,659);
+        tone(739.99,time+.47,.35,.065,'sine',sfxBus,587.33);
+        tone(987.77,time+.56,.26,.030,'triangle',sfxBus,739.99);
+        break;
       case 'flip':
         tone(280,time,.13,.17,'square',sfxBus,540);
         tone(660,time+.085,.08,.045,'triangle');

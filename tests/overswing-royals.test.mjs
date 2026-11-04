@@ -62,7 +62,7 @@ test('SUMMON is deliberate, limited consecutively and never affects ordinary FLI
   const d=s.deal;
   // Free a slot while accounting for the displaced ordinary card.
   s={...s,deal:{...d,hand:d.hand.slice(0,-1),
-    discard:[...d.discard,d.hand.at(-1)]}};
+    discard:[...d.discard,d.hand.at(-1)],ordinaryRefills:1}};
   assert.ok(overswingActions(s).some(a=>a.type==='summon'));
   const nextCard=s.deal.deck[s.deal.pos],beforeFlip=s.deal.flips;
   s=stepOverswing(s,{type:'summon'});
