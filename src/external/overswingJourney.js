@@ -334,11 +334,11 @@ export function validJourneyProgress(value){
 // Royals previously gained through milestones remain permanently owned.
 export function restoreJourneyProgress(value,oldRun=null){
   if(validJourneyProgress(value))return value;
-  if(!value||![1,2,3].includes(value.schemaVersion)||
+  if(!value||![1,2,3,4].includes(value.schemaVersion)||
      !Number.isInteger(value.totalRuns)||
      !Array.isArray(value.recordedRunIds)||!Array.isArray(value.discoveredRelicIds))
     return EMPTY_JOURNEY_PROGRESS;
-  if(value.schemaVersion===3)return {...EMPTY_JOURNEY_PROGRESS,...value,
+  if(value.schemaVersion===3||value.schemaVersion===4)return {...EMPTY_JOURNEY_PROGRESS,...value,
     schemaVersion:JOURNEY_SCHEMA,wildInventory:wildInventory(value.wildInventory),
     creditedWildEventIds:[]};
   const oldGold=Math.max(0,value.lifetimeGold||0);
@@ -374,7 +374,7 @@ function restoreGateRelicState(run){
 }
 export function restoreJourneyRun(value,progress=EMPTY_JOURNEY_PROGRESS){
   if(isValidJourney(value))return restoreGateRelicState(value);
-  if(!value||![1,2,3].includes(value.schemaVersion)||
+  if(!value||![1,2,3,4].includes(value.schemaVersion)||
      !Number.isSafeInteger(value.runSeed)||!campaignLevel(value.levelNumber??1)||
      !Array.isArray(value.completedEncounters)||!Array.isArray(value.relicIds)||
      !value.encounter)return null;
@@ -387,14 +387,27 @@ export function restoreJourneyRun(value,progress=EMPTY_JOURNEY_PROGRESS){
   const settledSum=oldEvents.filter(e=>seen.has(e.id))
     .reduce((sum,e)=>sum+e.amount,0);
   const goldStart=Math.max(0,progress.lifetimeGold-settledSum);
+  const oldDeal=value.encounter?.engineState?.deal;
+  // Preserve an active v13 fight, including all remaining physical Royal cards.
+  // Future gates receive the new game-wide Royal seed.
+  const restoredEngine=value.encounter?.engineState?.version===13&&oldDeal?
+    {...value.encounter.engineState,version:14,deal:{...oldDeal,
+      royalQueue:(oldDeal.pendingRoyals||[]).map(x=>x.card),
+      summonedRoyals:oldDeal.hand.filter(id=>id>=40),
+      consecutiveSummons:0,resonancePoints:0}}:value.encounter?.engineState;
   const migration={...value,schemaVersion:JOURNEY_SCHEMA,
+    royalSeed:journeySeed(value.runSeed,0,'royals'),
+    wildUsedIds:(value.wildEvents||[]).filter(e=>e.amount===-1&&
+      e.id?.includes('|wild:use:'+value.encounterIndex))
+      .map(e=>e.wildId).slice(0,2),
+    encounter:{...value.encounter,engineState:restoredEngine},
     goldStart:value.schemaVersion===3?value.goldStart:goldStart,
     equippedRoyals:value.schemaVersion===3?value.equippedRoyals:selected,
     retryCount:value.retryCount||0,retryGoldSpent:value.retryGoldSpent||0,
     treasuryEvents:value.schemaVersion===3?value.treasuryEvents:oldEvents,
     goldSpent:value.goldSpent||0,
     wildInventoryStart:wildInventory(progress.wildInventory),
-    wildEvents:[],wildUsedGate:false,wildShieldArmed:false,
+    wildEvents:value.wildEvents||[],wildShieldArmed:false,
     wildRewardAvailable:false,wildRewardId:null};
   delete migration.treasuryStart;
   return isValidJourney(migration)?restoreGateRelicState(migration):null;
@@ -411,7 +424,8 @@ export function resetJourneyAtLevel(progress,previousRun,levelNumber,runSeed){
   if(!stage||levelNumber>campaignNextLevel(settled.clearedChapterIds))return null;
   const firstClear=!settled.clearedChapterIds.includes(stage.id)&&
     !(levelNumber===1&&settled.clearedChapterIds.includes('last_flame_v1'));
-  const royals=(settled.ownedRoyalIds||[]).filter(id=>ROYAL_NAMES.includes(id));
+  const royals=(settled.equippedRoyalIds||[]).filter(id=>
+    ROYAL_NAMES.includes(id)&&settled.ownedRoyalIds.includes(id));
   return {progress:settled,run:startJourney(runSeed,settled.lifetimeGold,levelNumber,royals,{
     wildInventory:settled.wildInventory,
     rewardAvailable:firstClear,
@@ -437,10 +451,12 @@ export function buyMarketWild(progress,id){
     wildInventory:{...old.wildInventory,[id]:(old.wildInventory[id]||0)+1}};
 }
 export function toggleRoyalEquipped(progress,id){
-  // Compatibility for old clients; the equipment picker has been retired.
   const old=restoreJourneyProgress(progress);
   if(!old.ownedRoyalIds.includes(id))return old;
-  return {...old,equippedRoyalIds:[...old.ownedRoyalIds]};
+  const equipped=old.equippedRoyalIds.includes(id)?
+    old.equippedRoyalIds.filter(x=>x!==id):
+    [...old.equippedRoyalIds,id].slice(0,3);
+  return {...old,equippedRoyalIds:equipped};
 }
 export function recordJourneyGold(progress,run){
   if(!isValidJourney(run))return progress;
@@ -462,7 +478,13 @@ export function recordJourneyProgress(progress,run){
   if(!isValidJourney(run)||!['won','lost','abandoned'].includes(run.phase))return progress;
   const old=restoreJourneyProgress(progress);
   if(old.recordedRunIds.includes(run.runId))return old;
+  const freeUnlock=run.phase==='won'?({1:'J',4:'Q',8:'K'})[run.levelNumber]:null;
+  const newlyOwned=freeUnlock&&!old.ownedRoyalIds.includes(freeUnlock)?
+    [...old.ownedRoyalIds,freeUnlock]:old.ownedRoyalIds;
   return {...old,totalRuns:old.totalRuns+1,wins:old.wins+(run.phase==='won'?1:0),
+    ownedRoyalIds:newlyOwned,
+    equippedRoyalIds:freeUnlock&&!old.equippedRoyalIds.includes(freeUnlock)?
+      [...old.equippedRoyalIds,freeUnlock].slice(0,3):old.equippedRoyalIds,
     bestRunScore:Math.max(old.bestRunScore,journeyRunScore(run)),
     recordedRunIds:[...old.recordedRunIds,run.runId],
     discoveredRelicIds:[...new Set([...old.discoveredRelicIds,
