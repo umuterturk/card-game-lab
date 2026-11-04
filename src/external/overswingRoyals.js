@@ -16,6 +16,18 @@ export const royalRank=id=>isRoyal(id)?ROYAL_NAMES[Math.floor((id-40)/4)]:null;
 export const royalSuit=id=>isRoyal(id)?(id-40)%4:null;
 export const royalValue=id=>isRoyal(id)?11+Math.floor((id-40)/4):null;
 export const royalId=(rank,suit)=>40+ROYAL_NAMES.indexOf(rank)*4+suit;
+/** Return an automatic Mirror STEER, or null if both directions are safe.
+ *  If both directions SNAP, choose the smaller overshoot; a tie at zero
+ *  follows the card's suit colour. Never ask the player to choose a loss. */
+export function mirrorAutoDirection(position,limit,id){
+  if(royalRank(id)!=='Q')throw new TypeError('Mirror expects a Queen');
+  const safe=[-1,1].filter(dir=>Math.abs(position+dir*12)<=limit);
+  if(safe.length===1)return safe[0];
+  if(safe.length===2)return null;
+  const left=Math.abs(position-12),right=Math.abs(position+12);
+  return left===right?(royalSuit(id)<2?1:-1):left<right?-1:1;
+}
+
 export const unlockedRoyals=gold=>ROYAL_NAMES.slice(0,ROYAL_THRESHOLDS.filter(n=>gold>=n).length);
 export const royalTier=gold=>unlockedRoyals(gold).length;
 export const targetScale=()=>1;
