@@ -46,12 +46,14 @@ function Card({id,onClick,caption,chosen=false,mini=false,potCard=false,handCard
 }
 function Outcome({e}){
   if(!e)return <>Tap any hand card to <b>STEER</b>, or <b>FLIP</b> a random card.</>;
+  if(e.type==='summon')return <><b>SUMMONED {name(e.card)}</b> · {e.remaining} Royals left.</>;
+  if(e.type==='carry')return <><b>CARRIED {name(e.card)}</b> into the next hand.</>;
   if(e.type==='wild')return <><b>WILD SHUFFLE!</b> Refreshed {e.replaced} ordinary hand cards.</>;
   if(e.type==='bank')return <><b><GoldAmount value={e.points} prefix="+"/> BANKED</b>{e.taxPaid>0?<> · TAX <GoldAmount value={e.taxPaid} prefix="−"/></>:''}{e.crownBonus?' · CROWN +'+e.crownBonus+'%':''} · Hand limit {e.oldCap} → {e.newCap}. {e.dropped!=null?name(e.dropped)+' discarded. ':''}{e.refilled?.length?'Hand refilled.':''}</>;
   if(e.snap&&e.shielded)return <><b>EMBER SHIELD!</b> SNAP contained: <b>{name(e.card)}</b>. Pot saved, multipliers reset to ×1.</>;
   if(e.snap)return <><b>SNAP!</b> <b>{name(e.card)}</b>: {val(e.from)} → {val(e.to)}. Lost {e.lostPayout.toLocaleString('en-US')} potential points.</>;
   if(e.zeroBreak)return <><b>ZERO BREAK!</b> {name(e.card)}: {val(e.from)} → 0. <b>All multipliers reset to ×1.</b> Pot kept{e.refilled?.length?', hand refilled':''}.</>;
-  return <><b>{e.polarityReversed?'POLARITY ':e.type==='flip'?'FLIP ':'STEER '}{name(e.card)}</b> · {val(e.from)} → {val(e.to)} · <b>{target[e.destination]}</b>{e.scouted!=null?<b> · NEXT FLIP: {name(e.scouted)}</b>:null}{e.swung?<b> · SWING +{e.gain}</b>:null}{e.swingPenalty?<b> · SWING −1</b>:null} · total ×{e.multiplier.toLocaleString('en-US')}{e.refilled?.length?' · '+e.refilled.length+' cards refilled':''}{e.shieldFaded?' · SHIELD SPENT':''}</>;
+  return <><b>{e.polarityReversed?'POLARITY ':e.type==='flip'?'FLIP ':'STEER '}{name(e.card)}</b> · {val(e.from)} → {val(e.to)} · <b>{target[e.destination]}</b>{e.scouted!=null?<b> · NEXT FLIP: {name(e.scouted)}</b>:null}{e.swung?<b> · SWING +{e.gain}</b>:null}{e.swingPenalty?<b> · SWING −1</b>:null}{e.resonanceGained>0?<b> · SUIT +{e.resonanceGained}</b>:null} · total ×{e.multiplier.toLocaleString('en-US')}{e.refilled?.length?' · '+e.refilled.length+' cards refilled':''}{e.shieldFaded?' · SHIELD SPENT':''}</>;
 }
 
 function FlameMeter({position,limit=10,action=null}){
@@ -348,7 +350,7 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,p
   const tutorial=s.mode==='tutorial';
   const isJourney=!!journey;
   const tutorialStep=tutorial?OVERSWING_TUTORIAL_STEPS[s.tutorialStep]:null;
-  const d=s.deal,legal=isJourney?journeyActions(journey):overswingActions(s),pot=d.pot.reduce((a,c)=>a+rank(c),0);
+  const d=s.deal,legal=isJourney?journeyActions(journey):overswingActions(s),pot=d.pot.reduce((a,c)=>a+rank(c),0)+(d.resonancePoints||0);
   const rules=isJourney?journeyRules(journey):{};
   const limit=rules.snapLimit||10;
   const payout=overswingPayout(s,rules),multiplier=overswingMultiplier(d);
@@ -359,6 +361,10 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,p
   useEffect(()=>sound?.setTension(tension,{goalMet}),[tension,goalMet]);
   const total=s.dealTotals.reduce((a,b)=>a+b,0)+(s.status==='over'?0:d.T);
   const canFlip=legal.some(a=>a.type==='flip'),canBank=legal.some(a=>a.type==='bank');
+  const canSummon=legal.some(a=>a.type==='summon');
+  const canCarry=legal.some(a=>a.type==='carry');
+  const royalRemaining=(d.royalQueue||[]).length;
+  const showSummon=isJourney&&journey.equippedRoyals?.length>0;
   const wildCounts=isJourney?journeyWildBalance(journey):null;
   const nextCap=Math.max(2,d.handCap-(isJourney?journeyRules(journey).bankCapacityLoss:1)),mustDiscard=d.hand.filter(id=>royalRank(id)!=='K').length>nextCap;
   // Only enabled gameplay actions pulse after five seconds without input.
@@ -431,7 +437,7 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,p
   const scoutedFlip=canFlip?d.scoutNext:null;
   const deckRemaining=Math.max(0,d.deck.length-d.pos);
   const actionButtons=<div className="os8-controls">
-    <div className="os8-actions os8-actions-primary">
+    <div className={'os8-actions os8-actions-primary'+(showSummon?' os8-actions-summon':'')}>
       <button type="button" ref={flipButtonRef} disabled={!canFlip||discardPick}
         className={'os8-flip '+(tutorial&&canFlip?'os8-guide-action':'')}
         onClick={()=>dispatch({type:'flip'})}>
@@ -444,6 +450,15 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,p
         <b>FLIP</b>
         <small>{scoutedFlip!=null?'SCOUTED · NEXT CARD':rules.maxFlips?'USED '+d.flips+'/'+rules.maxFlips:'RANDOM CARD'}</small>
       </button>
+      {showSummon&&<button type="button" className="os8-summon"
+        disabled={!canSummon||discardPick}
+        title={!royalRemaining?'No Royals left':d.hand.length>=d.handCap?'Hand full':
+          !canSummon?'Summon chain limit reached':'Summon the next Royal'}
+        onClick={()=>dispatch({type:'summon'})}>
+        <span className="os8-action-icon" aria-hidden="true">♛</span>
+        <b>SUMMON</b>
+        <small>{royalRemaining?'ROYALS '+royalRemaining+' · '+(d.consecutiveSummons||0)+'/'+journeyRules(journey).maxConsecutiveSummons:'NONE LEFT'}</small>
+      </button>}
       <button type="button" ref={bankButtonRef} disabled={!canBank||discardPick}
         className={'os8-bank '+(tutorial&&canBank?'os8-guide-action':'')} onClick={bank}>
         <span className="os8-action-icon" aria-hidden="true">▰</span><b>BANK</b>
@@ -460,7 +475,7 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,p
         onClick={()=>id==='polarity'?setPolarityPick(true):triggerWild(id)}>
         <AbilityIcon kind={id}/>
         <span>{id==='shuffle'?'SHUFFLE':id==='polarity'?'POLARITY':'SHIELD'}</span>
-        <b>{journey.wildUsedGate?'USED':'×'+wildCounts[id]}</b>
+        <b>{journey.wildUsedIds.includes(id)?'USED':'×'+wildCounts[id]}</b>
       </button>)}
       {isJourney&&<button type="button" ref={discardTargetRef} className="os8-ability os8-history-button"
         onClick={()=>setHistoryOpen(true)} aria-label="Reveal remaining deck for Gold"
@@ -609,7 +624,7 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,p
           }
           const o=applySwing(d.S,d.W,signed(id),limit);
           const royal=royalRank(id);
-          const caption=discardPick?'REMOVE':royal==='K'?'CROWN +'+(d.crownBonus||0)+'%':royal==='J'?'SCOUT':royal==='Q'?'':o.snap?'SNAP':d.S!==0&&o.S===0?'ZERO BREAK':d.plays===0||o.swung?'POT +'+rank(id):d.W>0?'SWING −1':'DISCARD';
+          const caption=discardPick?'REMOVE':o.snap?'SNAP':royal==='K'?'CROWN +'+(d.crownBonus||0)+'%':royal==='J'?'SCOUT':royal==='Q'?'MIRROR':d.S!==0&&o.S===0?'ZERO BREAK':d.plays===0||o.swung?'POT +'+rank(id):d.W>0?'SWING −1':'DISCARD';
           const allowed=discardPick?legal.some(a=>a.type==='bank'&&a.dropIndex===index):legal.some(a=>a.type==='steer'&&a.index===index);
           const highlighted=tutorial&&allowed;
           return <span className="os8-hand-slot os8-hand-slot-occupied" key={id}>
@@ -618,6 +633,11 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,p
           </span>;
         })}
       </div>
+      {canCarry&&<div className="os8-carry-options" aria-label="Select one Royal to carry">
+        <strong>KEEP ONE ROYAL FOR NEXT HAND</strong>
+        <div>{legal.filter(a=>a.type==='carry').map(a=>
+          <button type="button" key={a.index} onClick={()=>dispatch(a)}>KEEP {name(d.hand[a.index])}</button>)}</div>
+      </div>}
     </section>
     {!guidedActionFirst&&actionButtons}
     <footer className="os8-footer">
@@ -649,9 +669,9 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,p
           <button type="button" onClick={()=>setPolarityPick(false)}
             aria-label="Cancel Polarity Switch">✕</button>
         </div>
-        <p>Pick an ordinary card to reverse its sign and STEER immediately.</p>
+        <p>Pick an ordinary card, Jack or King to reverse its sign and STEER immediately.</p>
         <div className="os8-wild-polarity-cards">
-          {d.hand.map((id,index)=>id<40&&
+          {d.hand.map((id,index)=>(id<40||['J','K'].includes(royalRank(id)))&&
             <button key={id} type="button" onClick={()=>triggerWild('polarity',index)}
               aria-label={'Reverse and STEER '+name(id)}>
               <strong>{name(id)}</strong>
