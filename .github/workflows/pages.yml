@@ -26,11 +26,21 @@ jobs:
           node-version: 22
           # npm cache disabled (no lockfile)
       - run: npm install --no-audit --no-fund
-      - run: npm test
+      # Publish the prototype once it compiles and the release package is valid.
+      # Browser tests and portal packaging below should not strand the public
+      # demo on an old deployment if an unrelated post-build check fails.
       - id: web_build
         run: npm run build
       - run: npm run verify:release
-      # Browser-level smoke: exercise PREPARE and refresh in the scaled mobile UI.
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
+      # Keep the original regression coverage, but run it after deployment.
+      - run: npm test
       - run: node scripts/verify-overswing-briefing.mjs
       - id: casual_smoke
         run: node scripts/verify-casual-demo.mjs
@@ -40,13 +50,6 @@ jobs:
         with:
           name: overswing-html5-portal
           path: overswing-crazygames.zip
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-      - name: Deploy
-        id: deployment
-        uses: actions/deploy-pages@v4
       # Commit statuses are readable through the GitHub connection.
       - name: Report page publication status
         if: always()
