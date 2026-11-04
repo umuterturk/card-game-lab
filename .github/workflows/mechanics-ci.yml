@@ -21,10 +21,14 @@ jobs:
         run: npm run verify:release
       - name: Run game tests
         run: npm test
-      - name: Extended deterministic simulation
+      - name: Extended Royal simulation (48,000 encounters)
         run: node experiments/run-overswing-royals.mjs 1000 900000
+      - name: Campaign-wide simulation (54,000 encounters)
+        run: node experiments/run-overswing-campaign-v14.mjs 250 950000
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: overswing-mechanics-simulation
-          path: artifacts/royal-simulation.*
+          path: |
+            artifacts/royal-simulation.*
+            artifacts/campaign-v14.*
