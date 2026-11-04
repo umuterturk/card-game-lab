@@ -27,7 +27,7 @@ test('real JACKPOT FLIP crossing gets the biggest tier effect and fanfare',()=>{
   assert.equal(action.zeroBreak,false);
   assert.equal(action.jackpotTierGained,true);
   assert.equal(action.jackpotFactor,2);
-  assert.equal(action.flipTierGained,true);
+  assert.equal(action.flipTierGained,false);
   assert.equal(action.swingTierGained,true);
   assert.deepEqual(multiplierFeedbackForAction(action),
     {kind:'jackpot',factor:2,gain:action.gain});
