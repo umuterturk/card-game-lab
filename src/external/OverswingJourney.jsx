@@ -23,7 +23,7 @@ import {
   EMPTY_JOURNEY_PROGRESS,validJourneyProgress,journeyRunScore,recordJourneyGold,
   journeyGoldBalance,journeyRelicPrice,journeyEarnedGold,journeyRetryPrice,
   journeyCanRetry,RETRY_PRICE_RATES,restoreJourneyProgress,restoreJourneyRun,
-  journeyWildBalance,buyRoyal,buyMarketWild,MARKET_WILD_PRICES,resetJourneyAtLevel
+  journeyWildBalance,buyRoyal,buyMarketWild,toggleRoyalEquipped,MARKET_WILD_PRICES,resetJourneyAtLevel
 } from './overswingJourney.js';
 import {ROYAL_RULES,ROYAL_NAMES,ROYAL_PRICES} from './overswingRoyals.js';
 import {WILD_IDS,WILD_RULES} from './overswingWilds.js';
@@ -68,7 +68,7 @@ function RoyalReveal({id,onContinue}){
         </div>
       <h2 id="oj-royal-name">{royal.title}</h2>
       <p>{royal.description}</p>
-      <p className="oj-royal-note">Automatically active in future journeys. Appears at a random later hand refill, never on FLIP or in the opening hand.</p>
+      <p className="oj-royal-note">Equip it in the Market. During a gate, SUMMON it into an empty hand slot. The Royal order is fixed throughout the three gates.</p>
       <button type="button" className="oj-primary" onClick={onContinue} autoFocus>CONTINUE</button>
     </section>
   </div>,document.body);
@@ -131,7 +131,7 @@ function RetryOffer({run,onRetry,onDecline,pendingPurchase=null}){
     <p className="oj-eyebrow">LEVEL {run.levelNumber} · GATE {run.encounterIndex+1} OF 3</p>
     <h2>THE FLAME FADES</h2>
     <p>{LAST_FLAME.encounters[run.encounterIndex].title}: <GoldAmount value={last.finalScore}/> / <GoldAmount value={last.target}/></p>
-    <p>Gold BANKed in this failed gate is lost. Earlier cleared gates remain credited. A relic purchased for this gate also remains active for its retries.</p>
+    <p>Gold BANKed in this failed gate is lost. Earlier cleared gates remain credited. Your Relic, Royal order and spent Tactics are restored for a paid retry.</p>
     <div className="oj-shop-wallet">
       <span>AVAILABLE GOLD <strong data-oj-treasury><GoldAmount value={journeyGoldBalance(run)}/></strong></span>
       <span>RETRIES LEFT <strong>{remaining} / {RETRY_PRICE_RATES.length}</strong></span>
@@ -298,6 +298,7 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
     launchPurchase(target,price,'ROYAL ACQUIRED','royal:'+id,
       ()=>setProgress(current=>buyRoyal(current,id)));
   };
+  const toggleRoyal=id=>{if(!activeJourney)setProgress(current=>toggleRoyalEquipped(current,id));};
   const purchaseWild=(id,target)=>{
     const price=MARKET_WILD_PRICES[id];
     if(!price||progress.lifetimeGold<price||activeJourney)return;
@@ -316,7 +317,7 @@ export default function OverswingJourney({quickState,quickAct,quickRestart,fullV
       fullView={fullView} sound={sound}/>
   </div>;
   if(view==='market')return <OverswingMarket progress={progress}
-    disabled={activeJourney} pendingPurchase={pendingPurchase} onRoyal={purchaseRoyal} onWild={purchaseWild}
+    disabled={activeJourney} pendingPurchase={pendingPurchase} onRoyal={purchaseRoyal} onWild={purchaseWild} onToggle={toggleRoyal}
     onBack={()=>setView('map')}/>;
   if(!run||view==='menu'||view==='map')return <main className="oj-shell oj-home oj-map-home" onPointerDown={sound.unlock}>
     <header className="oj-title">
