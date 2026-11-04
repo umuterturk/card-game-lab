@@ -514,15 +514,15 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,p
   if(fullView&&helpOpen)return <section className="os8 os8-full os8-help-screen" aria-label="How to play Overswing">
     <div className="os8-help-heading"><h2>HOW TO PLAY</h2><button type="button" onClick={()=>setHelpOpen(false)}>✕ CLOSE</button></div>
     <h3>FLIP · STEER · BANK</h3>
-    <p><b>FLIP</b> draws a random card into your Pot. <b>STEER</b> plays a card from your hand. <b>BANK</b> secures Pot points multiplied by SWING × FLIP × JACKPOT.</p>
+    <p><b>FLIP</b> draws into your Pot. <b>STEER</b> plays from hand. <b>SUMMON</b> calls a Royal into a free hand slot. <b>BANK</b> secures your points.</p>
     <h3>THE PENDULUM</h3>
     <p>Red cards move right (+), black cards left (−). Keep the meter between −10 and +10. Crossing zero grows SWING. Landing exactly on zero resets all multipliers.</p>
     <h3>MULTIPLIERS</h3>
-    <p>Consecutive safe FLIPs build FLIP ×2, ×3, ×4… Crossing zero with a FLIP adds a JACKPOT tier. A noncrossing FLIP or STEER costs one SWING tier. SNAP loses your Pot.</p>
+    <p>Noncrossing FLIPs grow FLIP. Crossing FLIPs grow JACKPOT and SWING, but not FLIP. Matching-suit STEER deposits earn +2 Pot (up to +6 per Swing). SNAP loses your Pot.</p>
     <h3>THE JOURNEY</h3>
     <p>Follow the level map. Each level changes visible rules: hand size, SNAP limit, FLIP cap or BANK tax. Buy relics between gates or skip. Boss SNAPs increase the target.</p>
     <h3>WILD CARDS &amp; REVEALED</h3>
-    <p>SHUFFLE, POLARITY and SHIELD are consumable Wild Cards. REVEALED lets
+    <p>SHUFFLE, POLARITY and SHIELD are Tactics: use up to two different ones per gate. REVEALED lets
       you buy all remaining deck card identities, sorted by rank and suit—not draw order.
       The fewer cards remain, the higher the Gold price.</p>
     <button type="button" className="os8-help-return" onClick={()=>setHelpOpen(false)}>BACK TO GAME</button>
@@ -643,14 +643,14 @@ export default function OverswingPlay({s,act,restart,onWild=null,onReveal=null,p
     <footer className="os8-footer">
       <span>{s.mode==='match'?'Deck '+(s.dealIndex+1)+'/3 · ':''}{d.pos}/{d.deck.length} drawn</span>
       <details><summary>Rules & multipliers</summary>
-        <p>Start with up to 8 cards. Hearts and diamonds move right (+); spades and clubs move left (−). Exceed the level's SNAP limit and lose the Pot.</p>
-        <p>FLIP draws a random card into the Pot. Consecutive safe FLIPs grow FLIP: ×2, ×3, ×4… Crossing zero counts.</p>
+        <p>Start with up to 8 cards. Hearts and diamonds move right (+); spades and clubs move left (−). Same-suit STEER cards in the Pot earn a Resonance bonus. Exceed the level's SNAP limit and lose the Pot.</p>
+        <p>FLIP draws a random card into the Pot. Consecutive noncrossing FLIPs grow FLIP: ×2, ×3, ×4… Crossing zero grows JACKPOT instead.</p>
         <p>Crossing zero with FLIP raises SWING and adds +1 JACKPOT tier. A noncrossing FLIP lowers SWING by 1 and keeps JACKPOT unchanged.</p>
         <p>ZERO BREAK: Land exactly on zero to reset all multipliers to ×1, but keep the Pot. SNAP: Go outside ±{limit} and lose the Pot.</p>
         <p>STEER ends the current FLIP streak but preserves FLIP and JACKPOT tiers. Every noncrossing FLIP or STEER costs 1 SWING tier (minimum ×1).</p>
         <p>The first STEER of a Pot, crossing STEER, and ZERO BREAK STEER enter the Pot; other STEER cards are discarded.</p>
         <p>BANK becomes available after at least 2 card actions. Each BANK reduces hand capacity from 8 toward 2 (unless a relic prevents it). Choose which card to discard if necessary.</p>
-        <p>An empty hand refills automatically from the remaining deck, up to its capacity.</p>
+        <p>When ordinary cards run out of hand, carry one Royal across the refill. SUMMON calls a Royal into an empty hand slot and has a consecutive limit.</p>
       </details>
     </footer>
     {flight&&<FlipFlight flight={flight} onFinish={serial=>
