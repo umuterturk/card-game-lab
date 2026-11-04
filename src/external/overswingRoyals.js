@@ -49,14 +49,22 @@ export function pickRoyalCards(tier,seed,index){
 
 // Every purchased Royal is owned forever and automatically joins future journeys. They enter at randomized future hand
 // refills, never in the initial hand or the ordinary FLIP deck.
-export function royalCardsForLoadout(equipped,seed,index){
+// Choose suits and ordering once per game. Both remain identical at each gate.
+// The rank loadout is unchanged; this does not introduce any new Royal types.
+export function royalCardsForLoadout(equipped,seed,index=0){
   if(!Array.isArray(equipped)||equipped.length>3||
      new Set(equipped).size!==equipped.length||
      equipped.some(id=>!ROYAL_NAMES.includes(id)))
     throw new TypeError('Invalid Royal loadout');
-  let state=(seed+index*2654435761)>>>0;
-  return equipped.map(rank=>{
+  let state=seed>>>0;
+  const random=()=>{
     state=(Math.imul(state,1664525)+1013904223)>>>0;
-    return royalId(rank,state%4);
-  });
+    return state/4294967296;
+  };
+  const cards=equipped.map(rank=>royalId(rank,Math.floor(random()*4)));
+  for(let i=cards.length-1;i>0;i--){
+    const j=Math.floor(random()*(i+1));
+    [cards[i],cards[j]]=[cards[j],cards[i]];
+  }
+  return cards;
 }
