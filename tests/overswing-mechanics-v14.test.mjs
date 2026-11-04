@@ -26,7 +26,6 @@ test('Royal summon order and suit are independent of gate index',()=>{
 
 test('Royal SUMMON unlocks only after the first full ordinary hand refill',()=>{
   let s=newOverswing({seed:1,royals:[royalId('J',0),royalId('K',1)],initialHandSize:3});
-  const initial=s.deal.deck[s.deal.pos];
   assert.equal(action(s,'summon'),undefined);
   assert.equal(s.deal.ordinaryRefills,0);
   // Just freeing a slot in the opening hand must NOT unlock SUMMON.
@@ -41,11 +40,13 @@ test('Royal SUMMON unlocks only after the first full ordinary hand refill',()=>{
   assert.equal(s.deal.hand.length,3);
   s=stepOverswing(s,{type:'steer',index:0});
   assert.ok(action(s,'summon'));
+  const nextOrdinary=s.deal.deck[s.deal.pos];
+  const previousPlays=s.deal.plays,previousFlips=s.deal.flips;
   s=stepOverswing(s,{type:'summon'});
   assert.equal(s.lastAction.card,royalId('J',0));
-  assert.equal(s.deal.deck[s.deal.pos],initial);
-  assert.equal(s.deal.flips,0);
-  assert.equal(s.deal.plays,1);
+  assert.equal(s.deal.deck[s.deal.pos],nextOrdinary);
+  assert.equal(s.deal.flips,previousFlips);
+  assert.equal(s.deal.plays,previousPlays);
   assert.equal(s.deal.consecutiveSummons,1);
   assert.equal(action(s,'summon'),undefined);
   const held=s.deal.hand.filter(x=>royalRank(x));
