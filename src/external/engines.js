@@ -70,7 +70,7 @@ export function overswingMultiplier(d){
 // Journey applies these short-lived modifiers at resolution time. Ordinary modes
 // retain the exact v13 defaults; never mutate rules or the hidden deck.
 const OVERSWING_BASE_RULES=Object.freeze({
-  steerNoncrossPenalty:1,flipCrossJackpotGain:1,bankCapacityLoss:1,
+  steerNoncrossPenalty:1,flipCrossJackpotGain:1,bankCapacityLoss:1,steerAlwaysToPot:false,
   steerCrossSwingBonus:0,flipNoncrossPenalty:1,snapLimit:10,
   maxFlips:null,bankTax:0,polarityReverse:false,shieldNextFlip:false,
   maxConsecutiveSummons:1
@@ -78,7 +78,7 @@ const OVERSWING_BASE_RULES=Object.freeze({
 function overswingEffectiveRules(input={}){
   const rules={...OVERSWING_BASE_RULES,...input};
   for(const [name,allowed] of Object.entries({
-    steerNoncrossPenalty:[0,1],flipCrossJackpotGain:[1,2],
+    steerNoncrossPenalty:[0,1],flipCrossJackpotGain:[1,2],steerAlwaysToPot:[false,true],
     bankCapacityLoss:[0,1],steerCrossSwingBonus:[0,1],
     flipNoncrossPenalty:[0,1],snapLimit:[8,9,10],
     bankTax:[0,5,10,15],polarityReverse:[false,true],shieldNextFlip:[false,true]
@@ -256,7 +256,7 @@ export function stepOverswing(s,a,rules={}){
         // Steering without a crossing spends one SWING tier; ZERO BREAK resets all tiers below.
         if(!outcome.swung&&!zeroBreak)d.W=Math.max(0,d.W-effective.steerNoncrossPenalty);
         // Exact zero still deposits a STEER card in the Pot, without any bonus.
-        if(opening||outcome.swung||zeroBreak){
+        if(opening||outcome.swung||zeroBreak||effective.steerAlwaysToPot){
           if(d.pot.length&&suit(d.pot.at(-1))===suit(c)&&d.resonancePoints<6)
             d.resonancePoints+=2;
           d.pot.push(c);destination='pot';
