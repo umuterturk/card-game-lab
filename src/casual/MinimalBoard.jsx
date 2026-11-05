@@ -51,21 +51,22 @@ export function HorizontalMeter({position,limit=8,multipliers=[]}){
 // Small source bottle: raw at-risk value and prospective engine payout are different.
 // The bottle itself is the only Bank control; no duplicated bottom CTA.
 export function PendingPot({value,resonance=0,target=24,bankable=false,bankPreview=0,onBank}){
- const fill=fluidFillPercent(value,target,{max:76});
+ const fill=fluidFillPercent(value,target,{max:76,smooth:true});
  return <button type="button"
    className={'sgv-pending-pot sgv-pot-bottle'+(bankable?' sgv-pot-bankable':'')}
    disabled={!bankable}
    onClick={event=>onBank?.(event.currentTarget)}
    aria-label={bankable
-     ?'Bank '+bankPreview+' drops from Pot holding '+value+' at risk'
-     :'Pot holds '+value+' drops at risk. Banking not yet available'}>
+     ?'Bank '+bankPreview+' drops from Pot holding '+Math.ceil(value)+' at risk'
+     :'Pot holds '+Math.ceil(value)+' drops at risk. Banking not yet available'}>
    <span className="sgv-pot-bottle-glass" aria-hidden="true">
      <span className="sgv-pot-liquid" style={{height:fill+'%',opacity:fill>0?1:0}}/>
      <span className="sgv-pot-glass-shine"/>
    </span>
-   <span className="sgv-pot-bottle-rim" aria-hidden="true"/>
+   <span className="sgv-pot-bottle-mouth" aria-hidden="true"/>
+   <span className="sgv-pot-pour-lip" aria-hidden="true"/>
    <span className="sgv-pot-label">POT</span>
-   <span className="sgv-pot-amount"><DropletIcon className="sgv-pot-drop"/>{value}</span>
+   <span className="sgv-pot-amount"><DropletIcon className="sgv-pot-drop"/>{Math.ceil(value)}</span>
    {resonance>0&&<span className="sgv-pot-resonance">+{resonance} BONUS</span>}
    {bankable&&<span className="sgv-pot-bank-preview" aria-hidden="true">BANK +{bankPreview}</span>}
  </button>;
