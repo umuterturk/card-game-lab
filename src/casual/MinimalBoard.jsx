@@ -1,11 +1,19 @@
 import React from 'react';
 import {meterPercent,meterMarks} from './meterScale.js';
+import {fluidFillPercent} from './presentation.js';
+
 export const signedValue=n=>n>0?'+'+n:String(n);
 
-// One decorative currency symbol for HUD, Pot, Bank, and reward effects.
-// A level-achievement star is never used to represent currency.
-export function CoinIcon({className=''}) {
- return <span className={'sgv-coin-symbol '+className} aria-hidden="true"/>;
+// The fluid is one resource with two states: at-risk in the Pot, secured in the tank.
+export function DropletIcon({className=''}) {
+ return <svg className={'sgv-drop-icon '+className} viewBox="0 0 28 34"
+   aria-hidden="true" focusable="false">
+   <path d="M14 2C11 8 3 17 3 23a11 11 0 0 0 22 0C25 17 17 8 14 2Z"
+     fill="currentColor" stroke="var(--drop-rim,#ffeb9d)" strokeWidth="2.6"
+     strokeLinejoin="round"/>
+   <path d="M9 22c.4-3 2-6 4.5-9" stroke="#fff8ca" strokeWidth="2.2"
+     strokeLinecap="round" fill="none" opacity=".85"/>
+ </svg>;
 }
 
 export function HorizontalMeter({position,limit=8,multipliers=[]}){
@@ -16,7 +24,6 @@ export function HorizontalMeter({position,limit=8,multipliers=[]}){
      aria-label={'Swing at '+signedValue(position)+'; Snap beyond minus '+limit+' or plus '+limit}>
      <div className="sgv-meter-track" role="img" data-edge-danger={Math.abs(position)>=limit-2}
        aria-label={'Swing position '+signedValue(position)}>
-       <span className="sgv-meter-centerline" aria-hidden="true"/>
        <div className="sgv-meter-scale" aria-hidden="true">
          <div className="sgv-meter-ticks">
            {meterMarks(limit).map(number=>
@@ -26,6 +33,7 @@ export function HorizontalMeter({position,limit=8,multipliers=[]}){
          <span className="sgv-meter-marker" style={{left:percentage+'%'}}>
            <span className="sgv-meter-number">{signedValue(position)}</span>
            <span className="sgv-meter-arrow"/>
+           <span className="sgv-meter-needle" aria-hidden="true"/>
          </span>
        </div>
      </div>
@@ -40,45 +48,40 @@ export function HorizontalMeter({position,limit=8,multipliers=[]}){
  </section>;
 }
 
-function GoldPile({value}){
- const pieces=Math.min(60,Math.max(0,Math.round(value)));
- return <div className="sgv-gold-pile" aria-hidden="true">
-   {Array.from({length:pieces},(_,i)=>{
-     const row=Math.floor(i/9),column=i%9;
-     const x=8+(column*10.05)+(row%2?4:0)+(((i*13)%7)-3)*.35;
-     const y=5+row*13+((i*11)%5);
-     const size=15+(i*7)%7;
-     return <span key={i} className="sgv-gold-piece"
-       style={{left:x+'%',bottom:y+'%',width:size+'px',height:size+'px',
-         '--tilt':(i*29%36-18)+'deg'}}/>;
-   })}
- </div>;
-}
-
-// The open Pot is still at risk. Nothing in this tray is counted as secured gold.
-export function PendingPot({value,resonance=0}){
- return <div className="sgv-pending-pot" role="status" aria-label={'At risk Pot: '+value+(resonance?' plus '+resonance+' resonance bonus':'')}>
+// A compact, glass-like Pot. The value is the raw unbanked card total, not the payout.
+export function PendingPot({value,resonance=0,target=24}){
+ const fill=fluidFillPercent(value,target,{max:76});
+ return <div className="sgv-pending-pot" role="status"
+   aria-label={'At-risk Pot: '+value+' drops'+(resonance?' plus '+resonance+' bonus':'')}>
+   <span className="sgv-pot-liquid" style={{height:fill+'%',opacity:fill>0?1:0}} aria-hidden="true"/>
    <span className="sgv-pot-label">POT</span>
-   <span className="sgv-pot-amount"><CoinIcon className="sgv-pot-coin"/>{value}</span>
-   {resonance>0?<span className="sgv-pot-resonance">+{resonance} BONUS</span>:
-     <span className="sgv-pot-coins" aria-hidden="true">✦ ✦</span>}
+   <span className="sgv-pot-amount"><DropletIcon className="sgv-pot-drop"/>{value}</span>
+   {resonance>0&&<span className="sgv-pot-resonance">+{resonance} BONUS</span>}
  </div>;
 }
 
 export function GoalProgress({banked,target}){
- return <div className="sgv-goal-progress" role="status" aria-label={'Secured '+banked+' of '+target+' gold'}>
+ return <div className="sgv-goal-progress" role="status" aria-label={'Secured '+banked+' of '+target+' drops'}>
    <span>SECURED</span><strong>{banked} / {target}</strong>
  </div>;
 }
 
-export function GlassChest({banked}){
- return <div className="sgv-chest-area" aria-label={banked+' gold collected'} data-gold={banked}>
+// Compact glass tank: a smooth fluid fill rather than one physical coin per point.
+export function GlassChest({banked,target}){
+ const fill=fluidFillPercent(banked,target,{max:78});
+ return <div className="sgv-chest-area" aria-label={banked+' of '+target+' drops secured'}
+   data-gold={banked}>
    <div className="sgv-chest-glow" aria-hidden="true"/>
    <div className="sgv-chest-art">
      <div className="sgv-chest-platform" aria-hidden="true"/>
      <div className="sgv-chest-body">
        <div className="sgv-chest-inner">
-         <GoldPile value={banked}/>
+         <div className="sgv-fluid-fill" style={{height:fill+'%',opacity:fill>0?1:0}} aria-hidden="true">
+           <span className="sgv-fluid-surface"/>
+           <span className="sgv-fluid-bubble sgv-fluid-bubble-a"/>
+           <span className="sgv-fluid-bubble sgv-fluid-bubble-b"/>
+           <span className="sgv-fluid-bubble sgv-fluid-bubble-c"/>
+         </div>
        </div>
        <span className="sgv-glass-highlight sgv-glass-highlight-left"/>
        <span className="sgv-glass-highlight sgv-glass-highlight-right"/>
@@ -87,6 +90,7 @@ export function GlassChest({banked}){
      </div>
      <div className="sgv-chest-rim" aria-hidden="true"/>
      <span className="sgv-chest-mouth" aria-hidden="true"/>
+     <GoalProgress banked={banked} target={target}/>
    </div>
  </div>;
 }
@@ -94,8 +98,8 @@ export function GlassChest({banked}){
 export function IntroTarget({target,onDone,sequence}){
  return <div className="sgv-intro-target" key={sequence} aria-live="polite"
    onAnimationEnd={event=>{if(event.target===event.currentTarget)onDone();}}>
-   <div className="sgv-intro-coin" aria-hidden="true"/>
-   <div className="sgv-intro-message"><span>COLLECT</span><strong>{target}</strong><span>GOLD!</span></div>
+   <div className="sgv-intro-coin"><DropletIcon/></div>
+   <div className="sgv-intro-message"><span>COLLECT</span><strong>{target}</strong><span>DROPS!</span></div>
  </div>;
 }
 

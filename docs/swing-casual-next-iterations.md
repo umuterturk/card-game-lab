@@ -105,3 +105,20 @@ This iteration addresses remaining visible flaws in the earlier iPhone reference
 - Lightweight optional sound cues with external-audio friendliness; do not add autoplay audio.
 - Five-player, no-instructions Level 1 comprehension research.
 - Only then art-system cohesion and prototype Levels 2–10 before a 200-level rollout.
+
+
+## Approved compact fluid-bank design — implemented in `feat/casual-fluid-bank-layout`
+
+**Approved visual:** 2026-11-05 portrait mockup with a roughly 20%-smaller central tank and a centered `SECURED X / TARGET` badge on its rim. This is an implementation milestone; visual fidelity on an actual iPhone still needs verification.
+
+- The original scoring engine remains unchanged. "Drops" are the new **visual metaphor** for the same numeric value.
+- A compact glass tank fills continuously as **secured total** increases. The fill is clamped for rendering at 78% of the inner glass so it does not visually overflow at or above the target; numeric totals always remain exact.
+- The small glass Pot contains the **at-risk raw card total**, with resonance bonus shown separately as before. A Pot may be full even if Bank is unavailable; only the engine decides eligibility.
+- A centered badge is physically nested inside the tank's top rim and displays `SECURED N / target`. It is no longer positioned beside the hand.
+- The red meter stem is **inside the translated marker**; the zero tick remains a reference label but the thick red danger/reset line no longer stays at zero as the marker moves.
+- Safe card actions still move toward the at-risk Pot; Bank launches small amber droplets into the tank mouth and advances the visible liquid and total on arrival. A Snap spills only pending droplets. Zero Break retains the Pot.
+- Opening instructions now say **DROPS** rather than GOLD, and money icons across HUD, Pot and Bank use a common amber droplet.
+- The small tank and Pot free room for future relic and ability slots without adding them yet.
+- No new sounds, mechanics, Royals, relics, levels, hand refills, rules or auto-play changes are introduced here.
+
+**Acceptance still needed:** Compare at least one new iPhone screenshot to the approved mockup; review start, one safe card, Bank, Snap, Zero Break, and win; test small-height viewports, muted/reduced-motion mode, and overlay position. Tests and builds provide code validation, not visual acceptance.

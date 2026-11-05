@@ -191,7 +191,7 @@ export function animateSnapLoss(root,lostPot){
   const count=Math.min(7,Math.max(3,Math.ceil(lostPot/2)));
   for(let i=0;i<count;i++){
     const coin=document.createElement('span');
-    coin.className='sgv-flying-gold sgv-lost-coin';
+    coin.className='sgv-fluid-drop sgv-lost-drop';
     coin.setAttribute('aria-hidden','true');
     Object.assign(coin.style,{left:origin.x+'px',top:origin.y+'px'});
     root.appendChild(coin);coins.push(coin);
@@ -217,57 +217,62 @@ export function animateFactorReset(root){
   return ()=>{tw.kill();gsap.set(targets,{clearProps:'y,filter'});};
 }
 
+// Presentation-only Bank transfer: individual drops reach the tank mouth, then
+// the engine's secured total drives the liquid rise and the final goal badge.
 export function bankGoldIntoGlass({root,source,fromScore,toScore,onTake,onCount,onComplete}){
   if(!root||!source||reducedMotion()||toScore<=fromScore){
     onTake();onCount(toScore);onComplete();return ()=>{};
   }
   const chest=root.querySelector('.sgv-chest-body');
   if(!chest){onTake();onCount(toScore);onComplete();return ()=>{};}
-  const origin=point(source,root),dest=point(chest,root);
-  dest.y+=chest.getBoundingClientRect().height*.17;
+  const mouth=root.querySelector('.sgv-chest-mouth')||chest;
+  const origin=point(source,root),dest=point(mouth,root);
   let alive=true;
   const nodes=[],tweens=[];
   const tl=gsap.timeline({onComplete:()=>{
     if(!alive)return;
     alive=false;onCount(toScore);removeNodes(nodes);onComplete();
   }});
-  const quantity=Math.min(12,Math.max(6,Math.ceil((toScore-fromScore)/4)));
+  const quantity=Math.min(10,Math.max(5,Math.ceil((toScore-fromScore)/5)));
   for(let i=0;i<quantity;i++){
-    const coin=document.createElement('span');
-    coin.className='sgv-flying-gold';coin.setAttribute('aria-hidden','true');
-    Object.assign(coin.style,{left:origin.x+'px',top:origin.y+'px'});
-    root.appendChild(coin);nodes.push(coin);
-    const x=dest.x-origin.x+((i*17)%65-32);
-    const y=dest.y-origin.y+((i*13)%31-15);
-    const delay=i*.035;
-    tl.to(coin,{x:x*.48+((i%3)-1)*35,y:Math.min(y,-70)-24-(i%4)*12,
-      scale:1.25,rotation:i*25,duration:.27,ease:'sine.out'},delay+.12);
-    tl.to(coin,{x,y,scale:.42,rotation:i*25+140,opacity:0,
-      duration:.39,ease:'power2.in'},delay+.39);
+    const drop=document.createElement('span');
+    drop.className='sgv-fluid-drop';
+    drop.setAttribute('aria-hidden','true');
+    Object.assign(drop.style,{left:origin.x+'px',top:origin.y+'px'});
+    root.appendChild(drop);nodes.push(drop);
+    const delay=i*.045;
+    const x=dest.x-origin.x+(i%3-1)*5;
+    const y=dest.y-origin.y;
+    tl.fromTo(drop,{scale:.75,opacity:0},
+      {scale:1.05,opacity:1,duration:.10},delay+.07);
+    tl.to(drop,{x:x*.48+(i%3-1)*22,
+      y:Math.min(y,-45)-13-(i%4)*7,
+      scale:1.12,duration:.23,ease:'power2.out'},delay+.13);
+    tl.to(drop,{x,y,scale:.45,opacity:0,duration:.34,ease:'power2.in'},delay+.36);
   }
-  tl.call(()=>{if(alive)onTake();},[],.15);
+  tl.call(()=>{if(alive)onTake();},[],.17);
+  // The UI never computes a payout; it only counts to the engine's already settled T.
   const displayed={value:fromScore};
-  // The counter starts only as coins reach the glass, not while they are airborne.
-  tl.to(displayed,{value:toScore,duration:.55,ease:'power2.out',
-    onUpdate:()=>{if(alive)onCount(Math.round(displayed.value));}},.77);
+  tl.to(displayed,{value:toScore,duration:.62,ease:'power2.out',
+    onUpdate:()=>{if(alive)onCount(Math.round(displayed.value));}},.65);
   const reward=document.createElement('span');
   reward.className='sgv-bank-score-fly';
   reward.textContent='+'+(toScore-fromScore);
   reward.setAttribute('aria-hidden','true');
-  Object.assign(reward.style,{left:dest.x+'px',top:(dest.y-50)+'px'});
+  Object.assign(reward.style,{left:dest.x+'px',top:(dest.y-32)+'px'});
   root.appendChild(reward);nodes.push(reward);
-  tl.fromTo(reward,{opacity:0,scale:.7,y:13},
-    {opacity:1,scale:1.13,y:-9,duration:.23,ease:'back.out(2)'},.80);
-  tl.to(reward,{opacity:0,y:-30,duration:.28,ease:'power2.in'},1.08);
+  tl.fromTo(reward,{opacity:0,scale:.7,y:12},
+    {opacity:1,scale:1.1,y:-10,duration:.24,ease:'back.out(2)'},.77);
+  tl.to(reward,{opacity:0,y:-29,duration:.28,ease:'power2.in'},1.08);
   const glow=root.querySelector('.sgv-chest-glow');
-  if(glow)tweens.push(gsap.fromTo(glow,{opacity:.3,scale:.94},
-    {opacity:1,scale:1.16,duration:.29,repeat:1,yoyo:true,paused:true}));
+  if(glow)tweens.push(gsap.fromTo(glow,{opacity:.3,scale:.95},
+    {opacity:.9,scale:1.1,duration:.26,repeat:1,yoyo:true,paused:true}));
   tl.call(()=>{
     if(!alive)return;
     if(glow)tweens[0]?.play();
-    tweens.push(gsap.fromTo(chest,{scale:.95},
-      {scale:1,duration:.36,ease:'elastic.out(1,.48)'}));
-  },[],.87);
+    tweens.push(gsap.fromTo(chest,{scale:.98},
+      {scale:1,duration:.33,ease:'back.out(1.8)'}));
+  },[],.76);
   tl.call(()=>{},[],1.42);
   return ()=>{
     alive=false;tl.kill();for(const t of tweens)t.kill?.();removeNodes(nodes);
