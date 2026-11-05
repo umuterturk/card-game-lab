@@ -167,11 +167,11 @@ export default function SimplifiedGame(){
       },
       onFactors:factors=>{
         setView(v=>({...v,factors}));
-        if(change.zeroBreak){
+        if(change.zeroBreak&&level.id>=8){
           setFeedback('zero_break');
           breakMotionRef.current?.();breakMotionRef.current=animatePotBreak(root,'zero');
         }
-        if(change.zeroBreak||change.snap||
+        if((change.zeroBreak&&level.id>=8)||change.snap||
           change.factorsAfter.some((f,i)=>f.value<change.factorsBefore[i].value)){
           resetMotionRef.current=animateFactorReset(root);
         }
