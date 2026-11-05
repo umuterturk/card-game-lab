@@ -64,7 +64,7 @@ export const ONBOARDING_LEVELS=Object.freeze([
     script:[steer(),steer(),bank()],
     lesson:'Beyond the edge loses the Pot.'
   }),
-  make(10,'Your First Puzzle',24,[2,23,5,21,11,20,4,24,0],3,{
+  make(10,'Your First Puzzle',80,[2,23,5,21,11,20,4,24,0],3,{
     lesson:'Choose when to Bank.'
   })
 ]);
