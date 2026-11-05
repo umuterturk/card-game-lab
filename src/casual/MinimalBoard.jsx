@@ -19,7 +19,7 @@ export function DropletIcon({className=''}) {
  </svg>;
 }
 
-export function HorizontalMeter({position,limit=8,multipliers=[]}){
+export function HorizontalMeter({position,limit=8,multipliers=[],visibleFactors=null}){
  const percentage=meterPercent(position,limit);
  return <section className="sgv-meter-section" aria-label="Swing meter and multipliers">
    <div className="sgv-meter-caption"><span className="sgv-meter-name">SWING</span></div>
@@ -41,7 +41,7 @@ export function HorizontalMeter({position,limit=8,multipliers=[]}){
        </div>
      </div>
      <div className="sgv-multipliers" role="group" aria-label="Swing, Flip, Jackpot multipliers">
-       {multipliers.map(({kind,value,label})=>
+       {multipliers.filter(({kind})=>!visibleFactors||visibleFactors.includes(kind)).map(({kind,value,label})=>
          <span key={kind} className={'sgv-multiplier-pill sgv-multiplier-'+kind}
            data-factor={kind} title={label} aria-label={label+': times '+value}>
            ×{value}
@@ -53,10 +53,10 @@ export function HorizontalMeter({position,limit=8,multipliers=[]}){
 
 // The Pot shows the engine's prospective Bank payout, not raw card value.
 // Its shine is the tappable affordance, replacing the separate Bank chip.
-export function PendingPot({value,target=24,bankable=false,onBank}){
+export function PendingPot({value,target=24,bankable=false,onBank,className=''}){
  const fill=fluidFillPercent(value,target,{max:76,smooth:true});
  return <button type="button"
-   className={'sgv-pending-pot sgv-pot-bottle'+(bankable?' sgv-pot-bankable':'')}
+   className={'sgv-pending-pot sgv-pot-bottle'+(bankable?' sgv-pot-bankable':'')+' '+className}
    disabled={!bankable}
    onClick={event=>onBank?.(event.currentTarget)}
    aria-label={bankable
@@ -67,7 +67,7 @@ export function PendingPot({value,target=24,bankable=false,onBank}){
      <span className="sgv-pot-glass-shine"/>
    </span>
    <span className="sgv-pot-pour-lip" aria-hidden="true"/>
-   <span className="sgv-pot-label">POT</span>
+   <span className="sgv-pot-label">{bankable?'BANK':'POT'}</span>
    <span className="sgv-pot-amount"><DropletIcon className="sgv-pot-drop"/>{value}</span>
  </button>;
 }
@@ -114,18 +114,18 @@ export function IntroTarget({target,onDone,sequence}){
  </div>;
 }
 
-export function SimpleCard({id,index,value,disabled,onPlay}){
+export function SimpleCard({id,index,value,disabled,onPlay,showDirection=true,risky=false}){
  const direction=cardDirection(value);
  return <button type="button"
-   className={'sgv-card sgv-card-'+direction}
+   className={'sgv-card sgv-card-'+direction+(!showDirection?' sgv-card-number-only':'')+(risky?' sgv-card-risky':'')}
    style={{'--sgv-card-mix':cardAccentMix(value)}}
    aria-label={'Play '+directionalValue(value)}
    disabled={disabled}
    onClick={event=>onPlay(index,event.currentTarget)}>
    <span className="sgv-card-gloss" aria-hidden="true"/>
-   <svg className="sgv-card-arrow" viewBox="0 0 80 58" aria-hidden="true" focusable="false">
+   {showDirection&&<svg className="sgv-card-arrow" viewBox="0 0 80 58" aria-hidden="true" focusable="false">
      <path d={CARD_ARROW_PATH}/>
-   </svg>
+   </svg>}
    <strong>{Math.abs(value)}</strong>
  </button>;
 }
