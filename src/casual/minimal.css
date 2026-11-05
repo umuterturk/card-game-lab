@@ -50,7 +50,7 @@ button:focus-visible{outline:4px solid #4269f9;outline-offset:4px}
 }
 .sgv-meter-tick-zero{color:#fffef1;text-shadow:0 1px 2px #a12f51,0 0 2px #a12f51}
 /* Three engine factors, presented as small numeric charms hung from the meter. */
-.sgv-multipliers{position:absolute;z-index:3;left:9%;right:9%;top:89px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;justify-items:center;gap:3px}
+.sgv-multipliers{position:absolute;z-index:3;left:9%;right:9%;top:69px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;justify-items:center;gap:3px}
 .sgv-multiplier-pill{position:relative;display:grid;place-items:center;min-width:clamp(48px,13vw,59px);height:31px;padding:2px 7px 3px;border-radius:18px;border:3px solid #fff8e9;box-shadow:0 4px 0 var(--pill-rim),0 6px 8px #776a8040,inset 0 2px #ffffffa1;background:linear-gradient(#fff5e0,var(--pill-color));font-size:clamp(16px,4.3vw,21px);font-weight:1000;color:var(--pill-text);text-shadow:0 1px #fff9;font-variant-numeric:tabular-nums;white-space:nowrap;transform-origin:50% 0%}
 .sgv-multiplier-pill::before{content:"";position:absolute;z-index:-1;left:50%;top:-19px;width:3px;height:19px;border-radius:2px;background:#f2e0cbd9;box-shadow:0 0 2px #8e6179;transform:translateX(-50%)}
 .sgv-multiplier-swing{--pill-color:#efc4ee;--pill-rim:#b688c3;--pill-text:#744c9b}
@@ -176,8 +176,8 @@ button:focus-visible{outline:4px solid #4269f9;outline-offset:4px}
  .sgv-intro-target{animation:sgv-target-fly 0.01s forwards}
 }
 
-@media(max-height:730px){.sgv-meter{height:120px}.sgv-multipliers{top:80px}.sgv-multiplier-pill{height:29px;font-size:16px}.sgv-multiplier-pill::before{top:-14px;height:14px}}
-@media(max-height:580px){.sgv-meter{height:112px}.sgv-meter-caption{margin-bottom:9px}.sgv-multipliers{top:77px}.sgv-multiplier-pill{height:26px;padding:0 7px;font-size:15px}}
+@media(max-height:730px){.sgv-meter{height:120px}.sgv-multipliers{top:68px}.sgv-multiplier-pill{height:29px;font-size:16px}.sgv-multiplier-pill::before{top:-14px;height:14px}}
+@media(max-height:580px){.sgv-meter{height:112px}.sgv-meter-caption{margin-bottom:9px}.sgv-multipliers{top:65px}.sgv-multiplier-pill{height:26px;padding:0 7px;font-size:15px}}
 
 
 /* P0: an open, unstable Pot and an independent secured target, both OUTSIDE glass. */
