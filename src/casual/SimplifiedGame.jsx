@@ -108,7 +108,6 @@ export default function SimplifiedGame(){
      root,source,action,view:change,firstFactorAwards,
      onMeter:position=>{
        setView(v=>({...v,position}));
-       if(change.zeroBreak)setFeedback('zero_break');
        if(change.snap)setFeedback('snap');
      },
      onPot:rawPot=>setView(v=>({...v,rawPot,resonance:change.resonanceAfter})),
@@ -119,6 +118,8 @@ export default function SimplifiedGame(){
      },
      onFactors:factors=>{
        setView(v=>({...v,factors}));
+       // Zero Break is announced at the actual factor reset, not at card lift.
+       if(change.zeroBreak)setFeedback('zero_break');
        if(change.zeroBreak||change.snap||
           change.factorsAfter.some((f,i)=>f.value<change.factorsBefore[i].value)){
          resetMotionRef.current=animateFactorReset(root);
