@@ -95,7 +95,8 @@ test('landing exactly on zero resets all multipliers without losing absolute Pot
   game=stepOverswing(game,{type:'steer',index:0},rules); // -4 crossing, S = -1, W = 1
   assert.equal(game.deal.S,-1);
   assert.deepEqual(multiplierParts(game.deal).map(x=>x.value),[2,1,1]);
-  game=stepOverswing(game,{type:'flip'},rules); // +1 exact zero -> Zero Break
+  // The hand refills when emptied, so +1 is now in hand, not atop the Flip deck.
+  game=stepOverswing(game,{type:'steer',index:0},rules); // +1 exact zero -> Zero Break
   assert.equal(game.lastAction.zeroBreak,true);
   assert.equal(game.deal.S,0);
   assert.deepEqual(multiplierParts(game.deal).map(x=>x.value),[1,1,1]);
