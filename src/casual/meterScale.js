@@ -14,5 +14,5 @@ export function meterMarks(limit){
     const step=limit/4;
     return Array.from({length:9},(_,i)=>(i-4)*step);
   }
-  return [-limit,-Math.round(limit/2),0,Math.round(limit/2),limit];
+  return [...new Set([-limit,-Math.round(limit/2),0,Math.round(limit/2),limit])].sort((a,b)=>a-b);
 }
