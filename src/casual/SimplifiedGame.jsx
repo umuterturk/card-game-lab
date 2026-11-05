@@ -3,7 +3,7 @@ import {newRound,stepFirstLevel,FIRST_LEVEL} from './firstLevel.js';
 import {overswingActions,overswingPayout,signed} from '../external/engines.js';
 import {GardenScene} from './CasualArt.jsx';
 import {HorizontalMeter,GlassChest,PendingPot,GoalProgress,IntroTarget,SimpleCard,CoinIcon} from './MinimalBoard.jsx';
-import {animateCardAction,animateFactorReset,bankGoldIntoGlass} from './minimalMotion.js';
+import {animateCardAction,animateFactorReset,animateSnapLoss,bankGoldIntoGlass} from './minimalMotion.js';
 import {multiplierParts} from './multiplierView.js';
 import {rawPotValue,actionPresentation} from './presentation.js';
 
@@ -24,10 +24,11 @@ export default function SimplifiedGame(){
  const [showTarget,setShowTarget]=useState(true);
  const [introSequence,setIntroSequence]=useState(0);
  const rootRef=useRef(null),busyRef=useRef(false),cancelRef=useRef(null);
- const resetMotionRef=useRef(null),seenFactorsRef=useRef(new Set());
+ const resetMotionRef=useRef(null),lossMotionRef=useRef(null),seenFactorsRef=useRef(new Set());
  useEffect(()=>()=>{
    cancelRef.current?.();
    resetMotionRef.current?.();
+   lossMotionRef.current?.();
  },[]);
 
  const {game,event,turn}=round;
@@ -46,6 +47,8 @@ export default function SimplifiedGame(){
  const reset=()=>{
    cancelRef.current?.();
    resetMotionRef.current?.();
+   lossMotionRef.current?.();
+   lossMotionRef.current=null;
    cancelRef.current=null;
    resetMotionRef.current=null;
    busyRef.current=false;
@@ -109,7 +112,11 @@ export default function SimplifiedGame(){
        if(change.snap)setFeedback('snap');
      },
      onPot:rawPot=>setView(v=>({...v,rawPot,resonance:change.resonanceAfter})),
-     onSnap:()=>setView(v=>({...v,snaps:change.snapsAfter})),
+     onSnap:()=>{
+       lossMotionRef.current?.();
+       lossMotionRef.current=animateSnapLoss(root,change.rawPotBefore);
+       setView(v=>({...v,snaps:change.snapsAfter}));
+     },
      onFactors:factors=>{
        setView(v=>({...v,factors}));
        if(change.zeroBreak||change.snap||
