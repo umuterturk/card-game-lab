@@ -3,7 +3,7 @@ import {newRound,stepFirstLevel,FIRST_LEVEL} from './firstLevel.js';
 import {overswingActions,overswingPayout,signed} from '../external/engines.js';
 import {GardenScene} from './CasualArt.jsx';
 import {HorizontalMeter,GlassChest,PendingPot,IntroTarget,SimpleCard} from './MinimalBoard.jsx';
-import {animateCardAction,animateFactorReset,animateSnapLoss,animateBankPour} from './minimalMotion.js';
+import {animateCardAction,animateFactorReset,animateSnapLoss,animatePotBreak,animateBankPour} from './minimalMotion.js';
 import {multiplierParts} from './multiplierView.js';
 import {rawPotValue,visiblePotPayout,actionPresentation} from './presentation.js';
 
@@ -24,11 +24,12 @@ export default function SimplifiedGame(){
  const [showTarget,setShowTarget]=useState(true);
  const [introSequence,setIntroSequence]=useState(0);
  const rootRef=useRef(null),busyRef=useRef(false),cancelRef=useRef(null);
- const resetMotionRef=useRef(null),lossMotionRef=useRef(null),seenFactorsRef=useRef(new Set());
+ const resetMotionRef=useRef(null),lossMotionRef=useRef(null),breakMotionRef=useRef(null),seenFactorsRef=useRef(new Set());
  useEffect(()=>()=>{
    cancelRef.current?.();
    resetMotionRef.current?.();
    lossMotionRef.current?.();
+   breakMotionRef.current?.();
  },[]);
 
  const {game,event,turn}=round;
@@ -50,7 +51,9 @@ export default function SimplifiedGame(){
    cancelRef.current?.();
    resetMotionRef.current?.();
    lossMotionRef.current?.();
+   breakMotionRef.current?.();
    lossMotionRef.current=null;
+   breakMotionRef.current=null;
    cancelRef.current=null;
    resetMotionRef.current=null;
    busyRef.current=false;
@@ -75,7 +78,9 @@ export default function SimplifiedGame(){
    setAnimating(true);
    setFeedback(action.type);
    resetMotionRef.current?.();
+   breakMotionRef.current?.();
    resetMotionRef.current=null;
+   breakMotionRef.current=null;
 
    const done=()=>{
      busyRef.current=false;
@@ -115,6 +120,8 @@ export default function SimplifiedGame(){
      },
      onPot:rawPot=>setView(v=>({...v,rawPot,resonance:change.resonanceAfter})),
      onSnap:()=>{
+       breakMotionRef.current?.();
+       breakMotionRef.current=animatePotBreak(root,'snap');
        lossMotionRef.current?.();
        lossMotionRef.current=animateSnapLoss(root,change.rawPotBefore);
        setView(v=>({...v,snaps:change.snapsAfter}));
@@ -122,7 +129,11 @@ export default function SimplifiedGame(){
      onFactors:factors=>{
        setView(v=>({...v,factors}));
        // Zero Break is announced at the actual factor reset, not at card lift.
-       if(change.zeroBreak)setFeedback('zero_break');
+       if(change.zeroBreak){
+         setFeedback('zero_break');
+         breakMotionRef.current?.();
+         breakMotionRef.current=animatePotBreak(root,'zero');
+       }
        if(change.zeroBreak||change.snap||
           change.factorsAfter.some((f,i)=>f.value<change.factorsBefore[i].value)){
          resetMotionRef.current=animateFactorReset(root);
