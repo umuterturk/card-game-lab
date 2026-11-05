@@ -171,10 +171,12 @@ test('Level 10: unguided strategy choice, both a Steer and Flip opening can win'
   const initial=newOnboardingRound(10);
   assert.equal(onboardingActions(initial).filter(a=>a.type==='steer').length,3);
   assert.equal(onboardingActions(initial).some(a=>a.type==='flip'),true);
-  const pathA=play(10,[steer(0),steer(0),bank,flip,steer(0),bank]);
-  const pathB=play(10,[flip,steer(2),bank]);
+  const pathA=play(10,[steer(0),steer(0),bank,flip,steer(0),flip,bank]);
+  const pathB=play(10,[flip,flip,flip,flip,flip,bank]);
   assert.equal(onboardingVictory(pathA),true);
   assert.equal(onboardingVictory(pathB),true);
+  assert.equal(pathA.turn>=6,true);
+  assert.equal(pathB.turn>=6,true);
 });
 
 test('Tutorial-only gates preserve default Overswing scoring when not selected',()=>{
