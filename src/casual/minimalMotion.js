@@ -1,5 +1,6 @@
 import {gsap} from 'gsap';
 import {bankPourAmounts} from './presentation.js';
+import {CARD_ARROW_PATH,cardDirection,cardAccentMix} from './cardDirection.js';
 
 // All motions are presentation only. The game transaction is calculated once
 // before this module is called; interrupting an animation never changes rules.
@@ -76,9 +77,10 @@ export function animateCardAction({
   tl.call(()=>{
     if(!alive)return;
     if(action.type==='flip'){
-      clone.className='sgv-card sgv-flying-card '+(view.signedCard<0?'sgv-card-cloud':'sgv-card-leaf');
-      clone.innerHTML='<span class="sgv-card-glyph">✦</span>'+
-        '<span class="sgv-card-direction">'+(view.signedCard<0?'LEFT':'RIGHT')+'</span>'+
+      clone.className='sgv-card sgv-flying-card sgv-card-'+cardDirection(view.signedCard);
+      clone.style.setProperty('--sgv-card-mix',cardAccentMix(view.signedCard));
+      clone.innerHTML='<svg class="sgv-card-arrow" viewBox="0 0 80 58" aria-hidden="true">'+
+        '<path d="'+CARD_ARROW_PATH+'"/></svg>'+
         '<strong>'+Math.abs(view.signedCard)+'</strong>';
     }
     // A mystery Flip reveals its value before the meter moves.
