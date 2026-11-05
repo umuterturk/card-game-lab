@@ -6,7 +6,7 @@ export const FIRST_LEVEL=Object.freeze({
   target:24,maxSnaps:2,
   deck:Object.freeze([2,21,4,12,23,10,22,3,20,5]),
   handSize:3,
-  rules:Object.freeze({snapLimit:8,bankCapacityLoss:0})
+  rules:Object.freeze({snapLimit:8,bankCapacityLoss:0,steerAlwaysToPot:true})
 });
 export function newRound(){return {
   game:newOverswing({mode:'short',seed:20261104,deckOverride:FIRST_LEVEL.deck,initialHandSize:FIRST_LEVEL.handSize}),

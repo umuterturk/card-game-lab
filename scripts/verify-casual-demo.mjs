@@ -53,13 +53,23 @@ try{
   await page.goto(url,{waitUntil:'networkidle0',timeout:30000});
   await page.waitForSelector('.sgv-card');
   const badge=await page.$eval('#swing-visible-build',e=>e.textContent.trim());
-  assert.match(badge,/Swing v0\.5\.0\s*·\s*(?:[0-9a-f]{8}|local)/);
+  assert.match(badge,/Swing v0\.6\.0\s*·\s*(?:[0-9a-f]{8}|local)/);
   assert.equal(await page.$$('.sgv-action').then(items=>items.length),2);
   assert.equal(await page.$('.sgv-snap-status'),null,'Snap button must not exist');
   assert.equal(await page.$('.sg-objective'),null,'Old permanent target must be gone');
   assert.equal(await page.$('.sgv-meter-track')!==null,true,'Horizontal meter missing');
   const marks=await page.$$eval('.sgv-meter-labels span',list=>list.map(el=>el.textContent));
   assert.deepEqual(marks,['-8','-6','-4','-2','0','+2','+4','+6','+8']);
+  const factors=()=>page.$eval('.sgv-multiplier-pill',els=>els.map(el=>el.textContent.trim()));
+  assert.deepEqual(await factors(),['×1','×1','×1']);
+  assert.equal(await page.$('.sgv-meter-safe'),null,'No green safe zone');
+  const centerLine=await page.$eval('.sgv-meter-centerline',el=>({
+    width:parseFloat(getComputedStyle(el).width),color:getComputedStyle(el).backgroundImage
+  }));
+  assert.ok(centerLine.width>=7,'Zero should be a thick red marker');
+  const trackGradient=await page.$eval('.sgv-meter-track',el=>getComputedStyle(el).backgroundImage);
+  assert.match(trackGradient,/linear-gradient/);
+
   const start=await layout(page);
   assert.equal(await page.$$eval('.sgv-gold-piece',els=>els.length),0);
   await page.waitForFunction(()=>!document.querySelector('.sgv-intro-target'),{timeout:6000});
@@ -81,9 +91,11 @@ try{
   await page.click('.sgv-flip');
   await page.waitForSelector('.sgv-flying-card',{timeout:1800});
   await awaitIdle(page);
+  assert.deepEqual(await factors(),['×1','×2','×1'],'Safe noncrossing Flip grows Flip only');
   await page.click('.sgv-flip');
   await page.waitForSelector('.sgv-flying-card',{timeout:1800});
   await awaitIdle(page);
+  assert.deepEqual(await factors(),['×2','×2','×2'],'Crossing Flip grows Swing and Jackpot');
   assert.equal(await page.$eval('.sgv-bank',b=>b.disabled),false);
   stable(reset,await layout(page));
   await page.click('.sgv-bank');

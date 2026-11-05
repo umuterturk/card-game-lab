@@ -28,22 +28,27 @@ button:focus-visible{outline:4px solid #4269f9;outline-offset:4px}
 /* Middle is a stable flex column; no popup/button text can alter meter width. */
 .sgv-middle{position:relative;min-width:0;width:100%;flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:0}
 .sgv-mini-hint{flex:none;align-self:center;display:flex;align-items:center;justify-content:center;width:min(96%,375px);min-height:26px;height:26px;margin-top:10px;color:#76537f;font-size:clamp(12px,3vw,14px);line-height:1.2;font-weight:900;text-align:center;text-shadow:0 2px #fffee7;white-space:nowrap;overflow:hidden}
-.sgv-meter-section{position:relative;z-index:2;flex:none;width:min(100%,452px);min-width:0;max-width:100%;height:clamp(125px,19dvh,172px);padding:7px clamp(14px,4.4vw,22px) 0;display:flex;flex-direction:column;justify-content:center}
+.sgv-meter-section{position:relative;z-index:2;flex:none;width:min(100%,452px);min-width:0;max-width:100%;height:clamp(154px,22.5dvh,202px);padding:7px clamp(14px,4.4vw,22px) 0;display:flex;flex-direction:column;justify-content:center}
 .sgv-meter-caption{display:flex;justify-content:space-between;align-items:center;margin:0 0 19px;padding:0 6px;font-size:clamp(12px,3.25vw,15px);font-weight:1000;color:#77529e;letter-spacing:.5px}
 .sgv-meter-name{font-size:clamp(13px,3.5vw,17px);color:#7853aa;text-shadow:0 2px #fff7e5}
 .sgv-meter-current b{color:#e14d8d;font-variant-numeric:tabular-nums;font-size:17px}
-.sgv-meter{position:relative;width:100%;min-width:0;height:85px;flex:none}
-.sgv-meter-track{position:absolute;inset:8px 0 auto;height:33px;border-radius:22px;border:5px solid #f9e4b3;background:linear-gradient(180deg,#b490ed 0%,#8e6acc 54%,#6b48aa 100%);box-shadow:0 6px 0 #8d65ab,0 9px 15px #65599868,inset 0 3px 3px #e4c7ffab,inset 0 -4px #654698c7}
-.sgv-meter-safe{position:absolute;left:36%;width:28%;height:100%;top:0;border-radius:7px;background:linear-gradient(180deg,#baff7f,#63f66c 64%,#32cb60);box-shadow:0 0 22px #68fa73c9,inset 0 3px #e6ffb8}
-.sgv-meter-centerline{position:absolute;left:50%;top:-5px;width:3px;height:33px;border-radius:4px;background:#f3fff7;box-shadow:0 0 3px white;transform:translateX(-50%)}
+.sgv-meter{position:relative;width:100%;min-width:0;height:132px;flex:none}
+.sgv-meter-track{position:absolute;inset:8px 0 auto;height:33px;border-radius:22px;border:5px solid #f9e4b3;background:linear-gradient(90deg,#ec6e89 0%,#d598c0 22%,#dec7f2 40%,#fff0cf 50%,#dec7f2 60%,#d598c0 78%,#ec6e89 100%);box-shadow:0 6px 0 #9b6e94,0 9px 15px #65599868,inset 0 3px 3px #ffffff91,inset 0 -4px #a4698c63}
+.sgv-meter-centerline{position:absolute;left:50%;top:-11px;width:9px;height:50px;border-radius:5px;background:linear-gradient(#ff8b8b,#e52c51);border:2px solid #ffe2cf;box-shadow:0 0 8px #f134597c,0 1px 3px #aa5362;transform:translateX(-50%)}
 .sgv-meter-marker{position:absolute;z-index:3;top:50%;transform:translate(-50%,-50%);height:42px;min-width:43px;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:left .55s cubic-bezier(.17,.72,.31,1.22);pointer-events:none}
 .sgv-meter-arrow{position:absolute;left:50%;top:12px;transform:translateX(-50%);width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-top:20px solid #e8498b;filter:drop-shadow(0 3px #f5c7bc) drop-shadow(0 0 3px #fffbcd)}
 .sgv-meter-number{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);min-width:43px;padding:3px 5px 4px;border-radius:13px;border:3px solid #fff7dc;box-shadow:0 3px 0 #d7aa79;background:linear-gradient(#fffcdf,#ffe6bb);text-align:center;color:#b16067;font-size:16px;font-weight:1000;font-variant-numeric:tabular-nums;line-height:1;white-space:nowrap}
 .sgv-meter-labels{position:absolute;top:56px;left:0;right:0;height:27px;display:flex;justify-content:space-between;align-items:flex-start}
 .sgv-meter-labels span{min-width:14px;white-space:nowrap;font-size:clamp(11px,3.2vw,15px);font-weight:1000;color:#734f91;text-shadow:0 2px #fffefa;font-variant-numeric:tabular-nums;text-align:center}
-.sgv-meter-labels span:nth-child(5){color:#2f9c63}
-.sgv-meter-bonus{position:absolute;right:8%;top:0;color:#f0a231;text-shadow:0 2px white;font-weight:1000;font-size:15px;pointer-events:none;white-space:nowrap;animation:sgv-bonus-out 1.2s both}
-@keyframes sgv-bonus-out{0%{transform:translateY(9px) scale(.65);opacity:0}22%{transform:translateY(0) scale(1.15);opacity:1}70%{opacity:1}100%{transform:translateY(-40px) scale(.9);opacity:0}}
+.sgv-meter-labels span:nth-child(5){color:#d73a59}
+/* Three engine factors, presented as small numeric charms hung from the meter. */
+.sgv-multipliers{position:absolute;z-index:3;left:9%;right:9%;top:89px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;justify-items:center;gap:3px}
+.sgv-multiplier-pill{position:relative;display:grid;place-items:center;min-width:clamp(48px,13vw,59px);height:31px;padding:2px 7px 3px;border-radius:18px;border:3px solid #fff8e9;box-shadow:0 4px 0 var(--pill-rim),0 6px 8px #776a8040,inset 0 2px #ffffffa1;background:linear-gradient(#fff5e0,var(--pill-color));font-size:clamp(16px,4.3vw,21px);font-weight:1000;color:var(--pill-text);text-shadow:0 1px #fff9;font-variant-numeric:tabular-nums;white-space:nowrap;transform-origin:50% 0%}
+.sgv-multiplier-pill::before{content:"";position:absolute;z-index:-1;left:50%;top:-19px;width:3px;height:19px;border-radius:2px;background:#f2e0cbd9;box-shadow:0 0 2px #8e6179;transform:translateX(-50%)}
+.sgv-multiplier-swing{--pill-color:#efc4ee;--pill-rim:#b688c3;--pill-text:#744c9b}
+.sgv-multiplier-flip{--pill-color:#c9eaff;--pill-rim:#7eb8db;--pill-text:#3f73a9}
+.sgv-multiplier-jackpot{--pill-color:#ffe29a;--pill-rim:#d9ac59;--pill-text:#a46a35}
+.sgv-bonus-flyer{position:absolute;z-index:25;display:grid;place-items:center;min-width:43px;height:32px;border-radius:17px;padding:3px 7px 4px;border:3px solid #fff8cd;background:linear-gradient(#fff6bb,#ffd35f);box-shadow:0 3px 0 #d69b42,0 5px 10px #a8764d70;color:#885326;font-size:18px;font-weight:1000;font-variant-numeric:tabular-nums;line-height:1;white-space:nowrap;pointer-events:none;transform-origin:center;will-change:transform,opacity}
 .sgv-event-snap .sgv-meter-track{animation:sgv-meter-shake .4s ease}
 @keyframes sgv-meter-shake{0%,100%{translate:0 0}20%,60%{translate:-7px 0}40%,80%{translate:7px 0}}
 .sgv-flight-center{position:absolute;left:50%;top:41%;width:1px;height:1px;pointer-events:none}
@@ -136,7 +141,7 @@ button:focus-visible{outline:4px solid #4269f9;outline-offset:4px}
  .sgv-hud{min-height:43px}
  .sgv-level{height:42px}
  .sgv-mini-hint{height:21px;min-height:21px;margin-top:4px}
- .sgv-meter-section{height:clamp(103px,18dvh,138px);padding-top:1px}
+ .sgv-meter-section{height:clamp(135px,21dvh,156px);padding-top:1px}
  .sgv-meter-caption{margin-bottom:14px}
  .sgv-chest-art{height:clamp(145px,25dvh,200px)}
  .sgv-controls{height:clamp(184px,30dvh,219px);padding-top:3px}
@@ -147,7 +152,7 @@ button:focus-visible{outline:4px solid #4269f9;outline-offset:4px}
 @media(max-height:580px){
  .sgv-level{height:36px}.sgv-hud{min-height:36px}
  .sgv-gold-counter,.sgv-lives{height:35px}
- .sgv-meter-section{height:96px}
+ .sgv-meter-section{height:120px}
  .sgv-mini-hint{display:none}
  .sgv-chest-art{height:133px}
  .sgv-controls{height:173px}
@@ -162,3 +167,6 @@ button:focus-visible{outline:4px solid #4269f9;outline-offset:4px}
  .sgv-meter-marker,.sgv-card,.sgv-action{transition:none}
  .sgv-intro-target{animation:sgv-target-fly 0.01s forwards}
 }
+
+@media(max-height:730px){.sgv-meter{height:120px}.sgv-multipliers{top:80px}.sgv-multiplier-pill{height:29px;font-size:16px}.sgv-multiplier-pill::before{top:-14px;height:14px}}
+@media(max-height:580px){.sgv-meter{height:112px}.sgv-meter-caption{margin-bottom:9px}.sgv-multipliers{top:77px}.sgv-multiplier-pill{height:26px;padding:0 7px;font-size:15px}}

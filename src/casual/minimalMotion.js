@@ -135,3 +135,52 @@ export function bankGoldIntoGlass({root,source,fromScore,toScore,onCount,onCompl
   },[],.5);
   return ()=>{active=false;tl.kill();nodes.forEach(n=>n.remove());};
 }
+
+/**
+ * A tier earned by the actual engine flies from the swing marker into the
+ * corresponding hanging factor. Numbers in the pills always come from the
+ * committed deal; the motion is cosmetic and never updates score or factors.
+ */
+export function flyMultiplierRewards({root,rewards}){
+  if(!root||!rewards?.length||reducedMotion())return ()=>{};
+  const originNode=root.querySelector('.sgv-meter-marker')||root.querySelector('.sgv-meter-track');
+  if(!originNode)return ()=>{};
+  const start=point(originNode,root),chips=[],tweens=[];
+  rewards.forEach(({kind,value},index)=>{
+    const target=root.querySelector('[data-factor="'+kind+'"]');
+    if(!target)return;
+    const end=point(target,root);
+    const chip=document.createElement('span');
+    chip.className='sgv-bonus-flyer';
+    chip.textContent='×'+value;
+    chip.setAttribute('aria-hidden','true');
+    Object.assign(chip.style,{left:start.x+'px',top:start.y+'px',
+      marginLeft:'-21px',marginTop:'-16px'});
+    root.appendChild(chip);
+    chips.push(chip);
+    const delay=index*.09;
+    const timeline=gsap.timeline({onComplete:()=>chip.remove()});
+    timeline.fromTo(chip,{scale:.55,opacity:0},{
+      scale:1.22,opacity:1,duration:.2,ease:'back.out(2)'
+    },delay);
+    timeline.to(chip,{
+      x:end.x-start.x,y:end.y-start.y,scale:.72,
+      duration:.51,ease:'power2.inOut'
+    },delay+.19);
+    timeline.to(chip,{scale:.25,opacity:0,duration:.13,ease:'sine.in'},delay+.69);
+    timeline.call(()=>{
+      const punch=gsap.fromTo(target,{scale:.89},{scale:1,duration:.4,
+        ease:'elastic.out(1,.45)'});
+      tweens.push(punch);
+    },[],delay+.69);
+    tweens.push(timeline);
+  });
+  return ()=>{
+    for(const tween of tweens)tween.kill();
+    for(const chip of chips)chip.remove();
+    for(const {kind} of rewards){
+      const target=root.querySelector('[data-factor="'+kind+'"]');
+      if(target)gsap.set(target,{clearProps:'scale'});
+    }
+  };
+}
