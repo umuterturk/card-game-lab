@@ -36,7 +36,7 @@ export const ONBOARDING_LEVELS=Object.freeze([
   make(2,'Left and Right',6,[3,21],2,{
     lesson:'Both directions add drops.'
   }),
-  make(3,'Your Choice',5,[1,22,3],3,{
+  make(3,'Your Choice',6,[1,23,4],3,{
     lesson:'Choose the cards you want.'
   }),
   make(4,'Hidden Card',2,[0,21,10,12,22],2,{
