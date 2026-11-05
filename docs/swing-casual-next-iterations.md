@@ -147,3 +147,25 @@ This iteration addresses remaining visible flaws in the earlier iPhone reference
 ### Still next
 
 Visual iPhone acceptance and interaction-timing fixes, then five-player no-instructions comprehension test and later level/ability slots. Browser smoke remains excluded from automatic CI by prior request.
+
+
+## P0 pour animation / visual simplification — 2026-11-05
+
+**Approved reference:** User-approved portrait rendering showing the small Pot physically raised above the open Bank, short amber pour connecting their glass lips, gradually draining Pot and filling Bank, readable plain progress text within the larger bottle.
+
+### Implemented
+- Compute an approach offset by temporarily measuring the **rotated source-lip bounding rect** against the real Bank mouth. Translate and tilt the small Pot toward the receiving opening before any fluid flows. No long pre-baked arc across empty space.
+- Draw a brief curved stream between the **post-movement source lip** and Bank mouth, with a small ripple/splash at the arrival point. Remove stream/splash DOM nodes and GSAP transforms on both completion and cancellation.
+- Use one clamped progression value to update Pot raw value (smooth percentage decreases from the very first pouring frames) and Bank secured total (increases only as the stream arrives). Both values follow the already-settled engine Bank action; multiplier payout is unchanged.
+- Replace the wooden Pot cap with a thin, transparent **open glass mouth**. Open the larger Bank mouth as well.
+- Put `SECURED / target` text lower **inside** the Bank glass and remove the large cream background, border, and shadow.
+- Remove the decorative hanging stems from the multiplier pills.
+- Reduce the version to tiny background-free text with its build SHA retained for screenshot verification.
+- Add subtle SVG leaf sway, cloud drift and waterfall shimmer via CSS; honor reduced-motion settings.
+
+### Acceptance before closing mobile P0
+- On iPhone portrait, tap Pot at a legal Bank (e.g. Pot 5 → Bank +10): it must **rise toward the Bank mouth**, tip and pour from the lip (no detached high arch); the displayed Pot liquid and value must start decreasing while the Bank fill/total rise.
+- The Pot must return to its original position on completion and on a replay/reset cancellation, with no stuck stream or leftover transformed bottle.
+- No bottle, mouth, stream, amount label or action slot overlaps at 320/375/390/430 CSS px and short-height Safari layouts.
+- Disabled Bank is untappable, legal Bank is a working native button, rapid double taps commit only one engine transaction.
+- No scoring rules, deck, multiplier logic, Bank eligibility, Snap, Zero Break, or target were changed. Browser smoke remains excluded from automatic CI by prior request; use a fresh iPhone screenshot and a 2-second banking recording for final visual signoff.

@@ -91,7 +91,9 @@ export default function SimplifiedGame(){
    if(action.type==='bank'){
      cancelRef.current=animateBankPour({
        root,source,
+       potValue:change.rawPotBefore,
        fromScore:change.securedBefore,toScore:change.securedAfter,
+       onPourProgress:rawPot=>setView(v=>({...v,rawPot})),
        onTake:()=>setView(v=>({...v,rawPot:0,resonance:0})),
        onCount:setShownGold,
        onComplete:done
