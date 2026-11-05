@@ -1115,3 +1115,63 @@ button:focus-visible{outline:4px solid #4269f9;outline-offset:4px}
 @media(prefers-reduced-motion:reduce){
  .sgv-onboarding .sgv-attention{animation:none;outline:3px solid #e9b34f}
 }
+
+
+/* Development-only progress reset: always reachable from the top header,
+   including the smallest iPhones and the win screen. */
+.sgv-onboarding .sgv-tutorial-tools{
+ position:relative;z-index:12;display:flex;align-items:center;gap:4px;flex:none;
+}
+.sgv-onboarding .sgv-reset-progress,
+.sgv-onboarding .sgv-dev-menu-toggle{
+ display:inline-flex;align-items:center;justify-content:center;gap:3px;
+ border:2px solid #fff9df;border-radius:16px;min-height:36px;
+ background:linear-gradient(#fffbeb,#f0e5dc);box-shadow:0 3px 0 #c5b2a1;
+ color:#765275;font-weight:950;font-size:13px;line-height:1;
+ cursor:pointer;padding:4px 8px;
+}
+.sgv-onboarding .sgv-reset-progress:active,
+.sgv-onboarding .sgv-dev-menu-toggle:active{
+ transform:translateY(2px);box-shadow:0 1px 0 #c5b2a1;
+}
+.sgv-onboarding .sgv-reset-icon{font-size:21px;font-weight:900;line-height:1}
+.sgv-onboarding .sgv-dev-menu-toggle{font-size:22px;min-width:34px;padding:4px}
+.sgv-onboarding .sgv-dev-menu{
+ position:absolute;top:calc(100% + 7px);right:0;z-index:25;
+ display:flex;flex-direction:column;gap:5px;min-width:168px;
+ padding:7px;border-radius:14px;border:2px solid #fffbe3;
+ background:#fff9ed;box-shadow:0 6px 14px #3c6d625e;
+}
+.sgv-onboarding .sgv-dev-menu button{
+ padding:9px 10px;border-radius:10px;border:0;text-align:left;
+ color:#765275;background:#f0e8e2;font-weight:850;font-size:13px;
+}
+.sgv-onboarding .sgv-tutorial-hud .sgv-hud-right{gap:5px}
+.sgv-onboarding .sgv-tutorial-hud .sgv-level{min-width:0;padding-right:10px}
+.sgv-onboarding .sgv-tutorial-hud .sgv-gold-counter{
+ min-width:58px;padding:3px 6px;gap:3px;height:36px;
+}
+.sgv-onboarding .sgv-tutorial-hud .sgv-gold-icon{width:22px;height:22px;font-size:16px}
+.sgv-onboarding .sgv-tutorial-hud .sgv-gold-counter strong{font-size:17px}
+.sgv-onboarding .sgv-tutorial-hud .sgv-lives{
+ min-width:54px;height:36px;padding:3px;gap:1px;
+}
+.sgv-onboarding .sgv-tutorial-hud .sgv-heart{font-size:21px}
+@media(max-width:390px){
+ .sgv-onboarding .sgv-tutorial-hud{gap:4px}
+ .sgv-onboarding .sgv-tutorial-hud .sgv-level{
+   height:42px;padding:3px 7px 3px 5px;font-size:15px;gap:4px;
+ }
+ .sgv-onboarding .sgv-tutorial-hud .sgv-level span{
+   width:30px;height:30px;margin-left:-4px;font-size:22px;
+ }
+ .sgv-onboarding .sgv-tutorial-hud .sgv-hud-right{gap:4px}
+ .sgv-onboarding .sgv-tutorial-tools{gap:3px}
+ .sgv-onboarding .sgv-reset-progress{padding:4px 6px}
+}
+@media(max-width:355px){
+ .sgv-onboarding .sgv-reset-label{display:none}
+ .sgv-onboarding .sgv-reset-progress{width:34px;padding:4px}
+ .sgv-onboarding .sgv-tutorial-hud .sgv-gold-counter{min-width:48px;padding:2px 3px}
+ .sgv-onboarding .sgv-tutorial-hud .sgv-gold-icon{width:18px;height:18px}
+}
