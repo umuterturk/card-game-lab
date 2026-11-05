@@ -35,7 +35,7 @@ export function HorizontalMeter({position,limit=8,multipliers=[]}){
                style={{left:meterPercent(number,limit)+'%'}}>{Math.abs(number)}</span>)}
          </div>
          <span className="sgv-meter-marker" style={{left:percentage+'%'}}>
-           <span className="sgv-meter-number">{position===0?'0':<><small>{directionLabel(position)}</small><strong>{Math.abs(position)}</strong></>}</span>
+           <span className="sgv-meter-number">{position===0?'0':<><small className="sgv-marker-direction">{directionLabel(position)}</small><strong>{Math.abs(position)}</strong></>}</span>
            <span className="sgv-meter-arrow"/>
            <span className="sgv-meter-needle" aria-hidden="true"/>
          </span>
