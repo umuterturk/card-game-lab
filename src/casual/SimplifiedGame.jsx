@@ -2,7 +2,7 @@ import React,{useEffect,useRef,useState} from 'react';
 import {newRound,stepFirstLevel,FIRST_LEVEL} from './firstLevel.js';
 import {overswingActions,overswingPayout,signed} from '../external/engines.js';
 import {GardenScene} from './CasualArt.jsx';
-import {HorizontalMeter,GlassChest,PendingPot,GoalProgress,IntroTarget,SimpleCard,CoinIcon} from './MinimalBoard.jsx';
+import {HorizontalMeter,GlassChest,PendingPot,GoalProgress,IntroTarget,SimpleCard,DropletIcon} from './MinimalBoard.jsx';
 import {animateCardAction,animateFactorReset,animateSnapLoss,bankGoldIntoGlass} from './minimalMotion.js';
 import {multiplierParts} from './multiplierView.js';
 import {rawPotValue,actionPresentation} from './presentation.js';
@@ -146,8 +146,8 @@ export default function SimplifiedGame(){
      <header className="sgv-hud">
        <div className="sgv-level" aria-label="Level 1"><span>★</span><strong>Level 1</strong></div>
        <div className="sgv-hud-right">
-         <div className="sgv-gold-counter" aria-label={'Banked gold: '+shownGold}>
-           <CoinIcon className="sgv-gold-icon"/>
+         <div className="sgv-gold-counter" aria-label={'Secured drops: '+shownGold}>
+           <DropletIcon className="sgv-gold-icon"/>
            <strong>{shownGold}</strong>
          </div>
          <div className="sgv-lives" aria-label={hearts+' chances remaining'}>
@@ -162,9 +162,8 @@ export default function SimplifiedGame(){
        <HorizontalMeter position={view.position} limit={FIRST_LEVEL.rules.snapLimit}
          multipliers={view.factors}/>
        <span className="sgv-flight-center" aria-hidden="true"/>
-       <GlassChest banked={shownGold}/>
-       <PendingPot value={view.rawPot} resonance={view.resonance}/>
-       <GoalProgress banked={shownGold} target={FIRST_LEVEL.target}/>
+       <GlassChest banked={shownGold} target={FIRST_LEVEL.target}/>
+       <PendingPot value={view.rawPot} resonance={view.resonance} target={FIRST_LEVEL.target}/>
      </div>
 
      <section className="sgv-controls" aria-label="Card actions">
@@ -180,10 +179,10 @@ export default function SimplifiedGame(){
        <div className="sgv-actions">
          <button type="button" className="sgv-action sgv-bank" disabled={!canBank}
            onClick={e=>play({type:'bank'},e.currentTarget)}
-           aria-label={canBank?'Bank '+potentialPayout+' gold':'Bank not available'}>
+           aria-label={canBank?'Bank '+potentialPayout+' drops':'Bank not available'}>
            <span className="sgv-bank-title">BANK</span>
            <span className="sgv-bank-reward" aria-hidden="true">
-             {canBank&&<CoinIcon className="sgv-bank-coin"/>}
+             {canBank&&<DropletIcon className="sgv-bank-coin"/>}
              <strong>{canBank?'+'+potentialPayout:'—'}</strong>
            </span>
          </button>
@@ -204,7 +203,7 @@ export default function SimplifiedGame(){
        <div className="sgv-end-card">
          <div className="sgv-end-symbol">{victory?'★':'♡'}</div>
          <h1 id="sgv-end-title">{victory?'Level complete!':'Try again!'}</h1>
-         <p>{'Gold collected: '+banked+' / '+FIRST_LEVEL.target}</p>
+         <p>{'Drops secured: '+banked+' / '+FIRST_LEVEL.target}</p>
          <button type="button" onClick={reset}>PLAY AGAIN</button>
        </div>
      </div>}
