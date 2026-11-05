@@ -19,6 +19,8 @@ export function actionPresentation(before,after,action){
     addedToPot:result.addedToPot??0,
     rawPotBefore:rawPotValue(previous),
     rawPotAfter:rawPotValue(current),
+    resonanceAfter:current.resonancePoints||0,
+    resonanceGained:result.resonanceGained||0,
     bankGain:current.T-previous.T,
     securedBefore:previous.T,
     securedAfter:current.T,
