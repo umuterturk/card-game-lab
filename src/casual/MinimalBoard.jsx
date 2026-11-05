@@ -19,13 +19,13 @@ export function DropletIcon({className=''}) {
  </svg>;
 }
 
-export function HorizontalMeter({position,limit=8,multipliers=[],visibleFactors=null}){
+export function HorizontalMeter({position,limit=8,multipliers=[],visibleFactors=null,showDanger=true}){
  const percentage=meterPercent(position,limit);
  return <section className="sgv-meter-section" aria-label="Swing meter and multipliers">
    <div className="sgv-meter-caption"><span className="sgv-meter-name">SWING</span></div>
    <div className="sgv-meter" role="group" data-value={position}
-     aria-label={'Swing at '+directionalValue(position)+'; Snap beyond '+limit+' left or '+limit+' right'}>
-     <div className="sgv-meter-track" role="img" data-edge-danger={Math.abs(position)>=limit-2}
+     aria-label={'Swing at '+directionalValue(position)+(showDanger?'; Snap beyond '+limit+' left or '+limit+' right':'')}>
+     <div className="sgv-meter-track" role="img" data-edge-danger={showDanger&&Math.abs(position)>=limit-2}
        aria-label={'Swing position '+directionalValue(position)}>
        <div className="sgv-meter-scale" aria-hidden="true">
          <div className="sgv-meter-ticks">
@@ -53,12 +53,13 @@ export function HorizontalMeter({position,limit=8,multipliers=[],visibleFactors=
 
 // The Pot shows the engine's prospective Bank payout, not raw card value.
 // Its shine is the tappable affordance, replacing the separate Bank chip.
-export function PendingPot({value,target=24,bankable=false,onBank,className=''}){
+export function PendingPot({value,target=24,bankable=false,onBank,className='',interactive=true}){
  const fill=fluidFillPercent(value,target,{max:76,smooth:true});
- return <button type="button"
-   className={'sgv-pending-pot sgv-pot-bottle'+(bankable?' sgv-pot-bankable':'')+' '+className}
-   disabled={!bankable}
-   onClick={event=>onBank?.(event.currentTarget)}
+ const Tag=interactive?'button':'div';
+ return <Tag type={interactive?'button':undefined}
+   className={'sgv-pending-pot sgv-pot-bottle'+(bankable?' sgv-pot-bankable':'')+(!interactive?' sgv-pot-display':'')+' '+className}
+   disabled={interactive?!bankable:undefined}
+   onClick={interactive?event=>onBank?.(event.currentTarget):undefined}
    aria-label={bankable
      ?'Tap Pot to bank '+value+' drops'
      :'Pot has '+value+' potential drops. Banking not yet available'}>
@@ -67,14 +68,14 @@ export function PendingPot({value,target=24,bankable=false,onBank,className=''})
      <span className="sgv-pot-glass-shine"/>
    </span>
    <span className="sgv-pot-pour-lip" aria-hidden="true"/>
-   <span className="sgv-pot-label">{bankable?'BANK':'POT'}</span>
+   <span className="sgv-pot-label">POT</span>
    <span className="sgv-pot-amount"><DropletIcon className="sgv-pot-drop"/>{value}</span>
- </button>;
+ </Tag>;
 }
 
 export function GoalProgress({banked,target}){
  return <div className="sgv-goal-progress" role="status" aria-label={'Secured '+banked+' of '+target+' drops'}>
-   <span>SECURED</span><strong>{banked} / {target}</strong>
+   <span>BANK</span><strong>{banked} / {target}</strong>
  </div>;
 }
 
@@ -114,10 +115,10 @@ export function IntroTarget({target,onDone,sequence}){
  </div>;
 }
 
-export function SimpleCard({id,index,value,disabled,onPlay,showDirection=true,risky=false}){
+export function SimpleCard({id,index,value,disabled,onPlay,showDirection=true,risky=false,highlighted=false}){
  const direction=cardDirection(value);
  return <button type="button"
-   className={'sgv-card sgv-card-'+direction+(!showDirection?' sgv-card-number-only':'')+(risky?' sgv-card-risky':'')}
+   className={'sgv-card sgv-card-'+direction+(!showDirection?' sgv-card-number-only':'')+(risky?' sgv-card-risky':'')+(highlighted?' sgv-attention':'')}
    style={{'--sgv-card-mix':cardAccentMix(value)}}
    aria-label={'Play '+directionalValue(value)}
    disabled={disabled}
