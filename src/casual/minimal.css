@@ -1175,3 +1175,11 @@ button:focus-visible{outline:4px solid #4269f9;outline-offset:4px}
  .sgv-onboarding .sgv-tutorial-hud .sgv-gold-counter{min-width:48px;padding:2px 3px}
  .sgv-onboarding .sgv-tutorial-hud .sgv-gold-icon{width:18px;height:18px}
 }
+
+/* The modal covers the header; provide the same reset on its completion screen. */
+.sgv-onboarding .sgv-end-card .sgv-end-reset{
+ background:linear-gradient(#fff8ed,#eee4db);
+ color:#795572;text-shadow:none;border-color:#fffaf1;
+ box-shadow:0 3px 0 #c7b7ad;font-size:13px;
+ padding:10px;min-width:65%;margin-top:13px;
+}
