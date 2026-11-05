@@ -72,14 +72,14 @@ export function PendingPot({value,target=24,bankable=false,onBank,className=''})
  </button>;
 }
 
-export function GoalProgress({banked,target,minimal=false}){
+export function GoalProgress({banked,target}){
  return <div className="sgv-goal-progress" role="status" aria-label={'Secured '+banked+' of '+target+' drops'}>
-   {!minimal&&<span>SECURED</span>}<strong>{banked} / {target}</strong>
+   <span>SECURED</span><strong>{banked} / {target}</strong>
  </div>;
 }
 
 // Larger destination bottle. Its fluid represents only secured engine value.
-export function GlassChest({banked,target,minimal=false}){
+export function GlassChest({banked,target}){
  const fill=fluidFillPercent(banked,target,{max:78});
  return <div className="sgv-chest-area sgv-bank-bottle"
    aria-label={banked+' of '+target+' drops secured'} data-gold={banked}>
@@ -101,7 +101,7 @@ export function GlassChest({banked,target,minimal=false}){
        <span className="sgv-glass-spark sgv-glass-spark-b">✦</span>
      </div>
      <span className="sgv-chest-mouth" aria-hidden="true"/>
-     <GoalProgress banked={banked} target={target} minimal={minimal}/>
+     <GoalProgress banked={banked} target={target}/>
    </div>
  </div>;
 }
