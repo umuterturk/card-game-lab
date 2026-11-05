@@ -2,8 +2,8 @@ import React,{useEffect,useRef,useState} from 'react';
 import {newRound,stepFirstLevel,FIRST_LEVEL} from './firstLevel.js';
 import {overswingActions,overswingPayout,signed} from '../external/engines.js';
 import {GardenScene} from './CasualArt.jsx';
-import {HorizontalMeter,GlassChest,PendingPot,GoalProgress,IntroTarget,SimpleCard,DropletIcon} from './MinimalBoard.jsx';
-import {animateCardAction,animateFactorReset,animateSnapLoss,bankGoldIntoGlass} from './minimalMotion.js';
+import {HorizontalMeter,GlassChest,PendingPot,IntroTarget,SimpleCard} from './MinimalBoard.jsx';
+import {animateCardAction,animateFactorReset,animateSnapLoss,animateBankPour} from './minimalMotion.js';
 import {multiplierParts} from './multiplierView.js';
 import {rawPotValue,actionPresentation} from './presentation.js';
 
@@ -89,9 +89,8 @@ export default function SimplifiedGame(){
      return;
    }
    if(action.type==='bank'){
-     const potSource=root.querySelector('.sgv-pending-pot')||source;
-     cancelRef.current=bankGoldIntoGlass({
-       root,source:potSource,
+     cancelRef.current=animateBankPour({
+       root,source,
        fromScore:change.securedBefore,toScore:change.securedAfter,
        onTake:()=>setView(v=>({...v,rawPot:0,resonance:0})),
        onCount:setShownGold,
@@ -135,6 +134,7 @@ export default function SimplifiedGame(){
    :currentEvent==='zero_break'
    ?'ZERO BREAK — Pot kept, factors reset'
    :turn===0?'Tap a card to move the marker'
+   :canBank&&!animating?'Tap Pot to secure '+potentialPayout
    :!canBank&&view.rawPot>0&&!animating?'Play another card to Bank'
    :'';
 
@@ -146,10 +146,6 @@ export default function SimplifiedGame(){
      <header className="sgv-hud">
        <div className="sgv-level" aria-label="Level 1"><span>★</span><strong>Level 1</strong></div>
        <div className="sgv-hud-right">
-         <div className="sgv-gold-counter" aria-label={'Secured drops: '+shownGold}>
-           <DropletIcon className="sgv-gold-icon"/>
-           <strong>{shownGold}</strong>
-         </div>
          <div className="sgv-lives" aria-label={hearts+' chances remaining'}>
            {Array.from({length:FIRST_LEVEL.maxSnaps},(_,i)=>
              <span key={i} className={i<hearts?'sgv-heart':'sgv-heart sgv-heart-empty'}>♥</span>)}
@@ -162,8 +158,12 @@ export default function SimplifiedGame(){
        <HorizontalMeter position={view.position} limit={FIRST_LEVEL.rules.snapLimit}
          multipliers={view.factors}/>
        <span className="sgv-flight-center" aria-hidden="true"/>
-       <GlassChest banked={shownGold} target={FIRST_LEVEL.target}/>
-       <PendingPot value={view.rawPot} resonance={view.resonance} target={FIRST_LEVEL.target}/>
+       <div className="sgv-bottle-pair" aria-label="At-risk Pot and secured Bank bottles">
+         <PendingPot value={view.rawPot} resonance={view.resonance}
+           target={FIRST_LEVEL.target} bankable={canBank} bankPreview={potentialPayout}
+           onBank={source=>play({type:'bank'},source)}/>
+         <GlassChest banked={shownGold} target={FIRST_LEVEL.target}/>
+       </div>
      </div>
 
      <section className="sgv-controls" aria-label="Card actions">
@@ -177,15 +177,6 @@ export default function SimplifiedGame(){
            <div className="sgv-card sgv-card-empty" key={'empty-'+i} aria-hidden="true">×</div>)}
        </div>
        <div className="sgv-actions">
-         <button type="button" className="sgv-action sgv-bank" disabled={!canBank}
-           onClick={e=>play({type:'bank'},e.currentTarget)}
-           aria-label={canBank?'Bank '+potentialPayout+' drops':'Bank not available'}>
-           <span className="sgv-bank-title">BANK</span>
-           <span className="sgv-bank-reward" aria-hidden="true">
-             {canBank&&<DropletIcon className="sgv-bank-coin"/>}
-             <strong>{canBank?'+'+potentialPayout:'—'}</strong>
-           </span>
-         </button>
          <button type="button" className="sgv-action sgv-flip" disabled={!canFlip}
            onClick={e=>play({type:'flip'},e.currentTarget.querySelector('.sgv-next-card'))}
            aria-label={'Flip a card. '+remaining+' left in deck'}>
