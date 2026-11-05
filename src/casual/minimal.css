@@ -1060,3 +1060,5 @@ button:focus-visible{outline:4px solid #4269f9;outline-offset:4px}
  .sgv-onboarding .sgv-attention{animation:none;outline:3px solid #e9b34f}
  .sgv-onboarding .sgv-bottle-pair .sgv-pending-pot{transition:none}
 }
+
+.sgv-onboarding-1 .sgv-goal-progress span,.sgv-onboarding-2 .sgv-goal-progress span{display:none}
