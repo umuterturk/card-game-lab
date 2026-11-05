@@ -1,9 +1,10 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {newRound,stepFirstLevel,FIRST_LEVEL} from './firstLevel.js';
-import {overswingActions,overswingPayout,overswingMultiplier,signed} from '../external/engines.js';
+import {overswingActions,overswingPayout,signed} from '../external/engines.js';
 import {GardenScene} from './CasualArt.jsx';
 import {HorizontalMeter,GlassChest,IntroTarget,SimpleCard} from './MinimalBoard.jsx';
-import {flyCardThroughCenter,bankGoldIntoGlass} from './minimalMotion.js';
+import {flyCardThroughCenter,bankGoldIntoGlass,flyMultiplierRewards} from './minimalMotion.js';
+import {multiplierParts,multiplierRewards} from './multiplierView.js';
 
 export default function SimplifiedGame(){
  const [round,setRound]=useState(newRound);
@@ -25,7 +26,13 @@ export default function SimplifiedGame(){
  const available=finished||animating?[]:overswingActions(game,FIRST_LEVEL.rules);
  const canBank=available.some(a=>a.type==='bank'&&a.dropIndex==null);
  const canFlip=available.some(a=>a.type==='flip');
- const bonus=overswingMultiplier(deal);
+ // The engine is the sole source for Swing × Flip × Jackpot.
+ const multipliers=multiplierParts(deal);
+ useEffect(()=>{
+   if(event.id===0)return;
+   const rewards=multiplierRewards(game.deal,game.lastAction);
+   return flyMultiplierRewards({root:rootRef.current,rewards});
+ },[event.id]);
 
  const reset=()=>{
    cancelRef.current?.();
@@ -92,7 +99,7 @@ export default function SimplifiedGame(){
            canBank&&pending>0?'Bank to collect your gold!':''}
        </div>
        <HorizontalMeter position={deal.S} limit={FIRST_LEVEL.rules.snapLimit}
-         bonus={bonus} crossed={event.type==='cross'} burstId={event.id}/>
+         multipliers={multipliers}/>
        <span className="sgv-flight-center" aria-hidden="true"/>
        <GlassChest banked={shownGold}/>
      </div>
