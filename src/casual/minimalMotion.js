@@ -235,6 +235,8 @@ export function animateBankPour({root,source,fromScore,toScore,onTake,onCount,on
     removeNodes(nodes);
     gsap.set(source,{clearProps:'rotation,transformOrigin'});
     gsap.set(chest,{clearProps:'scale'});
+    const glow=root.querySelector('.sgv-chest-glow');
+    if(glow)gsap.set(glow,{clearProps:'scale,opacity'});
   };
   const tl=gsap.timeline({onComplete:()=>{
     if(!alive)return;
@@ -261,6 +263,7 @@ export function animateBankPour({root,source,fromScore,toScore,onTake,onCount,on
     svg.setAttribute('width',root.clientWidth);
     svg.setAttribute('height',root.clientHeight);
     svg.setAttribute('aria-hidden','true');
+    root.appendChild(svg);nodes.push(svg);
     const d='M '+sx+' '+sy+' C '+(sx+27)+' '+(sy-32)+', '+(ex-32)+' '+(ey-48)+', '+ex+' '+ey;
     for(const [className,width] of [['sgv-pour-stream-glow','10'],['sgv-pour-stream-core','5']]){
       const path=doc.createElementNS('http://www.w3.org/2000/svg','path');
@@ -274,7 +277,6 @@ export function animateBankPour({root,source,fromScore,toScore,onTake,onCount,on
       gsap.set(path,{strokeDasharray:length,strokeDashoffset:length});
       tweens.push(gsap.to(path,{strokeDashoffset:0,duration:.35,ease:'power1.inOut'}));
     }
-    root.appendChild(svg);nodes.push(svg);
     tweens.push(gsap.to(svg,{opacity:0,duration:.24,delay:.54}));
   },[],.25);
 
