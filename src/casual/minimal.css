@@ -568,3 +568,165 @@ button:focus-visible{outline:4px solid #4269f9;outline-offset:4px}
  .sgv-event-zero_break .sgv-meter-needle{animation:none}
  .sgv-fluid-drop{display:none}
 }
+
+
+/* P0 two-bottle interaction: one small at-risk source + one larger secured
+   destination. No separate Bank button and no duplicated secured HUD. */
+.sgv-bottle-pair{
+ position:relative;z-index:2;flex:1;min-height:0;min-width:0;
+ width:100%;max-width:480px;display:flex;align-items:center;justify-content:center;
+ gap:clamp(12px,3.2vw,23px);padding:4px 0 clamp(8px,2dvh,18px);
+}
+.sgv-bottle-pair .sgv-pending-pot{
+ position:relative;left:auto;right:auto;top:auto;bottom:auto;
+ flex:0 1 clamp(96px,27vw,142px);width:clamp(96px,27vw,142px);
+ height:clamp(115px,17.5dvh,169px);min-width:0;
+ margin:clamp(12px,2.2dvh,20px) 0 0;
+ border:0;border-radius:0;background:none;
+ padding:0;display:block;overflow:visible;
+ box-shadow:none;opacity:1;filter:none;appearance:none;
+ color:#865a3b;text-shadow:none;cursor:pointer;
+ transform-origin:78% 82%;will-change:transform;
+}
+.sgv-bottle-pair .sgv-pending-pot:disabled{
+ opacity:1;filter:none;cursor:default;
+}
+.sgv-bottle-pair .sgv-pending-pot:focus-visible{
+ outline:4px solid #3d72ee;outline-offset:4px;border-radius:22px;
+}
+.sgv-bottle-pair .sgv-pending-pot::before{
+ content:"";position:absolute;z-index:0;
+ left:5%;right:5%;top:auto;bottom:0;height:13%;
+ border:3px solid #e5d7d3;border-radius:50%;
+ background:linear-gradient(#f7f0ee,#a9a4bc);
+ box-shadow:0 4px 0 #6f928988;pointer-events:none;
+}
+.sgv-bottle-pair .sgv-pending-pot::after{display:none}
+.sgv-pot-bottle-glass{
+ position:absolute;z-index:1;left:10%;right:10%;top:19%;bottom:11%;
+ overflow:hidden;border:5px solid #b3dff3;
+ border-radius:31% 31% 27% 27%/21% 21% 27% 27%;
+ background:linear-gradient(110deg,#baf0f97a 0%,#ffffff4b 27%,#e4fffd28 61%,#97dce967 100%);
+ box-shadow:inset 5px 3px 6px #ffffffb2,inset -5px -5px 8px #9bd4df59,
+  0 4px 8px #7b9f9c5c;
+ pointer-events:none;
+}
+.sgv-pot-bottle-glass .sgv-pot-liquid{
+ left:0;right:0;bottom:0;top:auto;border-radius:12px 12px 20px 20px;
+}
+.sgv-pot-glass-shine{
+ position:absolute;z-index:2;top:12%;bottom:23%;left:8%;width:6px;
+ border-radius:99px;background:#ffffffbf;filter:blur(1px);
+ pointer-events:none;
+}
+.sgv-pot-bottle-rim{
+ position:absolute;z-index:4;top:13%;left:29%;right:29%;height:12%;
+ border:4px solid #fff2c9;border-radius:18px;
+ background:linear-gradient(#ffe9bb,#e6ae6f 68%,#bc804d);
+ box-shadow:inset 0 2px #fff9db,0 3px 0 #9b704c;
+ pointer-events:none;
+}
+.sgv-bottle-pair .sgv-pot-label{
+ position:absolute;z-index:5;left:0;right:0;top:36%;
+ font-size:clamp(11px,2.9vw,14px);line-height:1;
+ text-align:center;color:#80543d;text-shadow:0 1px #fff9e3;
+}
+.sgv-bottle-pair .sgv-pot-amount{
+ position:absolute;z-index:5;left:0;right:0;top:54%;
+ margin:0;display:flex;align-items:center;justify-content:center;
+ gap:3px;font-size:clamp(22px,6vw,31px);
+ line-height:1;font-variant-numeric:tabular-nums;
+ color:#8d5a38;text-shadow:0 1px #fffbd9;
+}
+.sgv-bottle-pair .sgv-pot-bank-preview{
+ position:absolute;z-index:8;left:50%;bottom:-13px;
+ transform:translateX(-50%);
+ padding:4px 8px;border-radius:16px;
+ border:2px solid #fff8d9;background:linear-gradient(#a4f3d7,#63c4a7);
+ box-shadow:0 3px #439c85,0 5px 8px #54856c55;
+ color:#24664d;font-weight:1000;
+ font-size:clamp(11px,2.8vw,13px);line-height:1;
+ text-shadow:0 1px #eaffd4;white-space:nowrap;
+ pointer-events:none;
+ animation:sgv-pot-ready 2s ease-in-out infinite;
+}
+@keyframes sgv-pot-ready{
+ 0%,100%{filter:brightness(1)}
+ 50%{filter:brightness(1.13)}
+}
+.sgv-bottle-pair .sgv-pot-resonance{
+ top:14%;right:-5px;font-size:9px;
+}
+.sgv-bottle-pair .sgv-chest-area{
+ position:relative;flex:0 1 clamp(178px,51vw,290px);
+ width:clamp(178px,51vw,290px);
+ height:clamp(155px,24dvh,245px);
+ min-width:0;max-width:none;min-height:0;
+ align-items:center;justify-content:center;isolation:isolate;
+}
+.sgv-bottle-pair .sgv-chest-art{
+ width:100%;height:100%;max-width:none;max-height:none;
+ filter:drop-shadow(0 8px 8px #488c665a);
+}
+.sgv-bottle-pair .sgv-chest-body{
+ top:19%;bottom:17%;left:8%;right:8%;
+ border-radius:25% 25% 23% 23% / 22% 22% 28% 28%;
+}
+.sgv-bottle-pair .sgv-chest-rim{
+ left:32%;right:32%;top:13%;height:11%;
+ border:4px solid #ffe8b4;border-radius:18px;
+}
+.sgv-bottle-pair .sgv-chest-mouth{top:15%;z-index:7}
+.sgv-bottle-pair .sgv-goal-progress{
+ position:absolute;left:50%;right:auto;top:-9px;bottom:auto;
+ transform:translateX(-50%);z-index:12;
+ min-width:clamp(110px,29vw,147px);
+ padding:5px 9px 6px;pointer-events:none;
+}
+.sgv-bottle-pair .sgv-chest-glow{bottom:8%}
+/* Keep only one main bottom action. Reserve the rest of the control strip
+   for future abilities rather than filling it with redundant controls. */
+.sgv-actions{
+ display:flex;align-items:center;justify-content:center;
+ grid-template-columns:none;
+}
+.sgv-actions .sgv-flip{
+ flex:0 1 345px;width:min(100%,345px);
+ min-width:0;
+}
+/* The pour has a gentle amber core. Measuring the tilted bottle lip in JS
+   keeps this flow attached even on devices with large safe areas. */
+.sgv-pour-stream{
+ position:absolute;z-index:22;inset:0;overflow:visible;
+ pointer-events:none;opacity:1;will-change:opacity;
+}
+.sgv-pour-stream-glow{
+ stroke:#ffe99b;opacity:.65;filter:drop-shadow(0 0 4px #ffe89c);
+}
+.sgv-pour-stream-core{stroke:#ffbe46;opacity:1}
+@media(max-width:365px){
+ .sgv-bottle-pair{gap:10px}
+ .sgv-bottle-pair .sgv-pending-pot{flex-basis:94px;width:94px;height:118px}
+ .sgv-bottle-pair .sgv-chest-area{flex-basis:178px;width:178px;height:161px}
+ .sgv-bottle-pair .sgv-goal-progress{min-width:110px}
+ .sgv-bottle-pair .sgv-pot-bank-preview{padding:3px 6px;font-size:11px}
+}
+@media(max-height:730px){
+ .sgv-bottle-pair{padding-bottom:4px}
+ .sgv-bottle-pair .sgv-pending-pot{height:clamp(98px,16.5dvh,123px);margin-top:9px}
+ .sgv-bottle-pair .sgv-chest-area{height:clamp(128px,21dvh,167px)}
+ .sgv-bottle-pair .sgv-goal-progress{top:-7px}
+}
+@media(max-height:580px){
+ .sgv-bottle-pair .sgv-pending-pot{height:96px;margin-top:7px}
+ .sgv-bottle-pair .sgv-chest-area{height:120px}
+ .sgv-bottle-pair .sgv-pot-label{top:33%;font-size:10px}
+ .sgv-bottle-pair .sgv-pot-amount{top:52%;font-size:20px}
+ .sgv-bottle-pair .sgv-pot-bank-preview{bottom:-11px;font-size:10px}
+ .sgv-bottle-pair .sgv-goal-progress{top:-7px;padding:3px 7px}
+ .sgv-actions .sgv-flip{max-height:55px}
+}
+@media(prefers-reduced-motion:reduce){
+ .sgv-bottle-pair .sgv-pot-bank-preview{animation:none}
+ .sgv-pour-stream{display:none}
+}

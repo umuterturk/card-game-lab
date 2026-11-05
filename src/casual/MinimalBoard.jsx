@@ -48,16 +48,27 @@ export function HorizontalMeter({position,limit=8,multipliers=[]}){
  </section>;
 }
 
-// A compact, glass-like Pot. The value is the raw unbanked card total, not the payout.
-export function PendingPot({value,resonance=0,target=24}){
+// Small source bottle: raw at-risk value and prospective engine payout are different.
+// The bottle itself is the only Bank control; no duplicated bottom CTA.
+export function PendingPot({value,resonance=0,target=24,bankable=false,bankPreview=0,onBank}){
  const fill=fluidFillPercent(value,target,{max:76});
- return <div className="sgv-pending-pot" role="status"
-   aria-label={'At-risk Pot: '+value+' drops'+(resonance?' plus '+resonance+' bonus':'')}>
-   <span className="sgv-pot-liquid" style={{height:fill+'%',opacity:fill>0?1:0}} aria-hidden="true"/>
+ return <button type="button"
+   className={'sgv-pending-pot sgv-pot-bottle'+(bankable?' sgv-pot-bankable':'')}
+   disabled={!bankable}
+   onClick={event=>onBank?.(event.currentTarget)}
+   aria-label={bankable
+     ?'Bank '+bankPreview+' drops from Pot holding '+value+' at risk'
+     :'Pot holds '+value+' drops at risk. Banking not yet available'}>
+   <span className="sgv-pot-bottle-glass" aria-hidden="true">
+     <span className="sgv-pot-liquid" style={{height:fill+'%',opacity:fill>0?1:0}}/>
+     <span className="sgv-pot-glass-shine"/>
+   </span>
+   <span className="sgv-pot-bottle-rim" aria-hidden="true"/>
    <span className="sgv-pot-label">POT</span>
    <span className="sgv-pot-amount"><DropletIcon className="sgv-pot-drop"/>{value}</span>
    {resonance>0&&<span className="sgv-pot-resonance">+{resonance} BONUS</span>}
- </div>;
+   {bankable&&<span className="sgv-pot-bank-preview" aria-hidden="true">BANK +{bankPreview}</span>}
+ </button>;
 }
 
 export function GoalProgress({banked,target}){
@@ -66,11 +77,11 @@ export function GoalProgress({banked,target}){
  </div>;
 }
 
-// Compact glass tank: a smooth fluid fill rather than one physical coin per point.
+// Larger destination bottle. Its fluid represents only secured engine value.
 export function GlassChest({banked,target}){
  const fill=fluidFillPercent(banked,target,{max:78});
- return <div className="sgv-chest-area" aria-label={banked+' of '+target+' drops secured'}
-   data-gold={banked}>
+ return <div className="sgv-chest-area sgv-bank-bottle"
+   aria-label={banked+' of '+target+' drops secured'} data-gold={banked}>
    <div className="sgv-chest-glow" aria-hidden="true"/>
    <div className="sgv-chest-art">
      <div className="sgv-chest-platform" aria-hidden="true"/>
