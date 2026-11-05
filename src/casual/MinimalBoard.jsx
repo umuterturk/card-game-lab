@@ -2,6 +2,12 @@ import React from 'react';
 import {meterPercent,meterMarks} from './meterScale.js';
 export const signedValue=n=>n>0?'+'+n:String(n);
 
+// One decorative currency symbol for HUD, Pot, Bank, and reward effects.
+// A level-achievement star is never used to represent currency.
+export function CoinIcon({className=''}) {
+ return <span className={'sgv-coin-symbol '+className} aria-hidden="true"/>;
+}
+
 export function HorizontalMeter({position,limit=8,multipliers=[]}){
  const percentage=meterPercent(position,limit);
  return <section className="sgv-meter-section" aria-label="Swing meter and multipliers">
@@ -44,7 +50,7 @@ function GoldPile({value}){
      const size=15+(i*7)%7;
      return <span key={i} className="sgv-gold-piece"
        style={{left:x+'%',bottom:y+'%',width:size+'px',height:size+'px',
-         '--tilt':(i*29%36-18)+'deg'}}>★</span>;
+         '--tilt':(i*29%36-18)+'deg'}}/>;
    })}
  </div>;
 }
@@ -53,7 +59,7 @@ function GoldPile({value}){
 export function PendingPot({value,resonance=0}){
  return <div className="sgv-pending-pot" role="status" aria-label={'At risk Pot: '+value+(resonance?' plus '+resonance+' resonance bonus':'')}>
    <span className="sgv-pot-label">POT</span>
-   <span className="sgv-pot-amount"><span aria-hidden="true">★</span>{value}</span>
+   <span className="sgv-pot-amount"><CoinIcon className="sgv-pot-coin"/>{value}</span>
    {resonance>0?<span className="sgv-pot-resonance">+{resonance} BONUS</span>:
      <span className="sgv-pot-coins" aria-hidden="true">✦ ✦</span>}
  </div>;
@@ -88,7 +94,7 @@ export function GlassChest({banked}){
 export function IntroTarget({target,onDone,sequence}){
  return <div className="sgv-intro-target" key={sequence} aria-live="polite"
    onAnimationEnd={event=>{if(event.target===event.currentTarget)onDone();}}>
-   <div className="sgv-intro-coin">★</div>
+   <div className="sgv-intro-coin" aria-hidden="true"/>
    <div className="sgv-intro-message"><span>COLLECT</span><strong>{target}</strong><span>GOLD!</span></div>
  </div>;
 }
