@@ -196,3 +196,17 @@ test('Tutorial-only gates preserve default Overswing scoring when not selected',
   noResonance=stepOverswing(noResonance,steer(0),{...base,enableResonance:false});
   assert.equal(noResonance.deal.resonancePoints,0);
 });
+import {simulateOnboardingLevel} from '../scripts/simulate-casual-onboarding.mjs';
+
+test('deterministic state explorer finds wins for all ten levels and no early dead ends',()=>{
+  for(let id=1;id<=ONBOARDING_COUNT;id++){
+    const report=simulateOnboardingLevel(id,{maxStates:25000,maxDepth:16});
+    assert.ok(report.shortestWin,'No winning path for level '+id);
+    assert.ok(report.wins>0,'No winning terminal for level '+id);
+    if(id<=3){
+      assert.equal(report.failedEnds,0,'An early level can fail: '+id);
+      assert.equal(report.deadEnds,0,'An early level can dead-end: '+id);
+      assert.equal(report.truncated,false,'Early level was not exhaustively checked: '+id);
+    }
+  }
+});
