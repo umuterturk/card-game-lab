@@ -222,7 +222,7 @@ export default function SimplifiedGame(){
         </div>
         {level.showFlip&&<div className="sgv-actions sgv-tutorial-actions">
           <button type="button"
-            className={'sgv-action sgv-flip'+(hint&&canFlip?' sgv-attention':'')}
+            className="sgv-action sgv-flip" data-hint={!!hint&&canFlip}
             disabled={!canFlip}
             onClick={e=>play({type:'flip'},e.currentTarget.querySelector('.sgv-next-card'))}
             aria-label={'Flip a hidden card. '+remaining+' remain'}>
