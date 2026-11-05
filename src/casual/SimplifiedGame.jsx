@@ -120,9 +120,10 @@ export default function SimplifiedGame(){
    });
  }
 
- const notice=feedback==='snap'||event.type==='snap'
+ const currentEvent=feedback||event.type;
+ const notice=currentEvent==='snap'
    ?'SNAP! Pending Pot lost'
-   :feedback==='zero_break'||event.type==='zero_break'
+   :currentEvent==='zero_break'
    ?'ZERO BREAK — Pot kept, factors reset'
    :turn===0?'Tap a card to move the marker'
    :!canBank&&view.rawPot>0&&!animating?'Play another card to Bank'
