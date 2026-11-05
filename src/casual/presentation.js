@@ -10,10 +10,12 @@ export function rawPotValue(deal){
 
 // Keep the tank a readable, compact visual meter. More points always mean more fluid;
 // values beyond the goal are capped visually (the true numbers remain visible).
-export function fluidFillPercent(amount,target,{max=78}={}){
+export function fluidFillPercent(amount,target,{max=78,smooth=false}={}){
   if(!Number.isFinite(amount)||!Number.isFinite(target)||target<=0||max<=0)return 0;
   if(amount<=0)return 0;
-  return Math.min(max,Math.max(5,Math.round((amount/target)*max)));
+  const percent=Math.min(max,(amount/target)*max);
+  // Float height for real-time pouring; retain existing discrete display for normal play.
+  return smooth?percent:Math.max(5,Math.round(percent));
 }
 
 export function actionPresentation(before,after,action){
