@@ -28,7 +28,7 @@ test('ten validated levels progressively unlock only taught controls',()=>{
   assert.equal(ONBOARDING_COUNT,10);
   for(const level of ONBOARDING_LEVELS){
     assert.equal(onboardingLevel(level.id),level);
-    assert.equal(level.showMeter,level.id>=2);
+    assert.equal(level.showMeter,true);
     assert.equal(level.showFlip,level.id>=4);
     assert.equal(level.showChances,level.id>=9);
     assert.equal(level.visibleFactors.length,Math.max(0,Math.min(3,level.id-4)));
@@ -39,28 +39,36 @@ test('ten validated levels progressively unlock only taught controls',()=>{
   }
 });
 
-test('Level 1: one displayed card, exactly two taps and BANK 5',()=>{
-  const config=onboardingLevel(1);
-  assert.equal(config.visibleHandSlots,1);
-  let state=newOnboardingRound(1);
-  assert.deepEqual(state.game.deal.hand.map(signed),[2,3]);
-  assert.deepEqual(onboardingActions(state),[steer(0)]);
-  assert.strictEqual(stepOnboarding(state,flip),state);
-  assert.strictEqual(stepOnboarding(state,bank),state);
-  state=stepOnboarding(state,steer(0));
-  assert.equal(state.game.deal.T,0);
-  assert.equal(state.game.deal.pot.length,1);
-  assert.equal(state.game.deal.pot.map(signed)[0],2);
-  assert.deepEqual(onboardingActions(state),[steer(0)]);
-  state=stepOnboarding(state,steer(0));
-  assert.equal(overswingPayout(state.game,config.rules),5);
-  assert.deepEqual(onboardingActions(state),[bank]);
-  state=stepOnboarding(state,bank);
-  assert.equal(state.game.deal.T,5);
-  assert.equal(state.game.deal.pot.length,0);
-  assert.equal(onboardingVictory(state),true);
-  assert.equal(onboardingFinished(state),true);
-  assert.equal(state.turn,3);
+test('Level 1: full three-card hand, meter and two-choice Bank finish without Snap',()=>{
+  const level=onboardingLevel(1);
+  assert.equal(level.showMeter,true);
+  assert.equal(level.showFlip,false);
+  assert.deepEqual(level.visibleFactors,[]);
+  assert.equal(level.initialHandSize,3);
+  assert.equal(level.visibleHandSlots,3);
+  const start=newOnboardingRound(1);
+  assert.deepEqual(start.game.deal.hand.map(signed),[2,-3,4]);
+  assert.deepEqual(onboardingActions(start),[steer(0),steer(1),steer(2)]);
+  assert.strictEqual(stepOnboarding(start,flip),start);
+  assert.strictEqual(stepOnboarding(start,bank),start);
+  for(const first of [0,1,2])for(const second of [0,1]){
+    let s=stepOnboarding(start,steer(first));
+    assert.equal(s.game.deal.T,0,'Cards must only enter pending Pot');
+    assert.equal(s.game.deal.pot.length,1);
+    assert.deepEqual(onboardingActions(s),[steer(0),steer(1)]);
+    s=stepOnboarding(s,steer(second));
+    assert.equal(s.snaps,0,'No first-level card choice may cause Snap');
+    assert.deepEqual(factorValues(s),[1,1,1]);
+    assert.equal(s.game.deal.pot.length,2);
+    assert.ok(overswingPayout(s.game,level.rules)>=level.target);
+    assert.ok(onboardingActions(s).some(action=>action.type==='bank'));
+    s=stepOnboarding(s,bank);
+    assert.ok(s.game.deal.T>=level.target);
+    assert.equal(s.game.deal.pot.length,0);
+    assert.equal(onboardingVictory(s),true);
+    assert.equal(onboardingFinished(s),true);
+    assert.equal(s.turn,3);
+  }
 });
 
 test('Level 2: positive moves right, negative moves left and both add positive Pot',()=>{
@@ -209,4 +217,19 @@ test('deterministic state explorer finds wins for all ten levels and no early de
       assert.equal(report.truncated,false,'Early level was not exhaustively checked: '+id);
     }
   }
+});
+
+
+test('First screen always renders header, meter, hand, Pot, Bank destination and Bank action',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const source=await readFile(new URL('../src/casual/SimplifiedGame.jsx',import.meta.url),'utf8');
+  assert.match(source,/<header className="sgv-hud sgv-tutorial-hud">/);
+  assert.match(source,/<HorizontalMeter position=\{view\.position\}/);
+  assert.doesNotMatch(source,/level\.showMeter\s*\?/);
+  assert.match(source,/<PendingPot value=\{potDisplay\}/);
+  assert.doesNotMatch(source,/sgv-pot-dormant/);
+  assert.match(source,/<GlassChest banked=\{shownGold\}/);
+  assert.match(source,/<SimpleCard key=\{id\}/);
+  assert.match(source,/className=\{'sgv-action sgv-bank sgv-bank-command'/);
+  assert.match(source,/const shownHand=deal\.hand\.slice/);
 });

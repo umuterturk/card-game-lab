@@ -10,7 +10,7 @@ import {
   onboardingVictory,stepOnboarding,wouldSnap,ONBOARDING_COUNT
 } from './onboardingLevels.js';
 
-const SESSION_KEY='swing-casual-onboarding-session-v1';
+const SESSION_KEY='swing-casual-onboarding-session-v2';
 const PROGRESS_KEY='swing-casual-onboarding-unlocked-v1';
 const event=(name,details={})=>{
   if(typeof window==='undefined')return;
@@ -67,8 +67,8 @@ export default function SimplifiedGame(){
   const hearts=Math.max(0,level.maxSnaps-view.snaps);
   const scriptAction=level.script[round.turn];
   // During a one-action teaching beat, don't offer other inactive choices.
-  const shownHand=scriptAction?.type==='flip'?[]:
-    deal.hand.slice(0,level.visibleHandSlots);
+  // Never remove the hand just because a teaching beat focuses on FLIP.
+  const shownHand=deal.hand.slice(0,level.visibleHandSlots);
 
   useEffect(()=>()=>{
     cancelRef.current?.();resetMotionRef.current?.();
@@ -83,7 +83,7 @@ export default function SimplifiedGame(){
       const message=idleHint(level,round,available);
       setHint(message);
       event('hint_shown',{level:level.id,turn:round.turn});
-    },2800);
+    },5000);
     return ()=>clearTimeout(timer);
   },[animating,round.turn,round.levelId,finished]);
 
@@ -187,27 +187,31 @@ export default function SimplifiedGame(){
       <GardenScene/>
       <div className="sgv-atmosphere" aria-hidden="true"/>
       <header className="sgv-hud sgv-tutorial-hud">
-        {level.id>=3&&<span className="sgv-tutorial-level">LEVEL {level.id}</span>}
-        {level.showChances&&<div className="sgv-lives" aria-label={hearts+' chances remaining'}>
-          {Array.from({length:level.maxSnaps},(_,i)=><span key={i}
-            className={i<hearts?'sgv-heart':'sgv-heart sgv-heart-empty'}>♥</span>)}
-        </div>}
-        {level.id>=5&&<div className="sgv-tutorial-links">
-          <button type="button" onClick={()=>setHelp(v=>!v)} aria-label="About this level">?</button>
-          {level.id<ONBOARDING_COUNT&&<button type="button" onClick={skip}>Skip</button>}
-        </div>}
+        <div className="sgv-level" aria-label={'Level '+level.id}>
+          <span>★</span><strong>Level {level.id}</strong>
+        </div>
+        <div className="sgv-hud-right">
+          <div className="sgv-gold-counter" aria-label={shownGold+' drops secured'}>
+            <span className="sgv-gold-icon">●</span><strong>{shownGold}</strong>
+          </div>
+          {level.showChances&&<div className="sgv-lives" aria-label={hearts+' chances remaining'}>
+            {Array.from({length:level.maxSnaps},(_,i)=><span key={i}
+              className={i<hearts?'sgv-heart':'sgv-heart sgv-heart-empty'}>♥</span>)}
+          </div>}
+          {level.id>=5&&<div className="sgv-tutorial-links">
+            <button type="button" onClick={()=>setHelp(v=>!v)} aria-label="About this level">?</button>
+            {level.id<ONBOARDING_COUNT&&<button type="button" onClick={skip}>Skip</button>}
+          </div>}
+        </div>
       </header>
       <div className="sgv-middle">
-        {level.showMeter?
-          <HorizontalMeter position={view.position} limit={level.rules.snapLimit}
-            multipliers={view.factors} visibleFactors={level.visibleFactors}/>:
-          <div className="sgv-meter-placeholder" aria-hidden="true"/>}
+        <HorizontalMeter position={view.position} limit={level.rules.snapLimit}
+          multipliers={view.factors} visibleFactors={level.visibleFactors}
+          showDanger={level.showChances}/>
         <span className="sgv-flight-center" aria-hidden="true"/>
         <div className="sgv-bottle-pair" aria-label="Pending Pot and secured glass">
           <PendingPot value={potDisplay} target={level.target}
-            className={(level.id<=2&&round.turn===0&&view.rawPot===0?' sgv-pot-dormant':'')+
-              (hint&&canBank?' sgv-attention':'')}
-            bankable={canBank} onBank={source=>play({type:'bank'},source)}/>
+            bankable={canBank} interactive={false}/>
           <GlassChest banked={shownGold} target={level.target} minimal={level.id<=2}/>
         </div>
       </div>
@@ -215,13 +219,21 @@ export default function SimplifiedGame(){
         <div className="sgv-card-shelf" aria-hidden="true"/>
         <div className="sgv-hand" aria-label="Your cards">
           {shownHand.map((id,i)=><SimpleCard key={id} id={id} index={i}
-            value={signed(id)} showDirection={level.id>=2}
+            value={signed(id)} showDirection={true}
             risky={level.showChances&&wouldSnap(round,{type:'steer',index:i})}
+            highlighted={!!hint&&level.id<=3&&available.some(a=>a.type==='steer'&&a.index===i)}
             disabled={finished||animating||!available.some(a=>a.type==='steer'&&a.index===i)}
             onPlay={(index,element)=>play({type:'steer',index},element)}/>)}
         </div>
-        {level.showFlip&&<div className="sgv-actions sgv-tutorial-actions">
+        <div className="sgv-actions sgv-tutorial-actions">
           <button type="button"
+            className={'sgv-action sgv-bank sgv-bank-command'+(hint&&canBank?' sgv-attention':'')}
+            disabled={!canBank}
+            onClick={()=>play({type:'bank'},rootRef.current?.querySelector('.sgv-pending-pot'))}
+            aria-label={canBank?'Bank '+potDisplay+' pending drops':'Bank available after two cards'}>
+            <span className="sgv-action-text">BANK{canBank?' '+potDisplay:''}</span>
+          </button>
+          {level.showFlip&&<button type="button"
             className="sgv-action sgv-flip" data-hint={!!hint&&canFlip}
             disabled={!canFlip}
             onClick={e=>play({type:'flip'},e.currentTarget.querySelector('.sgv-next-card'))}
@@ -230,10 +242,10 @@ export default function SimplifiedGame(){
             <span className="sgv-action-text">FLIP</span>
             <span className="sgv-flip-next"><span className="sgv-next-card">?</span>
               <small>{remaining} left</small></span>
-          </button>
-        </div>}
+          </button>}
+        </div>
       </section>
-      {hint&&!finished&&<div className="sgv-tutorial-hint" role="status">{hint}</div>}
+      {hint&&level.id>=4&&!finished&&<div className="sgv-tutorial-hint" role="status">{hint}</div>}
       {help&&!finished&&<div className="sgv-tutorial-help" role="note">{level.lesson}</div>}
       {finished&&<div className="sgv-end-overlay" role="dialog" aria-modal="true" aria-labelledby="sgv-end-title">
         <div className="sgv-end-card">
