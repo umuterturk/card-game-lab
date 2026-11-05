@@ -122,3 +122,28 @@ This iteration addresses remaining visible flaws in the earlier iPhone reference
 - No new sounds, mechanics, Royals, relics, levels, hand refills, rules or auto-play changes are introduced here.
 
 **Acceptance still needed:** Compare at least one new iPhone screenshot to the approved mockup; review start, one safe card, Bank, Snap, Zero Break, and win; test small-height viewports, muted/reduced-motion mode, and overlay position. Tests and builds provide code validation, not visual acceptance.
+
+
+## P0 two-bottle tap-to-bank milestone — 2026-11-05
+
+**Design decision:** Replace the separated at-risk Pot, centered Bank tank, and standalone Bank CTA with **two adjacent fluid bottles**: a small at-risk Pot on the left and a larger secured Bank on the right. Banking is initiated by tapping the small bottle, not a separate action button.
+
+### Interaction contract
+
+- **Small Pot bottle:** shows exact raw unbanked card value. When the original engine makes Bank legal, it is an accessible, tappable button with a visible `BANK +N` preview, where N is `overswingPayout` (not simply the Pot value). Disabled otherwise.
+- **Large Bank bottle:** shows exact secured value and level target. Only engine-settled Bank actions increase its liquid and displayed count. The label belongs to the bottle rim, not the hand shelf.
+- **Pour effect:** Pot tilts toward Bank, a small curved fluid stream crosses between bottle lips, the at-risk Pot empties as liquid begins pouring, Bank fill/count rise upon arrival, earned payout pops, Pot returns upright, then controls unlock. A win overlay appears only after the transaction animation.
+- **Snap:** loses only at-risk Pot fluid, not the secured Bank. **Zero Break:** resets multipliers, retains Pot; neither adds secured fluid.
+- **HUD simplification:** remove duplicate top secured counter and the standalone bottom Bank button. Keep Level, chances, meter with three factors, hand and Flip. No new mechanics or abilities.
+
+### Acceptance checks
+
+1. Verify the bottles remain side by side at 320/375/390/430 CSS px widths, including short viewport cases and iPhone safe areas. Pot contents and preview must not overlap card slots, label or larger bottle.
+2. Verify keyboard/touch taps bank **only when legal**, double taps cannot bank twice, and early Snap / restart do not leave tilted bottles or an orphan stream.
+3. Verify `Pot 5` with multipliers totaling ×2 can display `BANK +10`, and on bank the Pot reaches 0 while Bank reaches its existing secured total.
+4. Test reduced motion: Bank transaction completes immediately with the exact engine amount; no path or sound is required.
+5. Verify sound-off animation sequence and screenshot on a real iPhone. Node tests and build do not prove on-device visual quality.
+
+### Still next
+
+Visual iPhone acceptance and interaction-timing fixes, then five-player no-instructions comprehension test and later level/ability slots. Browser smoke remains excluded from automatic CI by prior request.
