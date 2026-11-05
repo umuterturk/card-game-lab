@@ -107,7 +107,8 @@ test('Pot physically approaches the Bank lip, streams briefly, then returns home
  assert.match(screen,/potValue:change\.rawPotBefore/);
  assert.match(screen,/cancelRef\.current=animateBankPour\(/);
  assert.match(board,/className="sgv-pot-pour-lip"/);
- assert.match(board,/className="sgv-pot-bottle-mouth"/);
+ assert.doesNotMatch(board,/className="sgv-pot-bottle-mouth"/);
+ assert.doesNotMatch(board,/className="sgv-chest-rim"/);
  assert.doesNotMatch(board,/className="sgv-pot-bottle-rim"/);
  assert.match(css,/\.sgv-pot-bottle-mouth\{/);
  assert.match(motion,/export function animateSnapLoss\(/);
@@ -214,3 +215,48 @@ test('only a bankable Pot shines; touch remains possible and reduced motion is r
  assert.match(css,/@media\(prefers-reduced-motion:reduce\)\{\s*\.sgv-pot-bankable/);
 });
 
+
+
+test('LEFT/RIGHT conveys direction without signed numbers on cards or meter',()=>{
+ const board=read('src/casual/MinimalBoard.jsx');
+ const motion=read('src/casual/minimalMotion.js');
+ const css=read('src/casual/minimal.css');
+ assert.match(board,/export const directionLabel=n=>n<0\?'LEFT':n>0\?'RIGHT':'CENTER'/);
+ assert.match(board,/className="sgv-meter-side sgv-meter-side-left">LEFT/);
+ assert.match(board,/className="sgv-meter-side sgv-meter-side-right">RIGHT/);
+ assert.match(board,/\{Math\.abs\(number\)\}/);
+ assert.match(board,/\{Math\.abs\(position\)\}/);
+ assert.match(board,/className="sgv-card-direction">\{directionLabel\(value\)\}/);
+ assert.match(board,/\{Math\.abs\(value\)\}/);
+ assert.match(board,/aria-label=\{'Play '\+directionalValue\(value\)\}/);
+ assert.doesNotMatch(board,/<strong>\{signedValue\(value\)\}<\/strong>/);
+ assert.match(motion,/view\.signedCard<0\?'LEFT':'RIGHT'/);
+ assert.match(motion,/Math\.abs\(view\.signedCard\)/);
+ assert.match(css,/\.sgv-card-direction\{/);
+ assert.match(css,/\.sgv-meter-side-left\{/);
+});
+
+test('no visual bottle lids, but invisible lip and Bank mouth anchors remain for pouring',()=>{
+ const board=read('src/casual/MinimalBoard.jsx');
+ const motion=read('src/casual/minimalMotion.js');
+ const css=read('src/casual/minimal.css');
+ assert.doesNotMatch(board,/sgv-pot-bottle-mouth|className="sgv-chest-rim"/);
+ assert.match(board,/className="sgv-pot-pour-lip"/);
+ assert.match(board,/className="sgv-chest-mouth"/);
+ assert.match(motion,/start=point\(lip,root\),end=point\(mouth,root\)/);
+ assert.match(css,/\.sgv-bottle-pair \.sgv-chest-rim\{display:none!important\}/);
+});
+
+test('Snap cracks and loses pending fluid; Zero Break cracks but retains Pot',()=>{
+ const motion=read('src/casual/minimalMotion.js');
+ const screen=read('src/casual/SimplifiedGame.jsx');
+ const css=read('src/casual/minimal.css');
+ assert.match(motion,/export function animatePotBreak\(root,kind='snap'\)/);
+ assert.match(motion,/sgv-pot-fracture/);
+ assert.match(screen,/breakMotionRef\.current=animatePotBreak\(root,'snap'\)/);
+ assert.match(screen,/breakMotionRef\.current=animatePotBreak\(root,'zero'\)/);
+ assert.match(screen,/lossMotionRef\.current=animateSnapLoss\(root,change\.rawPotBefore\)/);
+ assert.match(css,/\.sgv-pot-fracture-snap path\{/);
+ assert.match(css,/\.sgv-pot-fracture-zero path\{/);
+ assert.match(screen,/breakMotionRef\.current\?\.\(\)/);
+});
