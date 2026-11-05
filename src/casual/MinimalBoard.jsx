@@ -1,6 +1,7 @@
 import React from 'react';
 import {meterPercent,meterMarks} from './meterScale.js';
 import {fluidFillPercent} from './presentation.js';
+import {CARD_ARROW_PATH,cardDirection,cardAccentMix} from './cardDirection.js';
 
 export const signedValue=n=>n>0?'+'+n:String(n);
 export const directionLabel=n=>n<0?'LEFT':n>0?'RIGHT':'CENTER';
@@ -27,15 +28,13 @@ export function HorizontalMeter({position,limit=8,multipliers=[]}){
      <div className="sgv-meter-track" role="img" data-edge-danger={Math.abs(position)>=limit-2}
        aria-label={'Swing position '+directionalValue(position)}>
        <div className="sgv-meter-scale" aria-hidden="true">
-         <span className="sgv-meter-side sgv-meter-side-left">LEFT</span>
-         <span className="sgv-meter-side sgv-meter-side-right">RIGHT</span>
          <div className="sgv-meter-ticks">
            {meterMarks(limit).map(number=>
              <span key={number} className={'sgv-meter-tick'+(number===0?' sgv-meter-tick-zero':'')}
                style={{left:meterPercent(number,limit)+'%'}}>{Math.abs(number)}</span>)}
          </div>
          <span className="sgv-meter-marker" style={{left:percentage+'%'}}>
-           <span className="sgv-meter-number">{position===0?'0':<><small className="sgv-marker-direction">{directionLabel(position)}</small><strong>{Math.abs(position)}</strong></>}</span>
+           <span className="sgv-meter-number">{Math.abs(position)}</span>
            <span className="sgv-meter-arrow"/>
            <span className="sgv-meter-needle" aria-hidden="true"/>
          </span>
@@ -116,15 +115,17 @@ export function IntroTarget({target,onDone,sequence}){
 }
 
 export function SimpleCard({id,index,value,disabled,onPlay}){
- const type=value<0?'cloud':id===4||id%5===0?'drop':'leaf';
+ const direction=cardDirection(value);
  return <button type="button"
-   className={'sgv-card sgv-card-'+type}
+   className={'sgv-card sgv-card-'+direction}
+   style={{'--sgv-card-mix':cardAccentMix(value)}}
    aria-label={'Play '+directionalValue(value)}
    disabled={disabled}
    onClick={event=>onPlay(index,event.currentTarget)}>
    <span className="sgv-card-gloss" aria-hidden="true"/>
-   <span className="sgv-card-glyph" aria-hidden="true">{type==='leaf'?'✿':type==='cloud'?'◆':'✦'}</span>
-   <span className="sgv-card-direction">{directionLabel(value)}</span>
+   <svg className="sgv-card-arrow" viewBox="0 0 80 58" aria-hidden="true" focusable="false">
+     <path d={CARD_ARROW_PATH}/>
+   </svg>
    <strong>{Math.abs(value)}</strong>
  </button>;
 }
