@@ -20,6 +20,16 @@ export function fluidFillPercent(amount,target,{max=78,smooth=false}={}){
 
 // Both displayed volumes derive from one clamped animation progress value.
 // The engine's settled before/after Bank totals remain the authority.
+// Player-facing Pot amount is the engine's prospective Bank payout, not the
+// unmultiplied raw card sum. During a pour, the same fraction is removed from
+// both the displayed number and the bottle's fluid fill.
+export function visiblePotPayout(enginePayout,rawTotal,rawRemaining){
+  if(!Number.isFinite(enginePayout)||enginePayout<=0||
+     !Number.isFinite(rawTotal)||rawTotal<=0)return 0;
+  const remaining=Number.isFinite(rawRemaining)?Math.max(0,Math.min(rawTotal,rawRemaining)):rawTotal;
+  return Math.ceil(enginePayout*(remaining/rawTotal));
+}
+
 export function bankPourAmounts(rawPot,securedBefore,securedAfter,progress){
   const p=Number.isFinite(progress)?Math.max(0,Math.min(1,progress)):0;
   return {
