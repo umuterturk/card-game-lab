@@ -10,7 +10,8 @@ export function HorizontalMeter({position,limit=8,multipliers=[]}){
    <div className="sgv-meter-caption"><span className="sgv-meter-name">SWING</span></div>
    <div className="sgv-meter" role="group" data-value={position}
      aria-label={'Swing at '+signedValue(position)+'; Snap beyond minus '+limit+' or plus '+limit}>
-     <div className="sgv-meter-track" role="img" aria-label={'Swing position '+signedValue(position)}>
+     <div className="sgv-meter-track" role="img" data-edge-danger={Math.abs(position)>=limit-2}
+       aria-label={'Swing position '+signedValue(position)}>
        <span className="sgv-meter-centerline" aria-hidden="true"/>
        <span className="sgv-meter-marker" style={{left:percentage+'%'}}>
          <span className="sgv-meter-number">{signedValue(position)}</span>
@@ -43,6 +44,21 @@ function GoldPile({value}){
        style={{left:x+'%',bottom:y+'%',width:size+'px',height:size+'px',
          '--tilt':(i*29%36-18)+'deg'}}>★</span>;
    })}
+ </div>;
+}
+
+// The open Pot is still at risk. Nothing in this tray is counted as secured gold.
+export function PendingPot({value}){
+ return <div className="sgv-pending-pot" role="status" aria-label={'At risk Pot: '+value}>
+   <span className="sgv-pot-label">POT</span>
+   <span className="sgv-pot-amount"><span aria-hidden="true">★</span>{value}</span>
+   <span className="sgv-pot-coins" aria-hidden="true">✦ ✦</span>
+ </div>;
+}
+
+export function GoalProgress({banked,target}){
+ return <div className="sgv-goal-progress" role="status" aria-label={'Secured '+banked+' of '+target+' gold'}>
+   <span>SECURED</span><strong>{banked} / {target}</strong>
  </div>;
 }
 
