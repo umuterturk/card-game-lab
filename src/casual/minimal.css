@@ -621,11 +621,16 @@ button:focus-visible{outline:4px solid #4269f9;outline-offset:4px}
  border-radius:99px;background:#ffffffbf;filter:blur(1px);
  pointer-events:none;
 }
-.sgv-pot-bottle-rim{
- position:absolute;z-index:4;top:13%;left:29%;right:29%;height:12%;
- border:4px solid #fff2c9;border-radius:18px;
- background:linear-gradient(#ffe9bb,#e6ae6f 68%,#bc804d);
- box-shadow:inset 0 2px #fff9db,0 3px 0 #9b704c;
+/* Glass lips are open, not plugged with wooden/cork lids. */
+.sgv-pot-bottle-mouth{
+ position:absolute;z-index:4;top:15%;left:12%;right:12%;height:16%;
+ border:3px solid #eaffff;border-radius:50%;
+ background:linear-gradient(#d5f5fab3,#ffffff32);
+ box-shadow:inset 0 2px 2px #f7ffffbe,0 2px 4px #77b6c0a3;
+ pointer-events:none;
+}
+.sgv-pot-pour-lip{
+ position:absolute;z-index:5;top:19%;right:16%;width:2px;height:2px;
  pointer-events:none;
 }
 .sgv-bottle-pair .sgv-pot-label{
@@ -731,4 +736,91 @@ button:focus-visible{outline:4px solid #4269f9;outline-offset:4px}
 @media(prefers-reduced-motion:reduce){
  .sgv-bottle-pair .sgv-pot-bank-preview{animation:none}
  .sgv-pour-stream{display:none}
+}
+
+
+/* The little Pot is physically lifted to this open Bank mouth before pouring.
+   The orange stream now spans only the short distance between glass lips. */
+.sgv-bottle-pair .sgv-chest-rim{
+ left:10%;right:10%;top:17%;height:12%;
+ border:4px solid #e8ffff;border-radius:50%;
+ background:linear-gradient(#c4eaf5b0,#ffffff33);
+ box-shadow:inset 0 2px 2px #f8ffffd6,0 2px 3px #72aeb884;
+}
+.sgv-bottle-pair .sgv-chest-rim:after{display:none}
+.sgv-bottle-pair .sgv-chest-mouth{top:21%;z-index:7}
+.sgv-bottle-pair .sgv-goal-progress{
+ top:62%;bottom:auto;left:50%;right:auto;transform:translateX(-50%);
+ min-width:0;width:max-content;max-width:96%;
+ background:transparent;border:0;border-radius:0;box-shadow:none;
+ padding:0;gap:2px;display:flex;align-items:center;
+ color:#754c35;text-align:center;text-shadow:0 1px 2px #fff7d9,0 0 4px #fff7c3;
+}
+.sgv-bottle-pair .sgv-goal-progress span{
+ font-size:clamp(9px,2.6vw,12px);letter-spacing:1px;line-height:1.05;
+ text-shadow:0 1px 2px #fff8dc;
+}
+.sgv-bottle-pair .sgv-goal-progress strong{
+ font-size:clamp(19px,5.1vw,25px);line-height:1.05;
+ letter-spacing:-.025em;color:#754c35;
+ text-shadow:0 1px 2px #fff9da,0 0 5px #fff3b8;
+}
+.sgv-multiplier-pill::before{display:none}
+.sgv-event-bank .sgv-pot-liquid{transition:none}
+.sgv-event-bank .sgv-fluid-fill{transition:height .12s linear,opacity .1s linear}
+.sgv-pour-stream{
+ filter:none;opacity:1;z-index:24;pointer-events:none;
+}
+.sgv-pour-stream-glow{stroke:#ffedb9;opacity:.7;filter:none}
+.sgv-pour-stream-core{stroke:#ffbb43;opacity:.97;filter:none}
+.sgv-pour-splash{
+ position:absolute;z-index:24;width:27px;height:10px;
+ transform:translate(-50%,-50%);border:2px solid #fff5bf;
+ border-radius:50%;box-shadow:0 0 9px #ffe79bba;
+ background:#ffd46e6e;pointer-events:none;will-change:transform,opacity;
+}
+.sgv-pour-splash::before,.sgv-pour-splash::after{
+ content:"";position:absolute;top:-9px;width:6px;height:9px;
+ border-radius:60% 60% 50% 50%;background:#ffdc7c;
+ border:1px solid #fff8cb;transform:rotate(22deg);
+}
+.sgv-pour-splash::before{left:3px;transform:rotate(-28deg)}
+.sgv-pour-splash::after{right:4px}
+.sgv-bank-score-fly{
+ font-size:clamp(20px,5.6vw,26px);text-shadow:0 2px #b98b53,0 4px 8px #594b3970;
+}
+
+/* Gentle ambient life: cloud drift exists already. Add leaf motion and slight
+   waterfall shimmer without JavaScript or work on the main thread. */
+.sg-cloud-one{animation-duration:23s}
+.sg-cloud-two{animation-duration:29s}
+@keyframes sgv-cloud{to{transform:translateX(25px)}}
+.sg-foreground-leaves path{
+ transform-box:fill-box;transform-origin:50% 20%;
+ animation:sgv-wind-leaf 5.4s ease-in-out infinite alternate;
+}
+.sg-foreground-leaves path:nth-child(even){animation-duration:6.9s;animation-delay:-2.5s}
+.sg-foreground-leaves path:nth-child(3n){animation-duration:4.6s;animation-delay:-1.1s}
+@keyframes sgv-wind-leaf{
+ from{transform:rotate(-2.4deg) translateX(-1px)}
+ to{transform:rotate(3deg) translateX(2px)}
+}
+.sg-waterfall path:nth-child(3){
+ animation:sgv-water-shimmer 3.1s ease-in-out infinite alternate;
+}
+@keyframes sgv-water-shimmer{from{opacity:.50}to{opacity:.85}}
+@media(max-width:365px){
+ .sgv-bottle-pair .sgv-goal-progress{top:61%}
+ .sgv-bottle-pair .sgv-goal-progress strong{font-size:18px}
+ .sgv-bottle-pair .sgv-goal-progress span{font-size:9px}
+}
+@media(max-height:580px){
+ .sgv-bottle-pair .sgv-goal-progress{top:61%}
+ .sgv-bottle-pair .sgv-goal-progress strong{font-size:17px}
+}
+@media(prefers-reduced-motion:reduce){
+ .sg-foreground-leaves path,.sg-waterfall path:nth-child(3){animation:none}
+ .sg-cloud-one,.sg-cloud-two{animation:none}
+ .sgv-event-bank .sgv-pot-liquid,.sgv-event-bank .sgv-fluid-fill{transition:none}
+ .sgv-pour-splash{display:none}
 }
