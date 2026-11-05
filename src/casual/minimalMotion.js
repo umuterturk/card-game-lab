@@ -79,8 +79,10 @@ export function animateCardAction({
       clone.innerHTML='<span class="sgv-card-glyph">✦</span><strong>'+
         (view.signedCard>0?'+':'')+view.signedCard+'</strong>';
     }
+    // A mystery Flip reveals its value before the meter moves.
+    // Known Steer cards move the meter immediately on tap.
     onMeter(view.to);
-  },[],.08);
+  },[],action.type==='flip'?.22:.08);
   if(view.snap){
     // The attempted meter target is shown at the boundary before returning to 0.
     tl.to(clone,{x:centerX+(view.to>=0?130:-130),y:centerY-18,
@@ -177,6 +179,35 @@ export function flyMultiplierRewards({root,rewards,firstFactorAwards=[]}){
   };
 }
 
+/**
+ * A Snap destroys only the unbanked Pot. Short falling coins make the
+ * loss visible without changing any engine value or touching the chest.
+ */
+export function animateSnapLoss(root,lostPot){
+  if(!root||!lostPot||reducedMotion())return ()=>{};
+  const tray=root.querySelector('.sgv-pending-pot');
+  if(!tray)return ()=>{};
+  const origin=point(tray,root),coins=[],tweens=[];
+  const count=Math.min(7,Math.max(3,Math.ceil(lostPot/2)));
+  for(let i=0;i<count;i++){
+    const coin=document.createElement('span');
+    coin.className='sgv-flying-gold sgv-lost-coin';
+    coin.setAttribute('aria-hidden','true');
+    Object.assign(coin.style,{left:origin.x+'px',top:origin.y+'px'});
+    root.appendChild(coin);coins.push(coin);
+    const dx=(i-(count-1)/2)*18;
+    const tw=gsap.fromTo(coin,{scale:1,opacity:.95,x:0,y:0},
+      {scale:.57,opacity:0,x:dx,y:54+(i%3)*12,rotation:dx*2,
+       duration:.42,delay:i*.035,ease:'power2.in',
+       onComplete:()=>coin.remove()});
+    tweens.push(tw);
+  }
+  return ()=>{
+    for(const tw of tweens)tw.kill();
+    removeNodes(coins);
+  };
+}
+
 export function animateFactorReset(root){
   if(!root||reducedMotion())return ()=>{};
   const targets=Array.from(root.querySelectorAll('.sgv-multiplier-pill'));
@@ -203,7 +234,7 @@ export function bankGoldIntoGlass({root,source,fromScore,toScore,onTake,onCount,
   const quantity=Math.min(12,Math.max(6,Math.ceil((toScore-fromScore)/4)));
   for(let i=0;i<quantity;i++){
     const coin=document.createElement('span');
-    coin.className='sgv-flying-gold';coin.textContent='★';coin.setAttribute('aria-hidden','true');
+    coin.className='sgv-flying-gold';coin.setAttribute('aria-hidden','true');
     Object.assign(coin.style,{left:origin.x+'px',top:origin.y+'px'});
     root.appendChild(coin);nodes.push(coin);
     const x=dest.x-origin.x+((i*17)%65-32);
@@ -216,8 +247,18 @@ export function bankGoldIntoGlass({root,source,fromScore,toScore,onTake,onCount,
   }
   tl.call(()=>{if(alive)onTake();},[],.15);
   const displayed={value:fromScore};
-  tl.to(displayed,{value:toScore,duration:.75,ease:'power1.out',
-    onUpdate:()=>{if(alive)onCount(Math.round(displayed.value));}},.31);
+  // The counter starts only as coins reach the glass, not while they are airborne.
+  tl.to(displayed,{value:toScore,duration:.55,ease:'power2.out',
+    onUpdate:()=>{if(alive)onCount(Math.round(displayed.value));}},.77);
+  const reward=document.createElement('span');
+  reward.className='sgv-bank-score-fly';
+  reward.textContent='+'+(toScore-fromScore);
+  reward.setAttribute('aria-hidden','true');
+  Object.assign(reward.style,{left:dest.x+'px',top:(dest.y-50)+'px'});
+  root.appendChild(reward);nodes.push(reward);
+  tl.fromTo(reward,{opacity:0,scale:.7,y:13},
+    {opacity:1,scale:1.13,y:-9,duration:.23,ease:'back.out(2)'},.80);
+  tl.to(reward,{opacity:0,y:-30,duration:.28,ease:'power2.in'},1.08);
   const glow=root.querySelector('.sgv-chest-glow');
   if(glow)tweens.push(gsap.fromTo(glow,{opacity:.3,scale:.94},
     {opacity:1,scale:1.16,duration:.29,repeat:1,yoyo:true,paused:true}));
@@ -226,8 +267,8 @@ export function bankGoldIntoGlass({root,source,fromScore,toScore,onTake,onCount,
     if(glow)tweens[0]?.play();
     tweens.push(gsap.fromTo(chest,{scale:.95},
       {scale:1,duration:.36,ease:'elastic.out(1,.48)'}));
-  },[],.76);
-  tl.call(()=>{},[],1.30);
+  },[],.87);
+  tl.call(()=>{},[],1.42);
   return ()=>{
     alive=false;tl.kill();for(const t of tweens)t.kill?.();removeNodes(nodes);
     gsap.set(chest,{clearProps:'scale'});
