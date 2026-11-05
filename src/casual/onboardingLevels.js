@@ -14,7 +14,7 @@ const make=(id,name,target,deck,handSize,extras={})=>Object.freeze({
   id,name,target,deck:Object.freeze(deck),initialHandSize:handSize,
   visibleHandSlots:extras.visibleHandSlots??handSize,
   maxSnaps:extras.maxSnaps??2,
-  showMeter:id>=2,showFlip:id>=4,showChances:id>=9,
+  showMeter:true,showFlip:id>=4,showChances:id>=9,
   visibleFactors:Object.freeze(['swing','flip','jackpot'].filter((_,i)=>id>=5+i)),
   rules:Object.freeze({
     ...BASIC_RULES,
@@ -29,12 +29,11 @@ const make=(id,name,target,deck,handSize,extras={})=>Object.freeze({
 });
 
 export const ONBOARDING_LEVELS=Object.freeze([
-  make(1,'First Treasure',5,[1,12],2,{
-    visibleHandSlots:1,script:[steer(),steer(),bank()],
-    lesson:'Collect the cards. Bank the Pot.'
+  make(1,'First Treasure',5,[1,22,3],3,{
+    // Three real, immediately tappable cards. Any two safely reach the target.
+    lesson:'Play two cards, then Bank the Pot.'
   }),
   make(2,'Left and Right',6,[3,21],2,{
-    visibleHandSlots:1,script:[steer(),steer(),bank()],
     lesson:'Both directions add drops.'
   }),
   make(3,'Your Choice',5,[1,22,3],3,{
