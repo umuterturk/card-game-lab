@@ -3,15 +3,14 @@ import React from 'react';
 const MARKS=[-8,-6,-4,-2,0,2,4,6,8];
 export const signedValue=n=>n>0?'+'+n:String(n);
 
-export function HorizontalMeter({position,limit=8,bonus=1,crossed=false,burstId=0}){
+export function HorizontalMeter({position,limit=8,multipliers=[]}){
  const bounded=Math.max(-limit,Math.min(limit,position));
  const percentage=((bounded+limit)/(2*limit))*100;
- return <section className="sgv-meter-section" aria-label="Swing">
-   <div className="sgv-meter-caption"><span className="sgv-meter-name">SWING</span><span className="sgv-meter-current">Current <b>{signedValue(position)}</b></span></div>
-   <div className="sgv-meter" role="img" data-value={position}
+ return <section className="sgv-meter-section" aria-label="Swing meter and multipliers">
+   <div className="sgv-meter-caption"><span className="sgv-meter-name">SWING</span></div>
+   <div className="sgv-meter" role="group" data-value={position}
      aria-label={'Swing at '+signedValue(position)+'; Snap beyond minus '+limit+' or plus '+limit}>
-     <div className="sgv-meter-track">
-       <span className="sgv-meter-safe" aria-hidden="true"/>
+     <div className="sgv-meter-track" role="img" aria-label={'Swing position '+signedValue(position)}>
        <span className="sgv-meter-centerline" aria-hidden="true"/>
        <span className="sgv-meter-marker" style={{left:percentage+'%'}}>
          <span className="sgv-meter-number">{signedValue(position)}</span>
@@ -21,8 +20,14 @@ export function HorizontalMeter({position,limit=8,bonus=1,crossed=false,burstId=
      <div className="sgv-meter-labels" aria-hidden="true">
        {MARKS.map(number=><span key={number}>{signedValue(number)}</span>)}
      </div>
+     <div className="sgv-multipliers" role="group" aria-label="Swing, Flip, Jackpot multipliers">
+       {multipliers.map(({kind,value,label})=>
+         <span key={kind} className={'sgv-multiplier-pill sgv-multiplier-'+kind}
+           data-factor={kind} title={label} aria-label={label+': times '+value}>
+           ×{value}
+         </span>)}
+     </div>
    </div>
-   {crossed&&<div key={burstId} className="sgv-meter-bonus" aria-live="polite">★ BONUS ×{bonus}</div>}
  </section>;
 }
 
