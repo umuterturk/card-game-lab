@@ -42,7 +42,7 @@ if(mode==='standalone'){
   assert.ok(existsSync(join(out,'casual.html')),'Casual Swing gameplay entry missing');
   const casualHtml=read('casual.html');
   assert.match(casualHtml,/id="swing-visible-build"/,'Always-visible build label missing');
-  assert.match(casualHtml,/Swing v0\.5\.0\s*·\s*(?:[a-f0-9]{8}|local)/,
+  assert.match(casualHtml,/Swing v0\.6\.0\s*·\s*(?:[a-f0-9]{8}|local)/,
     'Casual build SHA was not injected into the page');
   assert.ok(!casualHtml.includes('__CASUAL_COMMIT__'),'Unreplaced build marker');
 
