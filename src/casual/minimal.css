@@ -910,3 +910,75 @@ button:focus-visible{outline:4px solid #4269f9;outline-offset:4px}
 @media(prefers-reduced-motion:reduce){
  .sgv-pot-fracture{display:none}
 }
+
+
+/* Approved directional card language. Suit no longer determines card colors:
+   LEFT is green, RIGHT is blue. Higher ranks tint the face and rim more strongly. */
+.sgv-card-left{
+ --sgv-card-color:#139344;
+ --sgv-card-rim:color-mix(in srgb,#a9d891,#28b75b var(--sgv-card-mix,30%));
+ background:linear-gradient(145deg,#f1ffea 0%,
+   color-mix(in srgb,#e7fbdc,#95e98b var(--sgv-card-mix,30%)) 58%,
+   color-mix(in srgb,#cdf3b4,#43c96a var(--sgv-card-mix,30%)) 100%);
+}
+.sgv-card-right{
+ --sgv-card-color:#006dcf;
+ --sgv-card-rim:color-mix(in srgb,#91c7e8,#117be0 var(--sgv-card-mix,30%));
+ background:linear-gradient(145deg,#f1fcff 0%,
+   color-mix(in srgb,#d8f3ff,#8bcaff var(--sgv-card-mix,30%)) 58%,
+   color-mix(in srgb,#bee9fb,#2a92f4 var(--sgv-card-mix,30%)) 100%);
+}
+.sgv-card:has(.sgv-card-arrow){gap:clamp(3px,1.05vw,7px)}
+.sgv-card-arrow{
+ position:relative;z-index:1;flex:none;display:block;
+ width:clamp(42px,11.1vw,58px);height:clamp(31px,8.1vw,43px);
+ overflow:visible;filter:drop-shadow(0 2px 1px #fffdf4);
+}
+.sgv-card-arrow path{
+ fill:var(--sgv-card-color);stroke:#fffdf9;stroke-width:1.8;
+ stroke-linejoin:round;
+}
+.sgv-card-left .sgv-card-arrow{transform:rotate(180deg)}
+.sgv-card:has(.sgv-card-arrow) strong{
+ font-size:clamp(44px,11.8vw,66px);line-height:.98;
+ color:var(--sgv-card-color);text-shadow:0 4px #ffffffd9,0 5px #64807633;
+}
+.sgv-flying-card .sgv-card-arrow{width:clamp(32px,8vw,46px);height:clamp(26px,6vw,36px)}
+.sgv-flying-card:has(.sgv-card-arrow) strong{font-size:clamp(37px,9.5vw,56px)}
+
+/* The meter's location already conveys left versus right, so only magnitudes
+   remain. Removing the hint restores space for the bottles and later abilities. */
+.sgv-meter-section{margin-top:clamp(4px,1.25dvh,14px)}
+.sgv-meter-side,.sgv-marker-direction{display:none}
+
+/* Center the secured progress inside the glass, away from the platform lip.
+   No plaque or new background; use a light type outline for fluid contrast. */
+.sgv-bottle-pair .sgv-goal-progress{
+ left:50%;top:50%;bottom:auto;right:auto;
+ transform:translate(-50%,-50%);
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:3px;max-width:96%;width:max-content;min-width:0;
+ background:transparent;border:0;border-radius:0;box-shadow:none;
+ padding:0;pointer-events:none;z-index:12;
+ color:#754c35;text-align:center;
+}
+.sgv-bottle-pair .sgv-goal-progress span{
+ font-size:clamp(11px,2.8vw,14px);line-height:1.08;letter-spacing:1px;
+ color:#704934;text-shadow:0 1px 2px #fffdf0,0 0 6px #fff4d6;
+}
+.sgv-bottle-pair .sgv-goal-progress strong{
+ font-size:clamp(23px,6vw,33px);line-height:1.08;
+ color:#754b35;text-shadow:0 2px 2px #fffce8,0 0 7px #fff7d1;
+ font-variant-numeric:tabular-nums;
+}
+@media(max-width:365px){
+ .sgv-card-arrow{width:39px;height:31px}
+ .sgv-card:has(.sgv-card-arrow) strong{font-size:clamp(37px,10.5vw,45px)}
+ .sgv-bottle-pair .sgv-goal-progress strong{font-size:clamp(21px,5.5vw,25px)}
+}
+@media(max-height:580px){
+ .sgv-meter-section{margin-top:0}
+ .sgv-card-arrow{width:35px;height:27px}
+ .sgv-card:has(.sgv-card-arrow) strong{font-size:clamp(31px,8.4vw,39px)}
+ .sgv-bottle-pair .sgv-goal-progress strong{font-size:clamp(20px,5.5vw,24px)}
+}

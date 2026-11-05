@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {fluidFillPercent,bankPourAmounts,visiblePotPayout} from '../src/casual/presentation.js';
 import {newRound,stepFirstLevel,FIRST_LEVEL} from '../src/casual/firstLevel.js';
 import {overswingActions,overswingPayout} from '../src/external/engines.js';
+import {CARD_ARROW_PATH,cardDirection,cardAccentMix} from '../src/casual/cardDirection.js';
 
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 
@@ -217,23 +218,51 @@ test('only a bankable Pot shines; touch remains possible and reduced motion is r
 
 
 
-test('LEFT/RIGHT conveys direction without signed numbers on cards or meter',()=>{
+test('direction is visualized with arrows, without written labels or signs on the meter',()=>{
  const board=read('src/casual/MinimalBoard.jsx');
+ const screen=read('src/casual/SimplifiedGame.jsx');
  const motion=read('src/casual/minimalMotion.js');
  const css=read('src/casual/minimal.css');
- assert.match(board,/export const directionLabel=n=>n<0\?'LEFT':n>0\?'RIGHT':'CENTER'/);
- assert.match(board,/className="sgv-meter-side sgv-meter-side-left">LEFT/);
- assert.match(board,/className="sgv-meter-side sgv-meter-side-right">RIGHT/);
- assert.match(board,/\{Math\.abs\(number\)\}/);
- assert.match(board,/\{Math\.abs\(position\)\}/);
- assert.match(board,/className="sgv-card-direction">\{directionLabel\(value\)\}/);
+ assert.equal(cardDirection(-2),'left');
+ assert.equal(cardDirection(5),'right');
+ assert.match(board,/<svg className="sgv-card-arrow"/);
+ assert.match(board,/<path d=\{CARD_ARROW_PATH\}/);
  assert.match(board,/\{Math\.abs\(value\)\}/);
+ assert.match(board,/\{Math\.abs\(number\)\}/);
+ assert.match(board,/<span className="sgv-meter-number">\{Math\.abs\(position\)\}<\/span>/);
  assert.match(board,/aria-label=\{'Play '\+directionalValue\(value\)\}/);
- assert.doesNotMatch(board,/<strong>\{signedValue\(value\)\}<\/strong>/);
- assert.match(motion,/view\.signedCard<0\?'LEFT':'RIGHT'/);
- assert.match(motion,/Math\.abs\(view\.signedCard\)/);
- assert.match(css,/\.sgv-card-direction\{/);
- assert.match(css,/\.sgv-meter-side-left\{/);
+ assert.doesNotMatch(board,/className="sgv-meter-side|className="sgv-marker-direction"/);
+ assert.doesNotMatch(board,/className="sgv-card-direction"/);
+ assert.doesNotMatch(screen,/sgv-mini-hint|Tap a card to move the marker/);
+ assert.match(motion,/clone\.style\.setProperty\('--sgv-card-mix'/);
+ assert.match(motion,/CARD_ARROW_PATH/);
+ assert.match(css,/\.sgv-card-left\{/);
+ assert.match(css,/\.sgv-card-right\{/);
+ assert.match(css,/\.sgv-card-left \.sgv-card-arrow\{transform:rotate\(180deg\)\}/);
+ assert.ok(CARD_ARROW_PATH.startsWith('M'));
+});
+
+test('higher card magnitudes receive progressively stronger direction accents',()=>{
+ const a=Number.parseInt(cardAccentMix(1),10);
+ const b=Number.parseInt(cardAccentMix(5),10);
+ const c=Number.parseInt(cardAccentMix(10),10);
+ assert.ok(a<b && b<c);
+ assert.equal(cardAccentMix(-5),cardAccentMix(5));
+ assert.equal(cardAccentMix(100),cardAccentMix(10));
+ assert.equal(cardAccentMix(0),cardAccentMix(1));
+ const board=read('src/casual/MinimalBoard.jsx');
+ const css=read('src/casual/minimal.css');
+ assert.match(board,/--sgv-card-mix':cardAccentMix\(value\)/);
+ assert.match(css,/color-mix\(in srgb/);
+ assert.match(css,/var\(--sgv-card-mix/);
+});
+
+test('secured progress is vertically centered inside the Bank without a plaque',()=>{
+ const css=read('src/casual/minimal.css');
+ assert.match(css,/\.sgv-bottle-pair \.sgv-goal-progress\{\s*left:50%;top:50%/);
+ assert.match(css,/transform:translate\(-50%,-50%\)/);
+ assert.match(css,/flex-direction:column/);
+ assert.match(css,/background:transparent;border:0;border-radius:0;box-shadow:none/);
 });
 
 test('no visual bottle lids, but invisible lip and Bank mouth anchors remain for pouring',()=>{
