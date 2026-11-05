@@ -5,6 +5,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
   statuses: write
@@ -26,6 +27,7 @@ jobs:
           node-version: 22
           # npm cache disabled (no lockfile)
       - run: npm install --no-audit --no-fund
+      - run: npm test
       # Publish when the production build and release artifact checks pass.
       # Browser smoke scripts are available for manual runs, not Pages CI.
       - id: web_build
@@ -35,11 +37,66 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
+      # The artifact API sometimes indexes uploads after the uploader exits.
+      - name: Wait for Pages artifact registration
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for attempt in {1..20}; do
+            if gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" \
+              --jq '.artifacts | map(select(.name == "github-pages")) | length' | grep -Eq '^[1-9][0-9]*
+        id: deployment
+        uses: actions/deploy-pages@v4
+      # Remaining lightweight non-browser checks.
+      - run: npm run verify:offline
+      - run: npm run package:crazygames
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overswing-html5-portal
+          path: overswing-crazygames.zip
+      # Commit statuses are readable through the GitHub connection.
+      - name: Report page publication status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_RESULT: ${{ job.status }}
+          WEB_BUILD: ${{ steps.web_build.outcome }}
+          DEPLOY_RESULT: ${{ steps.deployment.outcome }}
+          COMMIT_SHA: ${{ github.sha }}
+          REPO_NAME: ${{ github.repository }}
+          API_URL: ${{ github.api_url }}
+          ACTIONS_RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          state="$JOB_RESULT"
+          if [ "$state" = "cancelled" ]; then state="error"; fi
+          export STATUS_STATE="$state"
+          payload="$(node -e '
+            console.log(JSON.stringify({
+              state:process.env.STATUS_STATE,
+              context:"swing-casual-pages",
+              description:"build="+process.env.WEB_BUILD+
+                " deploy="+process.env.DEPLOY_RESULT,
+              target_url:process.env.ACTIONS_RUN
+            }))
+          ')"
+          curl --fail --silent --show-error --retry 3 -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "$API_URL/repos/$REPO_NAME/statuses/$COMMIT_SHA" \
+            -d "$payload"
+; then
+              echo "GitHub Pages artifact is registered."
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "::error::Pages artifact did not become visible."
+          exit 1
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
-      # Lightweight non-browser checks remain enabled.
-      - run: npm test
+      # Remaining lightweight non-browser checks.
       - run: npm run verify:offline
       - run: npm run package:crazygames
       - uses: actions/upload-artifact@v4
