@@ -73,7 +73,9 @@ const OVERSWING_BASE_RULES=Object.freeze({
   steerNoncrossPenalty:1,flipCrossJackpotGain:1,bankCapacityLoss:1,steerAlwaysToPot:false,
   steerCrossSwingBonus:0,flipNoncrossPenalty:1,snapLimit:10,
   maxFlips:null,bankTax:0,polarityReverse:false,shieldNextFlip:false,
-  maxConsecutiveSummons:1
+  maxConsecutiveSummons:1,
+  // Opt-in teaching gates; defaults preserve the original Overswing engine.
+  enableSwingFactor:true,enableFlipFactor:true,enableJackpotFactor:true,enableResonance:true
 });
 function overswingEffectiveRules(input={}){
   const rules={...OVERSWING_BASE_RULES,...input};
@@ -81,7 +83,9 @@ function overswingEffectiveRules(input={}){
     steerNoncrossPenalty:[0,1],flipCrossJackpotGain:[1,2],steerAlwaysToPot:[false,true],
     bankCapacityLoss:[0,1],steerCrossSwingBonus:[0,1],
     flipNoncrossPenalty:[0,1],snapLimit:[8,9,10],
-    bankTax:[0,5,10,15],polarityReverse:[false,true],shieldNextFlip:[false,true]
+    bankTax:[0,5,10,15],polarityReverse:[false,true],shieldNextFlip:[false,true],
+    enableSwingFactor:[false,true],enableFlipFactor:[false,true],
+    enableJackpotFactor:[false,true],enableResonance:[false,true]
   }))if(!allowed.includes(rules[name]))throw new RangeError('Invalid Overswing rule: '+name);
   if(rules.maxFlips!==null&&(!Number.isInteger(rules.maxFlips)||rules.maxFlips<1||rules.maxFlips>40))
     throw new RangeError('Invalid Overswing rule: maxFlips');
@@ -233,7 +237,8 @@ export function stepOverswing(s,a,rules={}){
       ended=true;
     }else{
       d.S=outcome.S;
-      d.W=outcome.W+(a.type==='steer'&&outcome.swung?effective.steerCrossSwingBonus:0);
+      d.W=effective.enableSwingFactor?
+        outcome.W+(a.type==='steer'&&outcome.swung?effective.steerCrossSwingBonus:0):0;
       const zeroBreak=previousS!==0&&d.S===0;
       let destination;
       if(a.type==='flip'){
@@ -245,10 +250,12 @@ export function stepOverswing(s,a,rules={}){
           // Crossing grows JACKPOT only. A noncrossing FLIP grows FLIP.
           if(outcome.swung){
             d.flipStreak=0;
-            d.jackpotFactor+=effective.flipCrossJackpotGain;
+            if(effective.enableJackpotFactor)d.jackpotFactor+=effective.flipCrossJackpotGain;
           }else{
-            d.flipStreak++;
-            d.flipFactor=Math.max(d.flipFactor,d.flipStreak+1);
+            if(effective.enableFlipFactor){
+              d.flipStreak++;
+              d.flipFactor=Math.max(d.flipFactor,d.flipStreak+1);
+            }
           }
         }
       }else{
@@ -257,7 +264,8 @@ export function stepOverswing(s,a,rules={}){
         if(!outcome.swung&&!zeroBreak)d.W=Math.max(0,d.W-effective.steerNoncrossPenalty);
         // Exact zero still deposits a STEER card in the Pot, without any bonus.
         if(opening||outcome.swung||zeroBreak||effective.steerAlwaysToPot){
-          if(d.pot.length&&suit(d.pot.at(-1))===suit(c)&&d.resonancePoints<6)
+          if(effective.enableResonance&&d.pot.length&&
+             suit(d.pot.at(-1))===suit(c)&&d.resonancePoints<6)
             d.resonancePoints+=2;
           d.pot.push(c);destination='pot';
         }else{d.discard.push(c);destination='discard';}
