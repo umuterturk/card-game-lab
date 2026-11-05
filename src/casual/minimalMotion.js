@@ -217,45 +217,72 @@ export function animateFactorReset(root){
   return ()=>{tw.kill();gsap.set(targets,{clearProps:'y,filter'});};
 }
 
-// Transfer is a visual effect only: source and destination totals come from
-// a settled engine action. A small bottle tilts, its liquid pours into the larger
-// bottle, then the secured number and fluid level rise together.
-export function animateBankPour({root,source,fromScore,toScore,onTake,onCount,onComplete}){
+// Presentation-only choreography. Geometry is measured from real bottle lips:
+// first bring the Pot mouth above the Bank mouth, then pour a short stream.
+// Payouts and legal moves continue to come exclusively from the engine.
+export function animateBankPour({
+  root,source,potValue,fromScore,toScore,onPourProgress,onTake,onCount,onComplete
+}){
+  const settle=()=>{
+    onPourProgress?.(0);
+    onTake();
+    onCount(toScore);
+    onComplete();
+  };
   if(!root||!source||reducedMotion()||toScore<=fromScore){
-    onTake();onCount(toScore);onComplete();return ()=>{};
+    settle();return ()=>{};
   }
-  const chest=root.querySelector('.sgv-chest-body');
+  const bank=root.querySelector('.sgv-chest-body');
   const mouth=root.querySelector('.sgv-chest-mouth');
-  if(!chest||!mouth){onTake();onCount(toScore);onComplete();return ()=>{};}
-  const dest=point(mouth,root);
-  let alive=true;
+  const lip=source.querySelector('.sgv-pot-pour-lip');
+  if(!bank||!mouth||!lip){
+    settle();return ()=>{};
+  }
+
+  // Measure the *rotated* source lip without showing that rotation.
+  // This works regardless of iPhone viewport size or safe-area insets.
+  const bankPoint=point(mouth,root);
+  const bankRect=bank.getBoundingClientRect();
+  const angle=56;
+  gsap.set(source,{rotation:angle,transformOrigin:'50% 72%'});
+  const rotatedLip=point(lip,root);
+  gsap.set(source,{rotation:0});
+  const targetLip={
+    x:bankPoint.x-Math.min(40,bankRect.width*.20),
+    y:bankPoint.y-Math.min(27,bankRect.height*.20)
+  };
+  const approach={x:targetLip.x-rotatedLip.x,y:targetLip.y-rotatedLip.y};
+
+  let alive=true,glowTween;
   const nodes=[],tweens=[];
   const cleanup=()=>{
     for(const tween of tweens)tween.kill?.();
     removeNodes(nodes);
-    gsap.set(source,{clearProps:'rotation,transformOrigin'});
-    gsap.set(chest,{clearProps:'scale'});
+    gsap.set(source,{clearProps:'x,y,rotation,transformOrigin'});
+    gsap.set(bank,{clearProps:'scale'});
     const glow=root.querySelector('.sgv-chest-glow');
     if(glow)gsap.set(glow,{clearProps:'scale,opacity'});
   };
   const tl=gsap.timeline({onComplete:()=>{
     if(!alive)return;
     alive=false;
+    onPourProgress?.(0);
+    onTake();
     onCount(toScore);
     cleanup();
     onComplete();
   }});
 
-  tl.to(source,{rotation:23,transformOrigin:'78% 82%',
-    duration:.26,ease:'back.out(1.3)'},0);
+  // 1. Lift toward the receiving mouth, then tip right into pouring position.
+  tl.to(source,{x:approach.x*.48,y:approach.y*.82,rotation:24,
+    duration:.26,ease:'power2.out'},0);
+  tl.to(source,{x:approach.x,y:approach.y,rotation:angle,
+    duration:.27,ease:'power2.inOut'},.23);
 
-  // Measure the lip after it tilts so the fluid starts at the correct place
-  // on different phone widths and safe-area sizes.
+  // 2. Draw a SHORT connecting stream from the arrived lip to the open jar.
   tl.call(()=>{
     if(!alive)return;
-    const a=source.getBoundingClientRect(),b=root.getBoundingClientRect();
-    const sx=a.right-b.left-10, sy=a.top-b.top+22;
-    const ex=dest.x,ey=dest.y;
+    const start=point(lip,root),end=point(mouth,root);
     const doc=root.ownerDocument;
     const svg=doc.createElementNS('http://www.w3.org/2000/svg','svg');
     svg.classList.add('sgv-pour-stream');
@@ -264,53 +291,70 @@ export function animateBankPour({root,source,fromScore,toScore,onTake,onCount,on
     svg.setAttribute('height',root.clientHeight);
     svg.setAttribute('aria-hidden','true');
     root.appendChild(svg);nodes.push(svg);
-    const d='M '+sx+' '+sy+' C '+(sx+27)+' '+(sy-32)+', '+(ex-32)+' '+(ey-48)+', '+ex+' '+ey;
-    for(const [className,width] of [['sgv-pour-stream-glow','10'],['sgv-pour-stream-core','5']]){
+    const dx=end.x-start.x,dy=end.y-start.y;
+    const d='M '+start.x+' '+start.y+' C '+(start.x+dx*.36)+' '+(start.y-8)+
+      ', '+(end.x-dx*.25)+' '+(end.y-Math.max(6,dy*.20))+', '+end.x+' '+end.y;
+    for(const [kind,width] of [['sgv-pour-stream-glow','9'],['sgv-pour-stream-core','4.5']]){
       const path=doc.createElementNS('http://www.w3.org/2000/svg','path');
       path.setAttribute('d',d);
-      path.setAttribute('class',className);
+      path.setAttribute('class',kind);
       path.setAttribute('stroke-width',width);
       path.setAttribute('fill','none');
       path.setAttribute('stroke-linecap','round');
       svg.appendChild(path);
       const length=path.getTotalLength();
       gsap.set(path,{strokeDasharray:length,strokeDashoffset:length});
-      tweens.push(gsap.to(path,{strokeDashoffset:0,duration:.35,ease:'power1.inOut'}));
+      tweens.push(gsap.to(path,{strokeDashoffset:0,duration:.15,ease:'power1.in'}));
     }
-    tweens.push(gsap.to(svg,{opacity:0,duration:.24,delay:.54}));
-  },[],.25);
+    tweens.push(gsap.to(svg,{opacity:0,duration:.20,delay:.88}));
+    const splash=doc.createElement('span');
+    splash.className='sgv-pour-splash';
+    splash.setAttribute('aria-hidden','true');
+    Object.assign(splash.style,{left:end.x+'px',top:(end.y+6)+'px'});
+    root.appendChild(splash);nodes.push(splash);
+    tweens.push(gsap.fromTo(splash,{opacity:0,scale:.55},
+      {opacity:.95,scale:1,duration:.22,repeat:2,yoyo:true,delay:.12}));
+    tweens.push(gsap.to(splash,{opacity:0,duration:.18,delay:.83}));
+  },[],.51);
 
-  // The at-risk Pot empties only after the pouring begins.
-  tl.call(()=>{if(alive)onTake();},[],.36);
+  // 3. A single progress value drives BOTH liquid volumes, starting as the
+  // stream reaches the jar. The Pot starts draining immediately, not at the end.
+  const transfer={value:0},gain=toScore-fromScore,initialPot=Math.max(0,potValue||0);
+  tl.to(transfer,{value:1,duration:.83,ease:'power1.inOut',
+    onUpdate:()=>{
+      if(!alive)return;
+      onPourProgress?.(Math.max(0,initialPot*(1-transfer.value)));
+      onCount(Math.round(fromScore+gain*transfer.value));
+    }},.63);
 
-  // Engine-settled payout is counted only when liquid reaches the Bank bottle.
-  const displayed={value:fromScore};
-  tl.to(displayed,{value:toScore,duration:.68,ease:'power2.out',
-    onUpdate:()=>{if(alive)onCount(Math.round(displayed.value));}},.65);
+  // 4. Small earned-value acknowledgement near the surface, never a giant popup.
+  const earned=root.ownerDocument.createElement('span');
+  earned.className='sgv-bank-score-fly';
+  earned.textContent='+'+gain;
+  earned.setAttribute('aria-hidden','true');
+  Object.assign(earned.style,{left:bankPoint.x+'px',top:(bankPoint.y+20)+'px'});
+  root.appendChild(earned);nodes.push(earned);
+  tl.fromTo(earned,{opacity:0,scale:.8,y:5},
+    {opacity:1,scale:1.06,y:-9,duration:.21,ease:'back.out(1.7)'},.96);
+  tl.to(earned,{opacity:0,y:-23,duration:.26,ease:'power2.in'},1.25);
 
-  const reward=root.ownerDocument.createElement('span');
-  reward.className='sgv-bank-score-fly';
-  reward.textContent='+'+(toScore-fromScore);
-  reward.setAttribute('aria-hidden','true');
-  Object.assign(reward.style,{left:dest.x+'px',top:(dest.y-29)+'px'});
-  root.appendChild(reward);nodes.push(reward);
-  tl.fromTo(reward,{opacity:0,scale:.75,y:10},
-    {opacity:1,scale:1.12,y:-10,duration:.22,ease:'back.out(2)'},.81);
-  tl.to(reward,{opacity:0,y:-26,duration:.24,ease:'power2.in'},1.13);
   const glow=root.querySelector('.sgv-chest-glow');
-  const glowTween=glow?gsap.fromTo(glow,{opacity:.3,scale:.95},
-    {opacity:.82,scale:1.12,duration:.26,repeat:1,yoyo:true,paused:true}):null;
-  if(glowTween)tweens.push(glowTween);
+  if(glow){
+    glowTween=gsap.fromTo(glow,{opacity:.25,scale:.96},
+      {opacity:.66,scale:1.05,duration:.25,repeat:1,yoyo:true,paused:true});
+    tweens.push(glowTween);
+  }
   tl.call(()=>{
     if(!alive)return;
     glowTween?.play();
-    tweens.push(gsap.fromTo(chest,{scale:.98},
-      {scale:1,duration:.32,ease:'back.out(1.6)'}));
-  },[],.78);
-  tl.to(source,{rotation:0,duration:.35,ease:'back.out(1.2)'},.99);
-  tl.call(()=>{},[],1.43);
+    tweens.push(gsap.fromTo(bank,{scale:.99},
+      {scale:1,duration:.26,ease:'back.out(1.5)'}));
+  },[],.85);
+
+  // The bottle settles only after the transferred fluid has drained.
+  tl.to(source,{x:0,y:0,rotation:0,duration:.34,ease:'power2.inOut'},1.50);
+  tl.call(()=>{},[],1.88);
   return ()=>{
     alive=false;tl.kill();cleanup();
-    if(glow)gsap.set(glow,{clearProps:'scale,opacity'});
   };
 }
