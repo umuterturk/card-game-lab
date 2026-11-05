@@ -189,3 +189,39 @@ test('zero break retains Pot and produces no fake factor awards',()=>{
   assert.deepEqual(p.factorsAfter.map(f=>f.value),[1,1,1]);
   assert.deepEqual(p.rewards,[]);
 });
+
+
+test('casual non-swing Steer and Flip never spend earned SWING tiers',()=>{
+ assert.equal(FIRST_LEVEL.rules.steerNoncrossPenalty,0);
+ assert.equal(FIRST_LEVEL.rules.flipNoncrossPenalty,0);
+ let round=newRound();
+ round=stepFirstLevel(round,{type:'flip'}); // RIGHT 3
+ round=stepFirstLevel(round,{type:'flip'}); // LEFT 4 => strict crossing at -1
+ assert.equal(round.game.deal.W,1);
+ const afterSteer=stepFirstLevel(round,{type:'steer',index:1}); // LEFT 2 => -3
+ assert.notStrictEqual(afterSteer,round);
+ assert.equal(afterSteer.game.lastAction.swung,false);
+ assert.equal(afterSteer.game.lastAction.swingPenalty,false);
+ assert.equal(afterSteer.game.deal.W,1);
+ const afterFlip=stepFirstLevel(afterSteer,{type:'flip'}); // RIGHT 1 => -2
+ assert.notStrictEqual(afterFlip,afterSteer);
+ assert.equal(afterFlip.game.lastAction.swung,false);
+ assert.equal(afterFlip.game.lastAction.swingPenalty,false);
+ assert.equal(afterFlip.game.deal.W,1);
+ assert.equal(multiplierParts(afterFlip.game.deal)[0].value,2);
+});
+
+test('casual Zero Break still resets Swing tiers and retains pending Pot',()=>{
+ const rules={...FIRST_LEVEL.rules};
+ let game=newOverswing({deckOverride:[2,23,10,20,22,3],seed:42,initialHandSize:2});
+ game=stepOverswing(game,{type:'steer',index:0},rules); // RIGHT 3
+ game=stepOverswing(game,{type:'steer',index:0},rules); // LEFT 4 -> -1, W=1
+ assert.equal(game.deal.W,1);
+ const rawBefore=rawPotValue(game.deal);
+ game=stepOverswing(game,{type:'steer',index:0},rules); // RIGHT 1 -> exactly 0
+ assert.equal(game.lastAction.zeroBreak,true);
+ assert.equal(game.deal.W,0);
+ assert.equal(game.deal.S,0);
+ assert.equal(rawPotValue(game.deal),rawBefore+1);
+ assert.deepEqual(multiplierParts(game.deal).map(f=>f.value),[1,1,1]);
+});
