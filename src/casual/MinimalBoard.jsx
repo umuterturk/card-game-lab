@@ -48,11 +48,12 @@ function GoldPile({value}){
 }
 
 // The open Pot is still at risk. Nothing in this tray is counted as secured gold.
-export function PendingPot({value}){
- return <div className="sgv-pending-pot" role="status" aria-label={'At risk Pot: '+value}>
+export function PendingPot({value,resonance=0}){
+ return <div className="sgv-pending-pot" role="status" aria-label={'At risk Pot: '+value+(resonance?' plus '+resonance+' resonance bonus':'')}>
    <span className="sgv-pot-label">POT</span>
    <span className="sgv-pot-amount"><span aria-hidden="true">★</span>{value}</span>
-   <span className="sgv-pot-coins" aria-hidden="true">✦ ✦</span>
+   {resonance>0?<span className="sgv-pot-resonance">+{resonance} BONUS</span>:
+     <span className="sgv-pot-coins" aria-hidden="true">✦ ✦</span>}
  </div>;
 }
 
