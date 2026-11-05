@@ -8,6 +8,7 @@
     "build": "node scripts/generate-overswing-icons.mjs && vite build && node scripts/finalize-release.mjs dist site",
     "preview": "vite preview --host 0.0.0.0",
     "test": "node --test tests/*.test.mjs",
+    "simulate:casual": "node scripts/simulate-casual-onboarding.mjs",
     "benchmark:overswing": "node experiments/run-overswing-v13.mjs",
     "build:overswing": "node scripts/generate-overswing-icons.mjs && vite build --mode overswing --outDir dist-overswing && node scripts/finalize-release.mjs dist-overswing standalone",
     "package:crazygames": "npm run build:overswing && node scripts/verify-release.mjs dist-overswing standalone && cd dist-overswing && zip -qr ../overswing-crazygames.zip .",
