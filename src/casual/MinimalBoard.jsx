@@ -53,7 +53,7 @@ export function PendingPot({value,resonance=0,target=24}){
  const fill=fluidFillPercent(value,target,{max:76});
  return <div className="sgv-pending-pot" role="status"
    aria-label={'At-risk Pot: '+value+' drops'+(resonance?' plus '+resonance+' bonus':'')}>
-   <span className="sgv-pot-liquid" style={{height:fill+'%'}} aria-hidden="true"/>
+   <span className="sgv-pot-liquid" style={{height:fill+'%',opacity:fill>0?1:0}} aria-hidden="true"/>
    <span className="sgv-pot-label">POT</span>
    <span className="sgv-pot-amount"><DropletIcon className="sgv-pot-drop"/>{value}</span>
    {resonance>0&&<span className="sgv-pot-resonance">+{resonance} BONUS</span>}
@@ -76,7 +76,7 @@ export function GlassChest({banked,target}){
      <div className="sgv-chest-platform" aria-hidden="true"/>
      <div className="sgv-chest-body">
        <div className="sgv-chest-inner">
-         <div className="sgv-fluid-fill" style={{height:fill+'%'}} aria-hidden="true">
+         <div className="sgv-fluid-fill" style={{height:fill+'%',opacity:fill>0?1:0}} aria-hidden="true">
            <span className="sgv-fluid-surface"/>
            <span className="sgv-fluid-bubble sgv-fluid-bubble-a"/>
            <span className="sgv-fluid-bubble sgv-fluid-bubble-b"/>
