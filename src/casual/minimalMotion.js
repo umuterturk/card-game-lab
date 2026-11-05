@@ -87,7 +87,7 @@ export function animateCardAction({
       scale:.45,rotation:view.to>=0?35:-35,opacity:0,
       duration:.30,ease:'power3.in'},.24);
     tl.call(()=>{if(alive){onSnap();onMeter(0);onPot(view.rawPotAfter);onFactors(view.factorsAfter);}},[],.53);
-    tl.call(()=>{},[],.69);
+    tl.call(()=>{},[],.91);
   }else{
     if(view.addedToPot>0){
       const coin=potChip(root,center,view.addedToPot);
