@@ -1,4 +1,5 @@
 import {gsap} from 'gsap';
+import {bankPourAmounts} from './presentation.js';
 
 // All motions are presentation only. The game transaction is calculated once
 // before this module is called; interrupting an animation never changes rules.
@@ -323,8 +324,9 @@ export function animateBankPour({
   tl.to(transfer,{value:1,duration:.83,ease:'power1.inOut',
     onUpdate:()=>{
       if(!alive)return;
-      onPourProgress?.(Math.max(0,initialPot*(1-transfer.value)));
-      onCount(Math.round(fromScore+gain*transfer.value));
+      const {pot,secured}=bankPourAmounts(initialPot,fromScore,toScore,transfer.value);
+      onPourProgress?.(pot);
+      onCount(secured);
     }},.63);
 
   // 4. Small earned-value acknowledgement near the surface, never a giant popup.
