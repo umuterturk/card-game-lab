@@ -18,6 +18,16 @@ export function fluidFillPercent(amount,target,{max=78,smooth=false}={}){
   return smooth?percent:Math.max(5,Math.round(percent));
 }
 
+// Both displayed volumes derive from one clamped animation progress value.
+// The engine's settled before/after Bank totals remain the authority.
+export function bankPourAmounts(rawPot,securedBefore,securedAfter,progress){
+  const p=Number.isFinite(progress)?Math.max(0,Math.min(1,progress)):0;
+  return {
+    pot:Math.max(0,rawPot*(1-p)),
+    secured:Math.round(securedBefore+(securedAfter-securedBefore)*p)
+  };
+}
+
 export function actionPresentation(before,after,action){
   const previous=before.game.deal;
   const current=after.game.deal;
