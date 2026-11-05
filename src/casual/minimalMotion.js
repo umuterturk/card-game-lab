@@ -18,6 +18,7 @@ function flyingCard(source,root,isFlip){
     clone.className='sgv-card sgv-card-flip sgv-flying-card';
     clone.innerHTML='<span class="sgv-card-glyph">✦</span><strong>?</strong>';
   }else clone.classList.add('sgv-flying-card');
+  clone.removeAttribute('disabled'); // Flying ghost stays vivid while original buttons are locked.
   const width=isFlip?Math.max(64,Math.min(92,root.clientWidth*.25)):r.width;
   const height=isFlip?Math.max(83,Math.min(113,root.clientHeight*.16)):r.height;
   const x=r.left-b.left+(r.width-width)/2;
