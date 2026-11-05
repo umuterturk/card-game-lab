@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {fluidFillPercent} from '../src/casual/presentation.js';
+import {fluidFillPercent,bankPourAmounts} from '../src/casual/presentation.js';
 import {newRound,stepFirstLevel,FIRST_LEVEL} from '../src/casual/firstLevel.js';
 import {overswingActions,overswingPayout} from '../src/external/engines.js';
 
@@ -83,20 +83,63 @@ test('tap-to-bank respects engine eligibility and previews actual payout',()=>{
  assert.equal(bankable(next),false);
 });
 
-test('pour animation transfers engine payout, then unlocks controls',()=>{
+test('Pot physically approaches the Bank lip, streams briefly, then returns home',()=>{
  const motion=read('src/casual/minimalMotion.js');
  const screen=read('src/casual/SimplifiedGame.jsx');
+ const board=read('src/casual/MinimalBoard.jsx');
+ const css=read('src/casual/minimal.css');
  assert.match(motion,/export function animateBankPour\(/);
- assert.match(motion,/rotation:23/);
+ assert.match(motion,/const angle=56/);
+ assert.match(motion,/rotatedLip=point\(lip,root\)/);
+ assert.match(motion,/targetLip=\{/);
+ assert.match(motion,/tl\.to\(source,\{x:approach\.x,y:approach\.y,rotation:angle/);
+ assert.match(motion,/start=point\(lip,root\),end=point\(mouth,root\)/);
  assert.match(motion,/classList\.add\('sgv-pour-stream'\)/);
+ assert.match(motion,/tl\.to\(source,\{x:0,y:0,rotation:0/);
+ assert.match(motion,/onPourProgress\?\.\(pot\)/);
+ assert.match(motion,/onCount\(secured\)/);
  assert.match(motion,/onTake\(\)/);
- assert.match(motion,/onCount\(Math\.round\(displayed\.value\)\)/);
  assert.match(motion,/onComplete\(\)/);
- assert.match(motion,/toScore-fromScore/);
+ assert.match(screen,/onPourProgress:rawPot=>setView/);
+ assert.match(screen,/potValue:change\.rawPotBefore/);
  assert.match(screen,/cancelRef\.current=animateBankPour\(/);
- assert.match(screen,/busyRef\.current=true/);
+ assert.match(board,/className="sgv-pot-pour-lip"/);
+ assert.match(board,/className="sgv-pot-bottle-mouth"/);
+ assert.doesNotMatch(board,/className="sgv-pot-bottle-rim"/);
+ assert.match(css,/\.sgv-pot-bottle-mouth\{/);
  assert.match(motion,/export function animateSnapLoss\(/);
- assert.match(motion,/action\.type==='flip'\?\.22:\.08/);
+});
+
+test('actual Bank value and raw Pot drain are synchronized through the entire pour',()=>{
+ const samples=[0,.02,.25,.5,.75,.98,1].map(p=>bankPourAmounts(7,10,66,p));
+ assert.equal(samples[0].pot,7);
+ assert.equal(samples[0].secured,10);
+ assert.equal(samples.at(-1).pot,0);
+ assert.equal(samples.at(-1).secured,66);
+ for(let i=1;i<samples.length;i++){
+   assert.ok(samples[i].pot<samples[i-1].pot,'Pot decreases from the very start');
+   assert.ok(samples[i].secured>=samples[i-1].secured,'Bank total never drops');
+ }
+ assert.deepEqual(bankPourAmounts(7,10,66,-1),{pot:7,secured:10});
+ assert.deepEqual(bankPourAmounts(7,10,66,2),{pot:0,secured:66});
+ assert.ok(fluidFillPercent(3.5,24,{max:76,smooth:true})<
+           fluidFillPercent(7,24,{max:76,smooth:true}));
+ assert.equal(fluidFillPercent(0,24,{max:76,smooth:true}),0);
+});
+
+test('approved visual cleanup is reflected in styling and version markup',()=>{
+ const board=read('src/casual/MinimalBoard.jsx');
+ const css=read('src/casual/minimal.css');
+ const html=read('casual.html');
+ assert.match(css,/\.sgv-multiplier-pill::before\{display:none\}/);
+ assert.match(css,/\.sgv-bottle-pair \.sgv-goal-progress\{[\s\S]*?background:transparent;border:0/);
+ assert.match(css,/\.sg-foreground-leaves path\{/);
+ assert.match(css,/@keyframes sgv-wind-leaf/);
+ assert.match(css,/\.sg-cloud-one\{animation-duration:23s\}/);
+ assert.match(css,/\.sg-waterfall path:nth-child\(3\)/);
+ assert.doesNotMatch(board,/sgv-pot-bottle-rim/);
+ assert.match(html,/border:0;background:transparent/);
+ assert.match(html,/font:500 9px/);
 });
 
 
