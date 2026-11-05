@@ -172,10 +172,12 @@ export default function SimplifiedGame(){
        <div className="sgv-actions">
          <button type="button" className="sgv-action sgv-bank" disabled={!canBank}
            onClick={e=>play({type:'bank'},e.currentTarget)}
-           aria-label={'Bank '+potentialPayout+' gold'}>
-           <span className="sgv-action-icon">★</span>
-           <span className="sgv-action-text">BANK</span>
-           <small>{canBank?'+'+potentialPayout:'SAVE'}</small>
+           aria-label={canBank?'Bank '+potentialPayout+' gold':'Bank not available'}>
+           <span className="sgv-action-icon" aria-hidden="true">★</span>
+           <span className="sgv-bank-copy">
+             <span className="sgv-action-text">BANK</span>
+             <small className="sgv-bank-payout">{canBank?'+'+potentialPayout:'—'}</small>
+           </span>
          </button>
          <button type="button" className="sgv-action sgv-flip" disabled={!canFlip}
            onClick={e=>play({type:'flip'},e.currentTarget.querySelector('.sgv-next-card'))}
