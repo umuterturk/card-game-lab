@@ -53,7 +53,7 @@ try{
   await page.goto(url,{waitUntil:'networkidle0',timeout:30000});
   await page.waitForSelector('.sgv-card');
   const badge=await page.$eval('#swing-visible-build',e=>e.textContent.trim());
-  assert.match(badge,/Swing v0\.5\.0\s*·\s*(?:[0-9a-f]{8}|local)/);
+  assert.match(badge,/Swing v0\.6\.0\s*·\s*(?:[0-9a-f]{8}|local)/);
   assert.equal(await page.$$('.sgv-action').then(items=>items.length),2);
   assert.equal(await page.$('.sgv-snap-status'),null,'Snap button must not exist');
   assert.equal(await page.$('.sg-objective'),null,'Old permanent target must be gone');
