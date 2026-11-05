@@ -104,7 +104,8 @@ export default function SimplifiedGame(){
   }
   function resetProgress(){
     // One-tap development reset: clear both persisted checkpoints, then restart.
-    clearOnboardingProgress(window.localStorage);
+    try{clearOnboardingProgress(window.localStorage);}catch{}
+    // The new Level 1 state is saved by startLevel even after clearing storage.
     setDevMenuOpen(false);
     startLevel(1);
     event('onboarding_reset',{level:1});
@@ -282,6 +283,9 @@ export default function SimplifiedGame(){
           <p>{'Drops secured: '+deal.T+' / '+level.target}</p>
           <button type="button" onClick={victory?nextLevel:()=>startLevel(level.id)}>
             {victory?(level.id===ONBOARDING_COUNT?'REPLAY CHALLENGE':'NEXT LEVEL'):'TRY AGAIN'}
+          </button>
+          <button type="button" className="sgv-end-reset" onClick={resetProgress}>
+            RESET PROGRESS
           </button>
         </div>
       </div>}
