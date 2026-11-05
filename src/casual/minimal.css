@@ -256,3 +256,5 @@ button:focus-visible{outline:4px solid #4269f9;outline-offset:4px}
 @media(prefers-reduced-motion:reduce){
  .sgv-event-zero_break .sgv-meter-centerline,.sgv-event-snap .sgv-pending-pot{animation:none}
 }
+
+.sgv-pot-resonance{position:absolute;top:-23px;right:0;padding:1px 5px;border:2px solid #fff1bf;border-radius:10px;background:#ffce67;color:#975b2a;font-size:9px;font-weight:1000;white-space:nowrap;text-shadow:none;box-shadow:0 2px #bc7a34;pointer-events:none}
