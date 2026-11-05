@@ -17,26 +17,26 @@ test('meter has one moving red needle and no fixed red zero line',()=>{
  assert.match(css,/\.sgv-meter-needle\{/);
 });
 
-test('two adjacent bottles replace the floating Pot and standalone Bank button',()=>{
+test('two adjacent bottles and a separate Bank action have honest touch affordances',()=>{
  const board=read('src/casual/MinimalBoard.jsx');
  const screen=read('src/casual/SimplifiedGame.jsx');
  const css=read('src/casual/minimal.css');
  assert.match(board,/export function PendingPot\(/);
  assert.match(board,/className=\{'sgv-pending-pot sgv-pot-bottle'/);
- assert.match(board,/disabled=\{!bankable\}/);
- assert.match(board,/onBank\?\.\(event\.currentTarget\)/);
+ assert.match(board,/const Tag=interactive\?'button':'div'/);
+ assert.match(board,/disabled=\{interactive\?!bankable:undefined\}/);
+ assert.match(board,/onClick=\{interactive\?event=>onBank\?\.\(event\.currentTarget\):undefined\}/);
+ assert.match(board,/bankable&&interactive\?' sgv-pot-bankable':'/);
  assert.doesNotMatch(board,/sgv-pot-bank-preview|bankPreview/);
  assert.doesNotMatch(css,/sgv-pot-bank-preview/);
  assert.match(board,/className="sgv-pot-amount"/);
- assert.match(css,/sgv-bankable-shine/);
- assert.match(css,/sgv-bankable-breathe/);
  assert.match(board,/className="sgv-fluid-fill"/);
  assert.match(board,/className="sgv-pot-liquid"/);
  assert.match(board,/<GoalProgress banked=\{banked\} target=\{target\}\/>/);
  assert.match(screen,/className="sgv-bottle-pair"/);
- assert.match(screen,/onBank=\{source=>play\(\{type:'bank'\},source\)\}/);
- assert.doesNotMatch(screen,/className="sgv-action sgv-bank"/);
- assert.doesNotMatch(screen,/className="sgv-gold-counter"/);
+ assert.match(screen,/interactive=\{false\}/);
+ assert.match(screen,/className=\{'sgv-action sgv-bank sgv-bank-command'/);
+ assert.match(screen,/className="sgv-gold-counter"/);
  assert.match(screen,/className="sgv-action sgv-flip"/);
  assert.match(css,/\.sgv-bottle-pair\{[\s\S]*?display:flex/);
  assert.match(css,/\.sgv-bottle-pair \.sgv-goal-progress\{/);
@@ -148,20 +148,16 @@ test('approved visual cleanup is reflected in styling and version markup',()=>{
 });
 
 
-test('P0 regression: Pot bottle receives touch and pointer events when Bank is legal',()=>{
+test('P0 regression: dedicated Bank remains tappable while decorative Pot is not',()=>{
  const board=read('src/casual/MinimalBoard.jsx');
+ const screen=read('src/casual/SimplifiedGame.jsx');
  const css=read('src/casual/minimal.css');
- const bottleRule=css.match(/\.sgv-bottle-pair \.sgv-pending-pot\s*\{([^}]*)\}/);
- assert.ok(bottleRule,'two-bottle button rule exists');
- assert.match(bottleRule[1],/pointer-events:\s*auto\s*;/,
-   'Pot bottle must not inherit decorative pointer-events:none');
- assert.match(bottleRule[1],/touch-action:\s*manipulation\s*;/);
- const oldRule=css.match(/\.sgv-pending-pot\s*\{([^}]*)\}/);
- assert.ok(oldRule);
- assert.doesNotMatch(oldRule[1],/pointer-events:\s*none/,
-   'old decorative Pot style must not block touch on real button');
- assert.match(board,/onClick=\{event=>onBank\?\.\(event\.currentTarget\)\}/);
- assert.match(board,/disabled=\{!bankable\}/);
+ assert.match(board,/const Tag=interactive\?'button':'div'/);
+ assert.match(screen,/interactive=\{false\}/);
+ assert.match(screen,/className=\{'sgv-action sgv-bank sgv-bank-command'/);
+ assert.match(screen,/onClick=\{\(\)=>play\(\{type:'bank'\},rootRef.current\?\.querySelector\('\.sgv-pending-pot'\)\)\}/);
+ assert.match(css,/\.sgv-onboarding \.sgv-bottle-pair \.sgv-pot-display\{[\s\S]*?pointer-events:none/);
+ assert.match(board,/bankable&&interactive\?' sgv-pot-bankable':'/);
 });
 
 test('normal Bank stays eligible after three safe played cards',()=>{
@@ -203,20 +199,21 @@ test('Pot number and fluid represent engine payout, never the unmultiplied raw c
  assert.doesNotMatch(css,/sgv-pot-bank-preview/);
 });
 
-test('only a bankable Pot shines; touch remains possible and reduced motion is respected',()=>{
+test('only interactive bankable Pots shine; separate Bank action respects reduced motion',()=>{
  const board=read('src/casual/MinimalBoard.jsx');
+ const screen=read('src/casual/SimplifiedGame.jsx');
  const css=read('src/casual/minimal.css');
- assert.match(board,/bankable\?' sgv-pot-bankable':'/);
- assert.match(board,/disabled=\{!bankable\}/);
- assert.match(board,/onClick=\{event=>onBank\?\.\(event\.currentTarget\)\}/);
+ assert.match(board,/bankable&&interactive\?' sgv-pot-bankable':'/);
+ assert.match(board,/disabled=\{interactive\?!bankable:undefined\}/);
+ assert.match(board,/onClick=\{interactive\?event=>onBank\?\.\(event\.currentTarget\):undefined\}/);
+ assert.match(screen,/interactive=\{false\}/);
+ assert.match(screen,/sgv-bank-command/);
  assert.match(css,/\.sgv-bottle-pair \.sgv-pot-bankable \.sgv-pot-bottle-glass\{/);
  assert.match(css,/\.sgv-pot-bankable \.sgv-pot-glass-shine\{/);
  assert.match(css,/@keyframes sgv-bankable-shine/);
  assert.match(css,/@keyframes sgv-bankable-breathe/);
  assert.match(css,/@media\(prefers-reduced-motion:reduce\)\{\s*\.sgv-pot-bankable/);
 });
-
-
 
 test('direction is visualized with arrows, without written labels or signs on the meter',()=>{
  const board=read('src/casual/MinimalBoard.jsx');
