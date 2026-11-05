@@ -79,8 +79,10 @@ export function animateCardAction({
       clone.innerHTML='<span class="sgv-card-glyph">✦</span><strong>'+
         (view.signedCard>0?'+':'')+view.signedCard+'</strong>';
     }
+    // A mystery Flip reveals its value before the meter moves.
+    // Known Steer cards move the meter immediately on tap.
     onMeter(view.to);
-  },[],.08);
+  },[],action.type==='flip'?.22:.08);
   if(view.snap){
     // The attempted meter target is shown at the boundary before returning to 0.
     tl.to(clone,{x:centerX+(view.to>=0?130:-130),y:centerY-18,
@@ -174,6 +176,35 @@ export function flyMultiplierRewards({root,rewards,firstFactorAwards=[]}){
       const pill=root.querySelector('[data-factor="'+kind+'"]');
       if(pill)gsap.set(pill,{clearProps:'scale'});
     }
+  };
+}
+
+/**
+ * A Snap destroys only the unbanked Pot. Short falling coins make the
+ * loss visible without changing any engine value or touching the chest.
+ */
+export function animateSnapLoss(root,lostPot){
+  if(!root||!lostPot||reducedMotion())return ()=>{};
+  const tray=root.querySelector('.sgv-pending-pot');
+  if(!tray)return ()=>{};
+  const origin=point(tray,root),coins=[],tweens=[];
+  const count=Math.min(7,Math.max(3,Math.ceil(lostPot/2)));
+  for(let i=0;i<count;i++){
+    const coin=document.createElement('span');
+    coin.className='sgv-flying-gold sgv-lost-coin';
+    coin.setAttribute('aria-hidden','true');
+    Object.assign(coin.style,{left:origin.x+'px',top:origin.y+'px'});
+    root.appendChild(coin);coins.push(coin);
+    const dx=(i-(count-1)/2)*18;
+    const tw=gsap.fromTo(coin,{scale:1,opacity:.95,x:0,y:0},
+      {scale:.57,opacity:0,x:dx,y:54+(i%3)*12,rotation:dx*2,
+       duration:.42,delay:i*.035,ease:'power2.in',
+       onComplete:()=>coin.remove()});
+    tweens.push(tw);
+  }
+  return ()=>{
+    for(const tw of tweens)tw.kill();
+    removeNodes(coins);
   };
 }
 
