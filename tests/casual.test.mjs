@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {newRound,stepFirstLevel,FIRST_LEVEL} from '../src/casual/firstLevel.js';
 import {newOverswing,stepOverswing,overswingActions,overswingPayout,overswingMultiplier,signed} from '../src/external/engines.js';
 import {multiplierParts,multiplierRewards} from '../src/casual/multiplierView.js';
+import {rawPotValue,actionPresentation} from '../src/casual/presentation.js';
 
 test('level one is tiny and has no abilities or royals',()=>{
   const {game,snaps}=newRound(),d=game.deal;
@@ -114,4 +115,77 @@ test('Snap discards the offending card and unbanked Pot even in casual mode',()=
   assert.equal(round.game.deal.pot.length,0);
   assert.deepEqual(multiplierParts(round.game.deal).map(x=>x.value),[1,1,1]);
   assert.equal(multiplierRewards(round.game.deal,round.game.lastAction).length,0);
+});
+
+
+test('presentation keeps pending raw Pot separate from projected Bank payout',()=>{
+  let round=newRound();
+  const first=stepFirstLevel(round,{type:'flip'});
+  const p1=actionPresentation(round,first,{type:'flip'});
+  assert.equal(p1.signedCard,3);
+  assert.equal(p1.from,0);
+  assert.equal(p1.to,3);
+  assert.equal(p1.addedToPot,3);
+  assert.equal(p1.rawPotAfter,3);
+  assert.equal(p1.securedAfter,0);
+  assert.deepEqual(p1.rewards.map(x=>x.kind),['flip']);
+  round=first;
+  const second=stepFirstLevel(round,{type:'flip'});
+  const p2=actionPresentation(round,second,{type:'flip'});
+  assert.equal(p2.signedCard,-4);
+  assert.equal(p2.from,3);
+  assert.equal(p2.to,-1);
+  assert.equal(p2.addedToPot,4);
+  assert.equal(p2.rawPotAfter,7);
+  assert.equal(rawPotValue(second.game.deal),7);
+  assert.equal(overswingPayout(second.game,FIRST_LEVEL.rules),56);
+  assert.equal(p2.securedAfter,0);
+  assert.deepEqual(p2.factorsAfter.map(f=>f.value),[2,2,2]);
+  assert.deepEqual(p2.rewards.map(f=>f.kind),['swing','jackpot']);
+});
+
+test('Bank presentation transfers engine payout but clears only pending Pot',()=>{
+  let round=stepFirstLevel(stepFirstLevel(newRound(),{type:'flip'}),{type:'flip'});
+  const next=stepFirstLevel(round,{type:'bank'});
+  const p=actionPresentation(round,next,{type:'bank'});
+  assert.equal(p.rawPotBefore,7);
+  assert.equal(p.rawPotAfter,0);
+  assert.equal(p.bankGain,56);
+  assert.equal(p.securedBefore,0);
+  assert.equal(p.securedAfter,56);
+  assert.equal(p.event,'win');
+  assert.deepEqual(p.rewards,[]);
+});
+
+test('Snap presentation never awards Pot or touches previously secured score',()=>{
+  let round=newRound();
+  round=stepFirstLevel(round,{type:'steer',index:0}); // +3
+  round=stepFirstLevel(round,{type:'steer',index:1}); // +5 -> +8
+  const next=stepFirstLevel(round,{type:'flip'}); // +3 -> +11 Snap
+  const p=actionPresentation(round,next,{type:'flip'});
+  assert.equal(p.snap,true);
+  assert.equal(p.to,11);
+  assert.equal(p.rawPotBefore,8);
+  assert.equal(p.rawPotAfter,0);
+  assert.equal(p.addedToPot,0);
+  assert.equal(p.securedAfter,p.securedBefore);
+  assert.equal(p.snapsAfter,1);
+  assert.deepEqual(p.rewards,[]);
+});
+
+test('zero break retains Pot and produces no fake factor awards',()=>{
+  const rules={snapLimit:8,bankCapacityLoss:0,steerAlwaysToPot:true};
+  let game=newOverswing({deckOverride:[2,23,10,20,22,3],seed:42,initialHandSize:2});
+  game=stepOverswing(game,{type:'steer',index:0},rules); // +3
+  game=stepOverswing(game,{type:'steer',index:0},rules); // -4 -> -1
+  const before={game,snaps:0,event:{type:'cross'}};
+  const nextGame=stepOverswing(game,{type:'steer',index:0},rules); // +1 -> 0
+  const after={game:nextGame,snaps:0,event:{type:'zero_break'}};
+  const p=actionPresentation(before,after,{type:'steer'});
+  assert.equal(p.zeroBreak,true);
+  assert.equal(p.to,0);
+  assert.equal(p.rawPotBefore,7);
+  assert.equal(p.rawPotAfter,8);
+  assert.deepEqual(p.factorsAfter.map(f=>f.value),[1,1,1]);
+  assert.deepEqual(p.rewards,[]);
 });
