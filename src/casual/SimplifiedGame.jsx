@@ -192,7 +192,7 @@ export default function SimplifiedGame(){
           {Array.from({length:level.maxSnaps},(_,i)=><span key={i}
             className={i<hearts?'sgv-heart':'sgv-heart sgv-heart-empty'}>♥</span>)}
         </div>}
-        {level.id>=3&&<div className="sgv-tutorial-links">
+        {level.id>=5&&<div className="sgv-tutorial-links">
           <button type="button" onClick={()=>setHelp(v=>!v)} aria-label="About this level">?</button>
           {level.id<ONBOARDING_COUNT&&<button type="button" onClick={skip}>Skip</button>}
         </div>}
