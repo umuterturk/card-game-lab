@@ -10,6 +10,7 @@ import {rawPotValue,actionPresentation} from './presentation.js';
 const viewOf=round=>({
   position:round.game.deal.S,
   rawPot:rawPotValue(round.game.deal),
+  resonance:round.game.deal.resonancePoints||0,
   factors:multiplierParts(round.game.deal),
   snaps:round.snaps
 });
@@ -89,7 +90,7 @@ export default function SimplifiedGame(){
      cancelRef.current=bankGoldIntoGlass({
        root,source:potSource,
        fromScore:change.securedBefore,toScore:change.securedAfter,
-       onTake:()=>setView(v=>({...v,rawPot:0})),
+       onTake:()=>setView(v=>({...v,rawPot:0,resonance:0})),
        onCount:setShownGold,
        onComplete:done
      });
@@ -107,7 +108,7 @@ export default function SimplifiedGame(){
        if(change.zeroBreak)setFeedback('zero_break');
        if(change.snap)setFeedback('snap');
      },
-     onPot:rawPot=>setView(v=>({...v,rawPot})),
+     onPot:rawPot=>setView(v=>({...v,rawPot,resonance:change.resonanceAfter})),
      onSnap:()=>setView(v=>({...v,snaps:change.snapsAfter})),
      onFactors:factors=>{
        setView(v=>({...v,factors}));
@@ -154,7 +155,7 @@ export default function SimplifiedGame(){
          multipliers={view.factors}/>
        <span className="sgv-flight-center" aria-hidden="true"/>
        <GlassChest banked={shownGold}/>
-       <PendingPot value={view.rawPot}/>
+       <PendingPot value={view.rawPot} resonance={view.resonance}/>
        <GoalProgress banked={shownGold} target={FIRST_LEVEL.target}/>
      </div>
 
