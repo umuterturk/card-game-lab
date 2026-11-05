@@ -24,7 +24,7 @@ export function actionPresentation(before,after,action){
     securedAfter:current.T,
     snap:!!result.snap,
     zeroBreak:!!result.zeroBreak,
-    heartsAfter:Math.max(0,2-after.snaps),
+    snapsAfter:after.snaps,
     factorsBefore:multiplierParts(previous),
     factorsAfter:multiplierParts(current),
     rewards:multiplierRewards(current,result),
