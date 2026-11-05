@@ -217,66 +217,98 @@ export function animateFactorReset(root){
   return ()=>{tw.kill();gsap.set(targets,{clearProps:'y,filter'});};
 }
 
-// Presentation-only Bank transfer: individual drops reach the tank mouth, then
-// the engine's secured total drives the liquid rise and the final goal badge.
-export function bankGoldIntoGlass({root,source,fromScore,toScore,onTake,onCount,onComplete}){
+// Transfer is a visual effect only: source and destination totals come from
+// a settled engine action. A small bottle tilts, its liquid pours into the larger
+// bottle, then the secured number and fluid level rise together.
+export function animateBankPour({root,source,fromScore,toScore,onTake,onCount,onComplete}){
   if(!root||!source||reducedMotion()||toScore<=fromScore){
     onTake();onCount(toScore);onComplete();return ()=>{};
   }
   const chest=root.querySelector('.sgv-chest-body');
-  if(!chest){onTake();onCount(toScore);onComplete();return ()=>{};}
-  const mouth=root.querySelector('.sgv-chest-mouth')||chest;
-  const origin=point(source,root),dest=point(mouth,root);
+  const mouth=root.querySelector('.sgv-chest-mouth');
+  if(!chest||!mouth){onTake();onCount(toScore);onComplete();return ()=>{};}
+  const dest=point(mouth,root);
   let alive=true;
   const nodes=[],tweens=[];
+  const cleanup=()=>{
+    for(const tween of tweens)tween.kill?.();
+    removeNodes(nodes);
+    gsap.set(source,{clearProps:'rotation,transformOrigin'});
+    gsap.set(chest,{clearProps:'scale'});
+  };
   const tl=gsap.timeline({onComplete:()=>{
     if(!alive)return;
-    alive=false;onCount(toScore);removeNodes(nodes);onComplete();
+    alive=false;
+    onCount(toScore);
+    cleanup();
+    onComplete();
   }});
-  const quantity=Math.min(10,Math.max(5,Math.ceil((toScore-fromScore)/5)));
-  for(let i=0;i<quantity;i++){
-    const drop=document.createElement('span');
-    drop.className='sgv-fluid-drop';
-    drop.setAttribute('aria-hidden','true');
-    Object.assign(drop.style,{left:origin.x+'px',top:origin.y+'px'});
-    root.appendChild(drop);nodes.push(drop);
-    const delay=i*.045;
-    const x=dest.x-origin.x+(i%3-1)*5;
-    const y=dest.y-origin.y;
-    tl.fromTo(drop,{scale:.75,opacity:0},
-      {scale:1.05,opacity:1,duration:.10},delay+.07);
-    tl.to(drop,{x:x*.48+(i%3-1)*22,
-      y:Math.min(y,-45)-13-(i%4)*7,
-      scale:1.12,duration:.23,ease:'power2.out'},delay+.13);
-    tl.to(drop,{x,y,scale:.45,opacity:0,duration:.34,ease:'power2.in'},delay+.36);
-  }
-  tl.call(()=>{if(alive)onTake();},[],.17);
-  // The UI never computes a payout; it only counts to the engine's already settled T.
+
+  tl.to(source,{rotation:23,transformOrigin:'78% 82%',
+    duration:.26,ease:'back.out(1.3)'},0);
+
+  // Measure the lip after it tilts so the fluid starts at the correct place
+  // on different phone widths and safe-area sizes.
+  tl.call(()=>{
+    if(!alive)return;
+    const a=source.getBoundingClientRect(),b=root.getBoundingClientRect();
+    const sx=a.right-b.left-10, sy=a.top-b.top+22;
+    const ex=dest.x,ey=dest.y;
+    const doc=root.ownerDocument;
+    const svg=doc.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.classList.add('sgv-pour-stream');
+    svg.setAttribute('viewBox','0 0 '+root.clientWidth+' '+root.clientHeight);
+    svg.setAttribute('width',root.clientWidth);
+    svg.setAttribute('height',root.clientHeight);
+    svg.setAttribute('aria-hidden','true');
+    const d='M '+sx+' '+sy+' C '+(sx+27)+' '+(sy-32)+', '+(ex-32)+' '+(ey-48)+', '+ex+' '+ey;
+    for(const [className,width] of [['sgv-pour-stream-glow','10'],['sgv-pour-stream-core','5']]){
+      const path=doc.createElementNS('http://www.w3.org/2000/svg','path');
+      path.setAttribute('d',d);
+      path.setAttribute('class',className);
+      path.setAttribute('stroke-width',width);
+      path.setAttribute('fill','none');
+      path.setAttribute('stroke-linecap','round');
+      svg.appendChild(path);
+      const length=path.getTotalLength();
+      gsap.set(path,{strokeDasharray:length,strokeDashoffset:length});
+      tweens.push(gsap.to(path,{strokeDashoffset:0,duration:.35,ease:'power1.inOut'}));
+    }
+    root.appendChild(svg);nodes.push(svg);
+    tweens.push(gsap.to(svg,{opacity:0,duration:.24,delay:.54}));
+  },[],.25);
+
+  // The at-risk Pot empties only after the pouring begins.
+  tl.call(()=>{if(alive)onTake();},[],.36);
+
+  // Engine-settled payout is counted only when liquid reaches the Bank bottle.
   const displayed={value:fromScore};
-  tl.to(displayed,{value:toScore,duration:.62,ease:'power2.out',
+  tl.to(displayed,{value:toScore,duration:.68,ease:'power2.out',
     onUpdate:()=>{if(alive)onCount(Math.round(displayed.value));}},.65);
-  const reward=document.createElement('span');
+
+  const reward=root.ownerDocument.createElement('span');
   reward.className='sgv-bank-score-fly';
   reward.textContent='+'+(toScore-fromScore);
   reward.setAttribute('aria-hidden','true');
-  Object.assign(reward.style,{left:dest.x+'px',top:(dest.y-32)+'px'});
+  Object.assign(reward.style,{left:dest.x+'px',top:(dest.y-29)+'px'});
   root.appendChild(reward);nodes.push(reward);
-  tl.fromTo(reward,{opacity:0,scale:.7,y:12},
-    {opacity:1,scale:1.1,y:-10,duration:.24,ease:'back.out(2)'},.77);
-  tl.to(reward,{opacity:0,y:-29,duration:.28,ease:'power2.in'},1.08);
+  tl.fromTo(reward,{opacity:0,scale:.75,y:10},
+    {opacity:1,scale:1.12,y:-10,duration:.22,ease:'back.out(2)'},.81);
+  tl.to(reward,{opacity:0,y:-26,duration:.24,ease:'power2.in'},1.13);
   const glow=root.querySelector('.sgv-chest-glow');
-  if(glow)tweens.push(gsap.fromTo(glow,{opacity:.3,scale:.95},
-    {opacity:.9,scale:1.1,duration:.26,repeat:1,yoyo:true,paused:true}));
+  const glowTween=glow?gsap.fromTo(glow,{opacity:.3,scale:.95},
+    {opacity:.82,scale:1.12,duration:.26,repeat:1,yoyo:true,paused:true}):null;
+  if(glowTween)tweens.push(glowTween);
   tl.call(()=>{
     if(!alive)return;
-    if(glow)tweens[0]?.play();
+    glowTween?.play();
     tweens.push(gsap.fromTo(chest,{scale:.98},
-      {scale:1,duration:.33,ease:'back.out(1.8)'}));
-  },[],.76);
-  tl.call(()=>{},[],1.42);
+      {scale:1,duration:.32,ease:'back.out(1.6)'}));
+  },[],.78);
+  tl.to(source,{rotation:0,duration:.35,ease:'back.out(1.2)'},.99);
+  tl.call(()=>{},[],1.43);
   return ()=>{
-    alive=false;tl.kill();for(const t of tweens)t.kill?.();removeNodes(nodes);
-    gsap.set(chest,{clearProps:'scale'});
+    alive=false;tl.kill();cleanup();
     if(glow)gsap.set(glow,{clearProps:'scale,opacity'});
   };
 }
