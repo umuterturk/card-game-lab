@@ -21,13 +21,14 @@ test('markers clamp within the same physical scale, including a Snap overshoot',
 });
 
 test('other integer Snap limits have a readable symmetric scale',()=>{
-  for(const limit of [4,6,9,10,12]){
+  for(const limit of [1,2,4,6,9,10,12]){
     const ticks=meterMarks(limit);
     assert.equal(ticks[0],-limit);
     assert.equal(ticks.at(-1),limit);
     assert.ok(ticks.includes(0));
     assert.ok(ticks.every(Number.isInteger));
     assert.deepEqual(ticks, ticks.toSorted((a,b)=>a-b));
+    assert.equal(new Set(ticks).size,ticks.length);
     assert.equal(meterPercent(-limit,limit),0);
     assert.equal(meterPercent(limit,limit),100);
     assert.equal(meterPercent(0,limit),50);
