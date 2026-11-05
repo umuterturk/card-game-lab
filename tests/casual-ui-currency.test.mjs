@@ -98,3 +98,38 @@ test('pour animation transfers engine payout, then unlocks controls',()=>{
  assert.match(motion,/export function animateSnapLoss\(/);
  assert.match(motion,/action\.type==='flip'\?\.22:\.08/);
 });
+
+
+test('P0 regression: Pot bottle receives touch and pointer events when Bank is legal',()=>{
+ const board=read('src/casual/MinimalBoard.jsx');
+ const css=read('src/casual/minimal.css');
+ const bottleRule=css.match(/\.sgv-bottle-pair \.sgv-pending-pot\s*\{([^}]*)\}/);
+ assert.ok(bottleRule,'two-bottle button rule exists');
+ assert.match(bottleRule[1],/pointer-events:\s*auto\s*;/,
+   'Pot bottle must not inherit decorative pointer-events:none');
+ assert.match(bottleRule[1],/touch-action:\s*manipulation\s*;/);
+ const oldRule=css.match(/\.sgv-pending-pot\s*\{([^}]*)\}/);
+ assert.ok(oldRule);
+ assert.doesNotMatch(oldRule[1],/pointer-events:\s*none/,
+   'old decorative Pot style must not block touch on real button');
+ assert.match(board,/onClick=\{event=>onBank\?\.\(event\.currentTarget\)\}/);
+ assert.match(board,/disabled=\{!bankable\}/);
+});
+
+test('normal Bank stays eligible after three safe played cards',()=>{
+ let round=newRound();
+ for(let i=0;i<3;i++){
+   const next=stepFirstLevel(round,{type:'steer',index:0});
+   assert.notStrictEqual(next,round,'steer must be legal in first three turns');
+   assert.equal(next.snaps,0,'the three-card sequence must remain safe');
+   round=next;
+ }
+ const legal=overswingActions(round.game,FIRST_LEVEL.rules);
+ assert.ok(legal.some(a=>a.type==='bank'&&a.dropIndex==null),
+   'Bank must be available after three safe card plays');
+ const payout=overswingPayout(round.game,FIRST_LEVEL.rules);
+ assert.ok(payout>0);
+ const after=stepFirstLevel(round,{type:'bank'});
+ assert.equal(after.game.deal.T,round.game.deal.T+payout);
+ assert.equal(after.game.deal.pot.length,0);
+});
