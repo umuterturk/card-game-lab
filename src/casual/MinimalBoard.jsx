@@ -23,7 +23,7 @@ export function HorizontalMeter({position,limit=8,multipliers=[]}){
  return <section className="sgv-meter-section" aria-label="Swing meter and multipliers">
    <div className="sgv-meter-caption"><span className="sgv-meter-name">SWING</span></div>
    <div className="sgv-meter" role="group" data-value={position}
-     aria-label={'Swing at '+directionalValue(position)+'; Snap beyond '+limit+' left or '+limit+' right}>
+     aria-label={'Swing at '+directionalValue(position)+'; Snap beyond '+limit+' left or '+limit+' right'}>
      <div className="sgv-meter-track" role="img" data-edge-danger={Math.abs(position)>=limit-2}
        aria-label={'Swing position '+directionalValue(position)}>
        <div className="sgv-meter-scale" aria-hidden="true">
