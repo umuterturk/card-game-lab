@@ -143,15 +143,6 @@ export default function SimplifiedGame(){
    });
  }
 
- const currentEvent=feedback||event.type;
- const notice=currentEvent==='snap'
-   ?'SNAP! Pending Pot lost'
-   :currentEvent==='zero_break'
-   ?'ZERO BREAK — Pot kept, factors reset'
-   :turn===0?'Tap a card to move the marker'
-   :canBank&&!animating?'Tap Pot to secure '+potentialPayout
-   :!canBank&&view.rawPot>0&&!animating?'Play another card to Bank'
-   :'';
 
  return <main className="sgv-page">
    <div ref={rootRef} className={'sgv-phone sgv-event-'+(feedback||event.type)}
@@ -169,7 +160,6 @@ export default function SimplifiedGame(){
      </header>
 
      <div className="sgv-middle">
-       <div className="sgv-mini-hint" aria-live="polite">{notice}</div>
        <HorizontalMeter position={view.position} limit={FIRST_LEVEL.rules.snapLimit}
          multipliers={view.factors}/>
        <span className="sgv-flight-center" aria-hidden="true"/>
