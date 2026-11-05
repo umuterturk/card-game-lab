@@ -5,7 +5,7 @@ import {GardenScene} from './CasualArt.jsx';
 import {HorizontalMeter,GlassChest,PendingPot,IntroTarget,SimpleCard} from './MinimalBoard.jsx';
 import {animateCardAction,animateFactorReset,animateSnapLoss,animateBankPour} from './minimalMotion.js';
 import {multiplierParts} from './multiplierView.js';
-import {rawPotValue,actionPresentation} from './presentation.js';
+import {rawPotValue,visiblePotPayout,actionPresentation} from './presentation.js';
 
 const viewOf=round=>({
   position:round.game.deal.S,
@@ -43,6 +43,8 @@ export default function SimplifiedGame(){
  const available=finished||animating?[]:overswingActions(game,FIRST_LEVEL.rules);
  const canBank=available.some(a=>a.type==='bank'&&a.dropIndex==null);
  const canFlip=available.some(a=>a.type==='flip');
+ // One engine-backed value drives both the Pot number and its visible fluid fill.
+ const potDisplay=visiblePotPayout(potentialPayout,rawPotValue(deal),view.rawPot);
 
  const reset=()=>{
    cancelRef.current?.();
@@ -161,8 +163,8 @@ export default function SimplifiedGame(){
          multipliers={view.factors}/>
        <span className="sgv-flight-center" aria-hidden="true"/>
        <div className="sgv-bottle-pair" aria-label="At-risk Pot and secured Bank bottles">
-         <PendingPot value={view.rawPot} resonance={view.resonance}
-           target={FIRST_LEVEL.target} bankable={canBank} bankPreview={potentialPayout}
+         <PendingPot value={potDisplay}
+           target={FIRST_LEVEL.target} bankable={canBank}
            onBank={source=>play({type:'bank'},source)}/>
          <GlassChest banked={shownGold} target={FIRST_LEVEL.target}/>
        </div>
