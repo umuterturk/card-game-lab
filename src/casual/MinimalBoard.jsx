@@ -53,10 +53,10 @@ export function HorizontalMeter({position,limit=8,multipliers=[],visibleFactors=
 
 // The Pot shows the engine's prospective Bank payout, not raw card value.
 // Its shine is the tappable affordance, replacing the separate Bank chip.
-export function PendingPot({value,target=24,bankable=false,onBank}){
+export function PendingPot({value,target=24,bankable=false,onBank,className=''}){
  const fill=fluidFillPercent(value,target,{max:76,smooth:true});
  return <button type="button"
-   className={'sgv-pending-pot sgv-pot-bottle'+(bankable?' sgv-pot-bankable':'')}
+   className={'sgv-pending-pot sgv-pot-bottle'+(bankable?' sgv-pot-bankable':'')+' '+className}
    disabled={!bankable}
    onClick={event=>onBank?.(event.currentTarget)}
    aria-label={bankable
