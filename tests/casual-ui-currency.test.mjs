@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {fluidFillPercent,bankPourAmounts} from '../src/casual/presentation.js';
+import {fluidFillPercent,bankPourAmounts,visiblePotPayout} from '../src/casual/presentation.js';
 import {newRound,stepFirstLevel,FIRST_LEVEL} from '../src/casual/firstLevel.js';
 import {overswingActions,overswingPayout} from '../src/external/engines.js';
 
@@ -24,8 +24,11 @@ test('two adjacent bottles replace the floating Pot and standalone Bank button',
  assert.match(board,/className=\{'sgv-pending-pot sgv-pot-bottle'/);
  assert.match(board,/disabled=\{!bankable\}/);
  assert.match(board,/onBank\?\.\(event\.currentTarget\)/);
- assert.match(board,/className="sgv-pot-bank-preview"/);
- assert.match(board,/BANK \+\{bankPreview\}/);
+ assert.doesNotMatch(board,/sgv-pot-bank-preview|bankPreview/);
+ assert.doesNotMatch(css,/sgv-pot-bank-preview/);
+ assert.match(board,/className="sgv-pot-amount"/);
+ assert.match(css,/sgv-bankable-shine/);
+ assert.match(css,/sgv-bankable-breathe/);
  assert.match(board,/className="sgv-fluid-fill"/);
  assert.match(board,/className="sgv-pot-liquid"/);
  assert.match(board,/<GoalProgress banked=\{banked\} target=\{target\}\/>/);
@@ -176,3 +179,38 @@ test('normal Bank stays eligible after three safe played cards',()=>{
  assert.equal(after.game.deal.T,round.game.deal.T+payout);
  assert.equal(after.game.deal.pot.length,0);
 });
+
+test('Pot number and fluid represent engine payout, never the unmultiplied raw cards',()=>{
+ const board=read('src/casual/MinimalBoard.jsx');
+ const screen=read('src/casual/SimplifiedGame.jsx');
+ const css=read('src/casual/minimal.css');
+ assert.equal(visiblePotPayout(18,9,9),18);
+ assert.equal(visiblePotPayout(18,9,4.5),9);
+ assert.equal(visiblePotPayout(18,9,0),0);
+ assert.equal(visiblePotPayout(18,9,-1),0);
+ assert.equal(visiblePotPayout(18,9,500),18);
+ assert.equal(visiblePotPayout(0,9,9),0);
+ assert.equal(visiblePotPayout(18,0,0),0);
+ assert.equal(visiblePotPayout(18,9,Number.NaN),18);
+ assert.ok(fluidFillPercent(9,24,{max:76,smooth:true})<
+           fluidFillPercent(18,24,{max:76,smooth:true}));
+ assert.match(screen,/visiblePotPayout\(potentialPayout,rawPotValue\(deal\),view\.rawPot\)/);
+ assert.match(screen,/<PendingPot value=\{potDisplay\}/);
+ assert.match(board,/sgv-pot-amount/);
+ assert.doesNotMatch(board,/sgv-pot-bank-preview|bankPreview/);
+ assert.doesNotMatch(css,/sgv-pot-bank-preview/);
+});
+
+test('only a bankable Pot shines; touch remains possible and reduced motion is respected',()=>{
+ const board=read('src/casual/MinimalBoard.jsx');
+ const css=read('src/casual/minimal.css');
+ assert.match(board,/bankable\?' sgv-pot-bankable':'/);
+ assert.match(board,/disabled=\{!bankable\}/);
+ assert.match(board,/onClick=\{event=>onBank\?\.\(event\.currentTarget\)\}/);
+ assert.match(css,/\.sgv-bottle-pair \.sgv-pot-bankable \.sgv-pot-bottle-glass\{/);
+ assert.match(css,/\.sgv-pot-bankable \.sgv-pot-glass-shine\{/);
+ assert.match(css,/@keyframes sgv-bankable-shine/);
+ assert.match(css,/@keyframes sgv-bankable-breathe/);
+ assert.match(css,/@media\(prefers-reduced-motion:reduce\)\{\s*\.sgv-pot-bankable/);
+});
+
