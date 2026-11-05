@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {newRound,stepFirstLevel,FIRST_LEVEL} from '../src/casual/firstLevel.js';
-import {overswingActions,overswingPayout,signed} from '../src/external/engines.js';
+import {newOverswing,stepOverswing,overswingActions,overswingPayout,overswingMultiplier,signed} from '../src/external/engines.js';
+import {multiplierParts,multiplierRewards} from '../src/casual/multiplierView.js';
 
 test('level one is tiny and has no abilities or royals',()=>{
   const {game,snaps}=newRound(),d=game.deal;
@@ -47,4 +48,69 @@ test('a large move SNAPs and drops the unbanked pot',()=>{
   assert.equal(round.event.type,'snap');
   assert.equal(round.game.deal.S,0);
   assert.equal(round.game.deal.pot.length,0);
+});
+
+test('three pills reflect Swing, Flip and Jackpot directly from the engine',()=>{
+  let round=newRound();
+  assert.deepEqual(multiplierParts(round.game.deal).map(x=>x.value),[1,1,1]);
+  assert.equal(overswingMultiplier(round.game.deal),1);
+  round=stepFirstLevel(round,{type:'flip'}); // safe +3, not crossing
+  assert.deepEqual(multiplierParts(round.game.deal).map(x=>x.value),[1,2,1]);
+  assert.deepEqual(multiplierRewards(round.game.deal,round.game.lastAction).map(x=>x.kind),['flip']);
+  round=stepFirstLevel(round,{type:'flip'}); // -4 strictly crosses +3 -> -1
+  const parts=multiplierParts(round.game.deal);
+  assert.deepEqual(parts.map(x=>x.value),[2,2,2]);
+  assert.deepEqual(multiplierRewards(round.game.deal,round.game.lastAction).map(x=>x.kind),['swing','jackpot']);
+  assert.equal(parts.reduce((x,factor)=>x*factor.value,1),overswingMultiplier(round.game.deal));
+  assert.equal(round.game.deal.pot.reduce((sum,c)=>sum+Math.abs(signed(c)),0),7);
+  assert.equal(overswingPayout(round.game,FIRST_LEVEL.rules),56);
+});
+
+test('safe casual STEER always adds the absolute card rank, even without crossing',()=>{
+  let round=newRound();
+  round=stepFirstLevel(round,{type:'steer',index:0}); // +3, opening
+  round=stepFirstLevel(round,{type:'steer',index:0}); // -2: +3 -> +1; not crossing
+  assert.equal(round.game.deal.S,1);
+  assert.equal(round.game.lastAction.swung,false);
+  assert.equal(round.game.lastAction.destination,'pot');
+  assert.equal(round.game.lastAction.addedToPot,2);
+  assert.deepEqual(round.game.deal.pot.map(id=>Math.abs(signed(id))),[3,2]);
+  assert.equal(overswingPayout(round.game,FIRST_LEVEL.rules),5);
+});
+
+test('original Overswing noncrossing STEER still discards; casual rule is opt-in only',()=>{
+  let normal=newOverswing({deckOverride:FIRST_LEVEL.deck,seed:20261104,initialHandSize:3});
+  normal=stepOverswing(normal,{type:'steer',index:0},{snapLimit:8,bankCapacityLoss:0});
+  normal=stepOverswing(normal,{type:'steer',index:0},{snapLimit:8,bankCapacityLoss:0});
+  assert.equal(normal.deal.S,1);
+  assert.equal(normal.lastAction.destination,'discard');
+  assert.equal(normal.lastAction.addedToPot,0);
+  assert.deepEqual(normal.deal.pot.map(id=>Math.abs(signed(id))),[3]);
+});
+
+test('landing exactly on zero resets all multipliers without losing absolute Pot',()=>{
+  const rules={snapLimit:8,bankCapacityLoss:0,steerAlwaysToPot:true};
+  let game=newOverswing({deckOverride:[2,23,10,20,22,3],seed:42,initialHandSize:2});
+  game=stepOverswing(game,{type:'steer',index:0},rules); // +3
+  game=stepOverswing(game,{type:'steer',index:0},rules); // -4 crossing, S = -1, W = 1
+  assert.equal(game.deal.S,-1);
+  assert.deepEqual(multiplierParts(game.deal).map(x=>x.value),[2,1,1]);
+  game=stepOverswing(game,{type:'flip'},rules); // +1 exact zero -> Zero Break
+  assert.equal(game.lastAction.zeroBreak,true);
+  assert.equal(game.deal.S,0);
+  assert.deepEqual(multiplierParts(game.deal).map(x=>x.value),[1,1,1]);
+  assert.equal(multiplierRewards(game.deal,game.lastAction).length,0);
+  assert.deepEqual(game.deal.pot.map(id=>Math.abs(signed(id))),[3,4,1]);
+});
+
+test('Snap discards the offending card and unbanked Pot even in casual mode',()=>{
+  let round=newRound();
+  round=stepFirstLevel(round,{type:'steer',index:0}); // +3
+  round=stepFirstLevel(round,{type:'steer',index:1}); // +5 => +8, safe; pot contains 3 and 5
+  assert.deepEqual(round.game.deal.pot.map(id=>Math.abs(signed(id))),[3,5]);
+  round=stepFirstLevel(round,{type:'flip'}); // +3 => 11, SNAP
+  assert.equal(round.game.lastAction.snap,true);
+  assert.equal(round.game.deal.pot.length,0);
+  assert.deepEqual(multiplierParts(round.game.deal).map(x=>x.value),[1,1,1]);
+  assert.equal(multiplierRewards(round.game.deal,round.game.lastAction).length,0);
 });
