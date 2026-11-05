@@ -22,7 +22,7 @@ export function stepFirstLevel(old,action){
   if(next===old.game)return old;
   const snapped=!!next.lastAction?.snap;
   const victory=next.deal.T>=FIRST_LEVEL.target;
-  const kind=victory?'win':snapped?'snap':action.type==='bank'?'bank':next.lastAction?.swung?'cross':action.type;
+  const kind=victory?'win':snapped?'snap':next.lastAction?.zeroBreak?'zero_break':action.type==='bank'?'bank':next.lastAction?.swung?'cross':action.type;
   return {game:next,snaps:old.snaps+(snapped?1:0),turn:old.turn+1,
     event:{id:old.turn+1,type:kind,message:next.last}};
 }
