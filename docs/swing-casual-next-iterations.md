@@ -74,3 +74,34 @@ The new meter places scale values **inside the bar** and makes the marker and ev
 ## Not now
 
 No 200-level bulk creation, shops, monetization, Royals/relics, giant onboarding panels, extra actions, horror theme, forced browser CI, or large-scale repository refactoring until the single-level interaction is proven.
+
+
+## Implementation update — 2026-11-05 (Bank and currency consistency)
+
+This iteration addresses remaining visible flaws in the earlier iPhone reference and starts the next tactile-feedback milestone. **Not yet validated on a fresh iPhone screenshot.**
+
+### Implemented in feature branch
+
+- Replace the star as a **currency symbol** with a single embossed coin across HUD, at-risk Pot, Bank payout, intro objective, chest contents, and flying bank rewards. Stars are retained only for non-currency level/victory decoration.
+- Redesign Bank from a crowded three-part horizontal button into a deliberate centered **BANK** heading over a minted-coin **+engine payout** line. The payout is still read from `overswingPayout`; no UI math.
+- Pace Bank as: Pot empties when transfer launches → minted coins travel into glass → secured counter counts up on arrival → exact earned payout briefly lifts above the chest → chest settles → optional win overlay.
+- Add small falling-coin loss feedback for Snap, leaving already secured glass untouched; honor reduced-motion.
+- For Flip, show the revealed signed card **before** moving the meter. Known Steer cards retain immediate signed-meter feedback.
+- Announce Zero Break at actual multiplier reset rather than at card lift.
+- Preserve current engine, deterministic deck, hand refill, Snap/Zero semantics, multipliers and all legality rules.
+
+### QA requirements before signing off
+
+1. Confirm the Bank control at the actual phone width in normal, disabled, payout +10, and larger payout states. The heading and gain must remain centered, with no overlap or cramped corners.
+2. Confirm header, Pot, Bank, chest, flying coins, and intro all use the same recognizable minted-coin form. A level medal/star must not suggest that coins and stars are separate currencies.
+3. Confirm Bank count-up begins when coins touch the chest, not as coins leave the Pot. Verify no overlay interrupts a high-value Bank.
+4. Confirm a Snap visually spills only pending coins; secured value never drops, and Zero Break keeps the Pot.
+5. Re-check 320/375/390/430 CSS px, short viewports, safe areas and reduced-motion on a real iPhone. Unit/build checks do **not** replace this.
+
+### Still outstanding in master plan
+
+- Full on-device video walkthrough and touch/animation reliability, including rapid repeat taps and restart.
+- Timed factor rewards and first-time help validation with sound off.
+- Lightweight optional sound cues with external-audio friendliness; do not add autoplay audio.
+- Five-player, no-instructions Level 1 comprehension research.
+- Only then art-system cohesion and prototype Levels 2–10 before a 200-level rollout.
