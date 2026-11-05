@@ -1,11 +1,9 @@
 import React from 'react';
-
-const MARKS=[-8,-6,-4,-2,0,2,4,6,8];
+import {meterPercent,meterMarks} from './meterScale.js';
 export const signedValue=n=>n>0?'+'+n:String(n);
 
 export function HorizontalMeter({position,limit=8,multipliers=[]}){
- const bounded=Math.max(-limit,Math.min(limit,position));
- const percentage=((bounded+limit)/(2*limit))*100;
+ const percentage=meterPercent(position,limit);
  return <section className="sgv-meter-section" aria-label="Swing meter and multipliers">
    <div className="sgv-meter-caption"><span className="sgv-meter-name">SWING</span></div>
    <div className="sgv-meter" role="group" data-value={position}
@@ -13,13 +11,17 @@ export function HorizontalMeter({position,limit=8,multipliers=[]}){
      <div className="sgv-meter-track" role="img" data-edge-danger={Math.abs(position)>=limit-2}
        aria-label={'Swing position '+signedValue(position)}>
        <span className="sgv-meter-centerline" aria-hidden="true"/>
-       <span className="sgv-meter-marker" style={{left:percentage+'%'}}>
-         <span className="sgv-meter-number">{signedValue(position)}</span>
-         <span className="sgv-meter-arrow"/>
-       </span>
-     </div>
-     <div className="sgv-meter-labels" aria-hidden="true">
-       {MARKS.map(number=><span key={number}>{signedValue(number)}</span>)}
+       <div className="sgv-meter-scale" aria-hidden="true">
+         <div className="sgv-meter-ticks">
+           {meterMarks(limit).map(number=>
+             <span key={number} className={'sgv-meter-tick'+(number===0?' sgv-meter-tick-zero':'')}
+               style={{left:meterPercent(number,limit)+'%'}}>{signedValue(number)}</span>)}
+         </div>
+         <span className="sgv-meter-marker" style={{left:percentage+'%'}}>
+           <span className="sgv-meter-number">{signedValue(position)}</span>
+           <span className="sgv-meter-arrow"/>
+         </span>
+       </div>
      </div>
      <div className="sgv-multipliers" role="group" aria-label="Swing, Flip, Jackpot multipliers">
        {multipliers.map(({kind,value,label})=>
