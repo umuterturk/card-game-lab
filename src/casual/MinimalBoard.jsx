@@ -3,6 +3,8 @@ import {meterPercent,meterMarks} from './meterScale.js';
 import {fluidFillPercent} from './presentation.js';
 
 export const signedValue=n=>n>0?'+'+n:String(n);
+export const directionLabel=n=>n<0?'LEFT':n>0?'RIGHT':'CENTER';
+export const directionalValue=n=>n===0?'CENTER 0':directionLabel(n)+' '+Math.abs(n);
 
 // The fluid is one resource with two states: at-risk in the Pot, secured in the tank.
 export function DropletIcon({className=''}) {
@@ -21,17 +23,19 @@ export function HorizontalMeter({position,limit=8,multipliers=[]}){
  return <section className="sgv-meter-section" aria-label="Swing meter and multipliers">
    <div className="sgv-meter-caption"><span className="sgv-meter-name">SWING</span></div>
    <div className="sgv-meter" role="group" data-value={position}
-     aria-label={'Swing at '+signedValue(position)+'; Snap beyond minus '+limit+' or plus '+limit}>
+     aria-label={'Swing at '+directionalValue(position)+'; Snap beyond '+limit+' left or '+limit+' right'}>
      <div className="sgv-meter-track" role="img" data-edge-danger={Math.abs(position)>=limit-2}
-       aria-label={'Swing position '+signedValue(position)}>
+       aria-label={'Swing position '+directionalValue(position)}>
        <div className="sgv-meter-scale" aria-hidden="true">
+         <span className="sgv-meter-side sgv-meter-side-left">LEFT</span>
+         <span className="sgv-meter-side sgv-meter-side-right">RIGHT</span>
          <div className="sgv-meter-ticks">
            {meterMarks(limit).map(number=>
              <span key={number} className={'sgv-meter-tick'+(number===0?' sgv-meter-tick-zero':'')}
-               style={{left:meterPercent(number,limit)+'%'}}>{signedValue(number)}</span>)}
+               style={{left:meterPercent(number,limit)+'%'}}>{Math.abs(number)}</span>)}
          </div>
          <span className="sgv-meter-marker" style={{left:percentage+'%'}}>
-           <span className="sgv-meter-number">{signedValue(position)}</span>
+           <span className="sgv-meter-number">{position===0?'0':<><small className="sgv-marker-direction">{directionLabel(position)}</small><strong>{Math.abs(position)}</strong></>}</span>
            <span className="sgv-meter-arrow"/>
            <span className="sgv-meter-needle" aria-hidden="true"/>
          </span>
@@ -63,7 +67,6 @@ export function PendingPot({value,target=24,bankable=false,onBank}){
      <span className="sgv-pot-liquid" style={{height:fill+'%',opacity:fill>0?1:0}}/>
      <span className="sgv-pot-glass-shine"/>
    </span>
-   <span className="sgv-pot-bottle-mouth" aria-hidden="true"/>
    <span className="sgv-pot-pour-lip" aria-hidden="true"/>
    <span className="sgv-pot-label">POT</span>
    <span className="sgv-pot-amount"><DropletIcon className="sgv-pot-drop"/>{value}</span>
@@ -98,7 +101,6 @@ export function GlassChest({banked,target}){
        <span className="sgv-glass-spark sgv-glass-spark-a">✦</span>
        <span className="sgv-glass-spark sgv-glass-spark-b">✦</span>
      </div>
-     <div className="sgv-chest-rim" aria-hidden="true"/>
      <span className="sgv-chest-mouth" aria-hidden="true"/>
      <GoalProgress banked={banked} target={target}/>
    </div>
@@ -117,11 +119,12 @@ export function SimpleCard({id,index,value,disabled,onPlay}){
  const type=value<0?'cloud':id===4||id%5===0?'drop':'leaf';
  return <button type="button"
    className={'sgv-card sgv-card-'+type}
-   aria-label={'Play '+signedValue(value)}
+   aria-label={'Play '+directionalValue(value)}
    disabled={disabled}
    onClick={event=>onPlay(index,event.currentTarget)}>
    <span className="sgv-card-gloss" aria-hidden="true"/>
    <span className="sgv-card-glyph" aria-hidden="true">{type==='leaf'?'✿':type==='cloud'?'◆':'✦'}</span>
-   <strong>{signedValue(value)}</strong>
+   <span className="sgv-card-direction">{directionLabel(value)}</span>
+   <strong>{Math.abs(value)}</strong>
  </button>;
 }

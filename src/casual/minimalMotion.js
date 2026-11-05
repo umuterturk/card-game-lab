@@ -77,8 +77,9 @@ export function animateCardAction({
     if(!alive)return;
     if(action.type==='flip'){
       clone.className='sgv-card sgv-flying-card '+(view.signedCard<0?'sgv-card-cloud':'sgv-card-leaf');
-      clone.innerHTML='<span class="sgv-card-glyph">✦</span><strong>'+
-        (view.signedCard>0?'+':'')+view.signedCard+'</strong>';
+      clone.innerHTML='<span class="sgv-card-glyph">✦</span>'+
+        '<span class="sgv-card-direction">'+(view.signedCard<0?'LEFT':'RIGHT')+'</span>'+
+        '<strong>'+Math.abs(view.signedCard)+'</strong>';
     }
     // A mystery Flip reveals its value before the meter moves.
     // Known Steer cards move the meter immediately on tap.
@@ -177,6 +178,52 @@ export function flyMultiplierRewards({root,rewards,firstFactorAwards=[]}){
       const pill=root.querySelector('[data-factor="'+kind+'"]');
       if(pill)gsap.set(pill,{clearProps:'scale'});
     }
+  };
+}
+
+/**
+ * Fracture the at-risk Pot on either hazard. SNAP adds sharp red fractures and
+ * drains pending fluid in the separate loss effect; ZERO BREAK produces a quick
+ * cool-colored crack that heals, leaving the fluid and secured Bank untouched.
+ */
+export function animatePotBreak(root,kind='snap'){
+  if(!root||reducedMotion())return ()=>{};
+  const glass=root.querySelector('.sgv-pot-bottle-glass');
+  if(!glass)return ()=>{};
+  const svgNS='http://www.w3.org/2000/svg',doc=glass.ownerDocument;
+  const crack=doc.createElementNS(svgNS,'svg');
+  crack.setAttribute('viewBox','0 0 100 100');
+  crack.setAttribute('aria-hidden','true');
+  crack.classList.add('sgv-pot-fracture',kind==='snap'?'sgv-pot-fracture-snap':'sgv-pot-fracture-zero');
+  const fractures=[
+    'M 50 0 L 44 19 L 58 37 L 43 56 L 52 74 L 42 100',
+    'M 58 37 L 76 29 L 88 38',
+    'M 43 56 L 27 49 L 16 63',
+    'M 52 74 L 70 81 L 78 98'
+  ];
+  for(const d of fractures){
+    const line=doc.createElementNS(svgNS,'path');
+    line.setAttribute('d',d);
+    line.setAttribute('fill','none');
+    line.setAttribute('stroke-linecap','round');
+    line.setAttribute('stroke-linejoin','round');
+    crack.appendChild(line);
+  }
+  glass.appendChild(crack);
+  let alive=true;
+  const tl=gsap.timeline({onComplete:()=>{
+    alive=false;crack.remove();gsap.set(glass,{clearProps:'x,rotation'});
+  }});
+  tl.fromTo(crack,{opacity:0,scale:.88},{opacity:1,scale:1,duration:.12,ease:'power2.out'},0);
+  tl.fromTo(glass,{x:-3,rotation:-2},{
+    x:3,rotation:2,duration:.065,repeat:3,yoyo:true,ease:'sine.inOut'
+  },0);
+  tl.to(crack,{opacity:0,duration:kind==='snap'?.24:.28},kind==='snap'?.42:.25);
+  tl.call(()=>{},[],kind==='snap'?.70:.58);
+  return ()=>{
+    if(!alive)return;
+    alive=false;tl.kill();crack.remove();
+    gsap.set(glass,{clearProps:'x,rotation'});
   };
 }
 
