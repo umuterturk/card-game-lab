@@ -12,6 +12,7 @@ The displayed arithmetic is internally consistent (5 × 2 × 1 × 1 = 10), but t
 |---|---|---|---|
 | P0 | **POT** label is partly hidden under the tray lip, making the player's at-risk reward look unlabeled | Add inner space and foreground text stacking; increase tray height slightly with short-screen overrides | Label and its value fully visible in mid-round state |
 | P0 | Large, fixed **build/version pill overlaps the lower-right action region**, competing with the Flip CTA | Reserve a dedicated bottom-safe-area strip below the action buttons and shrink/soften the debug label | Neither Bank nor Flip button, including its border, has text overlay |
+| P0 | **BANK** payout `+10` is tiny, baseline-offset into the lower-right button corner; the reward has poor hierarchy and can collide with the button border | Use a centered two-line text group (BANK / +10) beside the star, with fixed line heights and narrow-screen typography | Both the action and full payout remain legible and centered at short and narrow screen sizes |
 | P0 | Empty hand slots have so little contrast that their dashed edges and X almost disappear into the grass | Increase dashed-edge and X contrast while keeping empty slots visually weaker than real cards | Slots identifiable at a glance without seeming tappable |
 
 ## Additional observations to test, not blindly change
