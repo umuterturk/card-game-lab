@@ -5,7 +5,7 @@ body{overscroll-behavior:none}
 button{font:inherit;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 button:focus-visible{outline:4px solid #4269f9;outline-offset:4px}
 .sgv-page{height:100dvh;min-height:490px;width:100%;overflow:hidden;background:linear-gradient(#70c8f5,#a8e6c2);display:flex;justify-content:center;user-select:none;-webkit-user-select:none}
-.sgv-phone{position:relative;isolation:isolate;display:flex;flex-direction:column;width:min(100%,560px);height:100%;min-width:0;max-width:100%;overflow:hidden;padding:calc(env(safe-area-inset-top,0px) + 10px) 16px calc(env(safe-area-inset-bottom,0px) + 21px);background:linear-gradient(#73cafa,#d8f6df 56%,#78c477)}
+.sgv-phone{position:relative;isolation:isolate;display:flex;flex-direction:column;width:min(100%,560px);height:100%;min-width:0;max-width:100%;overflow:hidden;padding:calc(env(safe-area-inset-top,0px) + 10px) 16px calc(env(safe-area-inset-bottom,0px) + 42px);background:linear-gradient(#73cafa,#d8f6df 56%,#78c477)}
 .sgv-phone>.sg-garden{position:absolute;inset:0;z-index:-2;width:100%;height:100%;pointer-events:none}
 .sgv-atmosphere{position:absolute;inset:0;z-index:-1;background:radial-gradient(ellipse at 50% 49%,#faffd96e,transparent 66%);pointer-events:none}
 .sg-cloud-one{animation:sgv-cloud 21s ease-in-out infinite alternate}
@@ -97,7 +97,7 @@ button:focus-visible{outline:4px solid #4269f9;outline-offset:4px}
 .sgv-card strong{position:relative;z-index:1;font-size:clamp(42px,11.5vw,66px);line-height:1;font-weight:1000;letter-spacing:-2px;text-shadow:0 4px #ffffffc7,0 5px #897d7233}
 .sgv-card:active:not(:disabled){transform:translateY(6px) scale(.96);box-shadow:0 1px 0 var(--sgv-card-rim)}
 .sgv-card:disabled:not(.sgv-card-empty){filter:saturate(.65);opacity:.67;cursor:default}
-.sgv-card-empty{--sgv-card-rim:#b9b3a2;--sgv-card-color:#b1a79e;border-style:dashed;color:#aaa8a0;background:#ecdfd2a6;opacity:.6;box-shadow:inset 0 2px 9px #9b88775a;font-size:40px;cursor:default}
+.sgv-card-empty{--sgv-card-rim:#abb59e;--sgv-card-color:#8a9b82;border:4px dashed #f9f3dc;color:#849d80;background:linear-gradient(145deg,#f7f5dfbb,#d4e5c4ad);opacity:.9;box-shadow:inset 0 2px 8px #76967666,0 4px 0 #8ca78d8c;font-size:clamp(27px,7vw,36px);text-shadow:0 1px #fff9e9;cursor:default}
 .sgv-actions{position:relative;z-index:2;flex:none;display:grid;grid-template-columns:1fr 1.23fr;gap:clamp(9px,3vw,18px);width:100%}
 .sgv-action{height:clamp(63px,9.5dvh,88px);min-width:0;border:5px solid #fffbea;border-radius:clamp(22px,6vw,33px);display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-weight:1000;font-size:clamp(21px,6vw,30px);text-shadow:0 2px #ffffffa2;box-shadow:0 6px 0 var(--sgv-rim),0 11px 13px #56745c6d,inset 0 5px #fff9e588;transition:transform .12s ease,filter .12s ease}
 .sgv-action:not(:disabled):active{transform:translateY(5px);box-shadow:0 1px 0 var(--sgv-rim)}
@@ -183,8 +183,9 @@ button:focus-visible{outline:4px solid #4269f9;outline-offset:4px}
 /* P0: an open, unstable Pot and an independent secured target, both OUTSIDE glass. */
 .sgv-pending-pot{
  position:absolute;z-index:9;left:clamp(0px,1.6vw,12px);bottom:clamp(3px,1.4dvh,12px);
- width:clamp(107px,29vw,137px);height:clamp(58px,8.5dvh,76px);
- display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+ width:clamp(107px,29vw,137px);height:clamp(67px,9dvh,81px);
+ display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+ padding:13px 4px 5px;
  border:4px solid #ffe7ac;border-radius:18px 18px 34px 34px;
  background:linear-gradient(#f8d39a 0%,#dda46a 42%,#9d6041 100%);
  box-shadow:inset 0 4px #fff0c0bd,inset 0 -5px #86503685,
@@ -192,14 +193,14 @@ button:focus-visible{outline:4px solid #4269f9;outline-offset:4px}
  color:#fff9dd;pointer-events:none;
 }
 .sgv-pending-pot::after{
- content:"";position:absolute;left:4%;right:4%;top:-6px;height:12px;
+ content:"";position:absolute;z-index:0;left:4%;right:4%;top:-6px;height:12px;
  border:3px solid #ffe9ba;border-radius:50%;
  background:linear-gradient(#ffe9af,#ce945d);
  box-shadow:0 2px 0 #915536;
 }
-.sgv-pot-label{font-size:clamp(11px,2.9vw,14px);font-weight:1000;letter-spacing:1px;line-height:1;
+ .sgv-pot-label{position:relative;z-index:1;font-size:clamp(11px,2.9vw,14px);font-weight:1000;letter-spacing:1px;line-height:1.1;
  text-shadow:0 2px #995631}
-.sgv-pot-amount{display:flex;gap:4px;align-items:center;font-size:clamp(23px,6vw,30px);font-weight:1000;
+ .sgv-pot-amount{position:relative;z-index:1;display:flex;gap:4px;align-items:center;font-size:clamp(23px,6vw,30px);font-weight:1000;
  font-variant-numeric:tabular-nums;line-height:1.04;text-shadow:0 2px #9c632b}
 .sgv-pot-amount span{font-size:19px;color:#ffe574;filter:drop-shadow(0 1px #c38939)}
 .sgv-pot-coins{position:absolute;z-index:-1;top:-19px;right:8px;color:#ffe985;
@@ -251,12 +252,12 @@ button:focus-visible{outline:4px solid #4269f9;outline-offset:4px}
  .sgv-pot-amount{font-size:23px}.sgv-goal-progress strong{font-size:17px}
 }
 @media(max-height:730px){
- .sgv-pending-pot{height:53px;width:112px;bottom:1px}
+ .sgv-pending-pot{height:59px;width:112px;bottom:1px;padding-top:11px;padding-bottom:4px}
  .sgv-goal-progress{bottom:3px;padding:5px 7px;min-width:104px}
  .sgv-pot-amount{font-size:22px}
 }
 @media(max-height:580px){
- .sgv-pending-pot{width:92px;height:43px;bottom:0}
+ .sgv-pending-pot{width:92px;height:49px;bottom:0;padding-top:9px;padding-bottom:3px}
  .sgv-pot-label{font-size:10px}.sgv-pot-amount{font-size:18px}
  .sgv-goal-progress{min-width:94px;bottom:0;padding:4px 6px}
  .sgv-goal-progress strong{font-size:16px}
