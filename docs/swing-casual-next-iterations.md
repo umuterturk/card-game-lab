@@ -169,3 +169,12 @@ Visual iPhone acceptance and interaction-timing fixes, then five-player no-instr
 - No bottle, mouth, stream, amount label or action slot overlaps at 320/375/390/430 CSS px and short-height Safari layouts.
 - Disabled Bank is untappable, legal Bank is a working native button, rapid double taps commit only one engine transaction.
 - No scoring rules, deck, multiplier logic, Bank eligibility, Snap, Zero Break, or target were changed. Browser smoke remains excluded from automatic CI by prior request; use a fresh iPhone screenshot and a 2-second banking recording for final visual signoff.
+
+
+## P0 Pot payout-only display and tap affordance — 2026-11-05
+
+This supersedes the earlier small-Pot guidance to display raw unbanked card totals and a separate `BANK +N` pill. The Pot now displays the exact **engine-projected Bank payout**, incorporating the three current multipliers and bonuses (example: raw cards 9, payout 18 means **18** appears in the bottle). The same displayed amount drives the Pot's fluid height. While pouring, both displayed amount and fluid drain proportionally to the raw pending value, and only the settled engine payout increases the secured Bank.
+
+The redundant Bank pill and its CSS were removed. A legal Bank is indicated by a soft luminous outline, gentle breathing halo, and shine sweeping over the Pot glass. The bottle itself remains the tap/keyboard Bank action; when banking is not yet legal it is disabled and does not animate. Reduced-motion users receive a stationary highlight.
+
+A code-level regression test covers 9→18, halfway drain 9, empty 0, legal-only shine, preserved touch support, and absence of the redundant pill. The remaining release gate is a real iPhone check of the completed two-bottle interaction.
