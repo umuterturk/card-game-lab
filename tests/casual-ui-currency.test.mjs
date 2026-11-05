@@ -13,7 +13,7 @@ test('P0 currency surfaces use a minted coin, never a star as money',()=>{
   assert.doesNotMatch(motion,/★/, 'flying Bank rewards must be coins');
   assert.match(screen,/<CoinIcon className="sgv-gold-icon"\s*\/>/);
   assert.match(screen,/<CoinIcon className="sgv-bank-coin"\s*\/>/);
-  assert.match(screen,/<CoinIcon className="sgv-bank-coin"\s*\/>/);
+  assert.match(board,/<CoinIcon className="sgv-pot-coin"\s*\/>/);
   assert.match(screen,/<span className="sgv-bank-title">BANK<\/span>/);
   assert.match(screen,/overswingPayout\(game,FIRST_LEVEL\.rules\)/);
 });
