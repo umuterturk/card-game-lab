@@ -103,12 +103,12 @@ button:focus-visible{outline:4px solid #4269f9;outline-offset:4px}
 .sgv-action:not(:disabled):active{transform:translateY(5px);box-shadow:0 1px 0 var(--sgv-rim)}
 .sgv-action:disabled{filter:saturate(.45);opacity:.63;cursor:default}
 .sgv-action-icon{font-size:clamp(24px,6.4vw,37px);line-height:1}
-.sgv-bank{--sgv-rim:#2376b5;background:linear-gradient(#7dd1ff,#3599ed 72%,#167bce);color:#fff;text-shadow:0 2px #356ab0;gap:clamp(3px,1.4vw,8px);padding:3px 6px 5px}
-.sgv-bank .sgv-action-icon{flex:none;font-size:clamp(22px,5.8vw,34px);color:#fff2a2;text-shadow:0 2px #cb8d2e;filter:drop-shadow(0 1px #fff)}
-.sgv-bank-copy{min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1}
-.sgv-bank-copy .sgv-action-text{font-size:clamp(19px,5.4vw,27px);line-height:1.05;letter-spacing:-.025em;white-space:nowrap}
-.sgv-bank .sgv-bank-payout{display:block;align-self:center;min-width:0;margin:0;color:#fff7b5;font-size:clamp(17px,4.8vw,22px);font-weight:1000;line-height:1.05;white-space:nowrap;text-shadow:0 2px #286eae;font-variant-numeric:tabular-nums}
-.sgv-bank:disabled .sgv-bank-payout{opacity:.65}
+.sgv-bank{--sgv-rim:#2376b5;background:linear-gradient(#88d9ff,#3b9ced 70%,#1577c4);color:#fff;text-shadow:0 2px #356ab0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px 8px 6px}
+
+
+
+
+
 .sgv-flip{--sgv-rim:#d98b37;background:linear-gradient(#ffed84,#ffc24a 70%,#f5a83d);color:#895026;text-shadow:0 2px #ffe9a4}
 .sgv-flip .sgv-action-icon{color:#fff8da;text-shadow:0 3px #b97526;font-size:clamp(27px,7vw,38px)}
 .sgv-flip-next{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding-left:clamp(5px,2vw,12px);margin-left:4px;border-left:2px solid #e59e47}
@@ -274,13 +274,105 @@ button:focus-visible{outline:4px solid #4269f9;outline-offset:4px}
 /* iPhone width/height safeguards: Bank stays a two-line control at every breakpoint. */
 @media(max-width:365px){
  .sgv-bank{gap:3px;padding:2px 3px 4px}
- .sgv-bank .sgv-action-icon{font-size:22px}
- .sgv-bank-copy .sgv-action-text{font-size:19px}
- .sgv-bank .sgv-bank-payout{font-size:17px}
+
+
+
 }
 @media(max-height:580px){
  .sgv-bank{padding-top:2px;padding-bottom:3px}
- .sgv-bank-copy{gap:0}
+
  .sgv-bank-copy .sgv-action-text{font-size:19px}
- .sgv-bank .sgv-bank-payout{font-size:16px}
+
+}
+
+
+/* P0 currency convention: every amount is represented by an embossed coin,
+   never by a star. Stars are reserved for level achievements. */
+.sgv-coin-symbol{
+ --coin-size:24px;
+ display:inline-block;position:relative;flex:none;
+ width:var(--coin-size);height:var(--coin-size);aspect-ratio:1;
+ border-radius:50%;border:2px solid #fff0a4;
+ background:linear-gradient(135deg,#fff5b5 0%,#ffdb54 41%,#f8ab24 80%,#dc8b1f);
+ box-shadow:inset 0 2px 2px #fff9d4a6,inset 0 -2px 2px #a7662f6b,0 2px 0 #b77730;
+}
+.sgv-coin-symbol::before{
+ content:"";position:absolute;inset:19%;border:2px solid #d59531;border-radius:50%;
+ box-shadow:inset 0 1px 1px #fff5ab,0 1px 1px #fff3a4bd;
+}
+.sgv-coin-symbol::after{
+ content:"";position:absolute;left:25%;top:15%;width:22%;height:26%;
+ border-radius:50%;background:#fff6c2a6;transform:rotate(30deg);
+}
+.sgv-gold-icon.sgv-coin-symbol{--coin-size:26px;font-size:0}
+.sgv-pot-amount .sgv-pot-coin{--coin-size:22px;filter:drop-shadow(0 1px 1px #99602f77)}
+.sgv-bank-title{
+ display:block;font-size:clamp(22px,5.7vw,29px);font-weight:1000;
+ line-height:1.06;letter-spacing:.025em;white-space:nowrap;
+ text-shadow:0 2px #2269a7,0 1px #91e9ff7a;
+}
+.sgv-bank-reward{
+ min-width:76px;min-height:23px;display:flex;align-items:center;justify-content:center;
+ gap:6px;padding:1px 6px;border-radius:15px;
+ background:#0e66aa8f;box-shadow:inset 0 1px 2px #05477d77;
+ font-variant-numeric:tabular-nums;
+}
+.sgv-bank-coin{--coin-size:20px}
+.sgv-bank-reward strong{
+ color:#fff4a9;font-size:clamp(18px,4.8vw,24px);font-weight:1000;
+ line-height:1;letter-spacing:-.02em;white-space:nowrap;
+ text-shadow:0 2px #165785;
+}
+.sgv-bank:disabled .sgv-bank-reward{
+ background:#16578548;box-shadow:none;opacity:.58;
+}
+/* This is an inset coin pile, not a star pile. Each item adds a minted rim. */
+.sgv-gold-piece{font-size:0}
+.sgv-gold-piece::before{
+ content:"";position:absolute;inset:19%;border:1.5px solid #cf8a24;
+ border-radius:50%;box-shadow:inset 0 1px #fff6ae,0 1px #fff4a281;
+}
+.sgv-gold-piece::after{
+ content:"";position:absolute;top:19%;left:26%;width:20%;height:22%;
+ border-radius:50%;background:#fff4bf9c;
+}
+.sgv-intro-coin{font-size:0;position:relative}
+.sgv-intro-coin::before{
+ content:"";position:absolute;inset:17%;border:6px solid #df9930;border-radius:50%;
+ box-shadow:0 2px #fff8bd,inset 0 2px #fff7bf;
+}
+.sgv-intro-coin::after{
+ content:"";position:absolute;top:22%;left:28%;width:17%;height:21%;
+ border-radius:50%;background:#fff7c7ad;
+}
+.sgv-flying-gold{font-size:0}
+.sgv-flying-gold::before{
+ content:"";position:absolute;inset:19%;border:2px solid #d59531;border-radius:50%;
+ box-shadow:inset 0 1px #fff6bb,0 1px #fff6bb;
+}
+.sgv-flying-gold::after{
+ content:"";position:absolute;top:18%;left:23%;width:20%;height:22%;
+ border-radius:50%;background:#fff9cc9c;
+}
+.sgv-bank-score-fly{
+ position:absolute;z-index:27;pointer-events:none;
+ transform:translate(-50%,-50%);
+ color:#fff2a2;font-size:clamp(24px,6.2vw,35px);font-weight:1000;
+ font-variant-numeric:tabular-nums;line-height:1;white-space:nowrap;
+ text-shadow:0 3px 0 #ad712c,0 5px 12px #503a2888;
+ will-change:transform,opacity;
+}
+@media(max-width:365px){
+ .sgv-bank{padding:3px 5px 5px;gap:1px}
+ .sgv-bank-title{font-size:21px}
+ .sgv-bank-reward{min-height:22px;gap:4px;padding:0 5px}
+ .sgv-bank-coin{--coin-size:18px}
+ .sgv-bank-reward strong{font-size:18px}
+}
+@media(max-height:580px){
+ .sgv-bank{gap:0;padding:2px 5px 3px}
+ .sgv-bank-title{font-size:19px}
+ .sgv-bank-reward{min-height:20px}
+ .sgv-bank-coin{--coin-size:17px}
+ .sgv-bank-reward strong{font-size:17px}
 }
