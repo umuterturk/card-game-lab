@@ -5,13 +5,14 @@ import {HorizontalMeter,GlassChest,PendingPot,SimpleCard} from './MinimalBoard.j
 import {animateCardAction,animateFactorReset,animateSnapLoss,animatePotBreak,animateBankPour} from './minimalMotion.js';
 import {multiplierParts} from './multiplierView.js';
 import {rawPotValue,visiblePotPayout,actionPresentation} from './presentation.js';
+import {ONBOARDING_SESSION_KEY,ONBOARDING_PROGRESS_KEY,clearOnboardingProgress} from './onboardingProgress.js';
 import {
   newOnboardingRound,onboardingLevel,onboardingActions,onboardingFinished,
   onboardingVictory,stepOnboarding,wouldSnap,ONBOARDING_COUNT
 } from './onboardingLevels.js';
 
-const SESSION_KEY='swing-casual-onboarding-session-v2';
-const PROGRESS_KEY='swing-casual-onboarding-unlocked-v1';
+const SESSION_KEY=ONBOARDING_SESSION_KEY;
+const PROGRESS_KEY=ONBOARDING_PROGRESS_KEY;
 const event=(name,details={})=>{
   if(typeof window==='undefined')return;
   window.dispatchEvent(new CustomEvent('swing-casual-event',{detail:{name,...details}}));
@@ -52,6 +53,7 @@ export default function SimplifiedGame(){
   const [feedback,setFeedback]=useState(null);
   const [hint,setHint]=useState('');
   const [help,setHelp]=useState(false);
+  const [devMenuOpen,setDevMenuOpen]=useState(false);
   const rootRef=useRef(null),busyRef=useRef(false),cancelRef=useRef(null);
   const resetMotionRef=useRef(null),lossMotionRef=useRef(null),breakMotionRef=useRef(null);
   const seenFactorsRef=useRef(new Set());
@@ -97,7 +99,16 @@ export default function SimplifiedGame(){
     save(next);
     setRound(next);setView(displayOf(next));setShownGold(0);
     setAnimating(false);setFeedback(null);setHint('');setHelp(false);
+    setDevMenuOpen(false);
     seenFactorsRef.current=new Set();
+  }
+  function resetProgress(){
+    // One-tap development reset: clear both persisted checkpoints, then restart.
+    try{clearOnboardingProgress(window.localStorage);}catch{}
+    // The new Level 1 state is saved by startLevel even after clearing storage.
+    setDevMenuOpen(false);
+    startLevel(1);
+    event('onboarding_reset',{level:1});
   }
   function nextLevel(){
     if(round.levelId===ONBOARDING_COUNT)return startLevel(10);
@@ -198,10 +209,28 @@ export default function SimplifiedGame(){
             {Array.from({length:level.maxSnaps},(_,i)=><span key={i}
               className={i<hearts?'sgv-heart':'sgv-heart sgv-heart-empty'}>♥</span>)}
           </div>}
-          {level.id>=5&&<div className="sgv-tutorial-links">
-            <button type="button" onClick={()=>setHelp(v=>!v)} aria-label="About this level">?</button>
-            {level.id<ONBOARDING_COUNT&&<button type="button" onClick={skip}>Skip</button>}
-          </div>}
+          <div className="sgv-tutorial-tools">
+            <button type="button" className="sgv-reset-progress"
+              onClick={resetProgress} aria-label="Reset onboarding progress and restart Level 1"
+              title="Reset onboarding progress">
+              <span aria-hidden="true" className="sgv-reset-icon">↺</span>
+              <span className="sgv-reset-label">Reset</span>
+            </button>
+            {level.id>=5&&<>
+              <button type="button" className="sgv-dev-menu-toggle"
+                onClick={()=>setDevMenuOpen(open=>!open)}
+                aria-label="More onboarding tools" aria-expanded={devMenuOpen}>⋯</button>
+              {devMenuOpen&&<div className="sgv-dev-menu" role="group" aria-label="Onboarding tools">
+                <button type="button" onClick={()=>{setHelp(value=>!value);setDevMenuOpen(false);}}>
+                  {help?'Hide help':'Show help'}
+                </button>
+                {level.id<ONBOARDING_COUNT&&<button type="button"
+                  onClick={()=>{setDevMenuOpen(false);skip();}}>
+                  Skip to Level 10
+                </button>}
+              </div>}
+            </>}
+          </div>
         </div>
       </header>
       <div className="sgv-middle">
@@ -254,6 +283,9 @@ export default function SimplifiedGame(){
           <p>{'Drops secured: '+deal.T+' / '+level.target}</p>
           <button type="button" onClick={victory?nextLevel:()=>startLevel(level.id)}>
             {victory?(level.id===ONBOARDING_COUNT?'REPLAY CHALLENGE':'NEXT LEVEL'):'TRY AGAIN'}
+          </button>
+          <button type="button" className="sgv-end-reset" onClick={resetProgress}>
+            RESET PROGRESS
           </button>
         </div>
       </div>}
