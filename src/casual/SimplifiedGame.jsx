@@ -2,7 +2,7 @@ import React,{useEffect,useRef,useState} from 'react';
 import {newRound,stepFirstLevel,FIRST_LEVEL} from './firstLevel.js';
 import {overswingActions,overswingPayout,signed} from '../external/engines.js';
 import {GardenScene} from './CasualArt.jsx';
-import {HorizontalMeter,GlassChest,PendingPot,GoalProgress,IntroTarget,SimpleCard} from './MinimalBoard.jsx';
+import {HorizontalMeter,GlassChest,PendingPot,GoalProgress,IntroTarget,SimpleCard,CoinIcon} from './MinimalBoard.jsx';
 import {animateCardAction,animateFactorReset,bankGoldIntoGlass} from './minimalMotion.js';
 import {multiplierParts} from './multiplierView.js';
 import {rawPotValue,actionPresentation} from './presentation.js';
@@ -139,7 +139,7 @@ export default function SimplifiedGame(){
        <div className="sgv-level" aria-label="Level 1"><span>★</span><strong>Level 1</strong></div>
        <div className="sgv-hud-right">
          <div className="sgv-gold-counter" aria-label={'Banked gold: '+shownGold}>
-           <span className="sgv-gold-icon">★</span>
+           <CoinIcon className="sgv-gold-icon"/>
            <strong>{shownGold}</strong>
          </div>
          <div className="sgv-lives" aria-label={hearts+' chances remaining'}>
@@ -173,10 +173,10 @@ export default function SimplifiedGame(){
          <button type="button" className="sgv-action sgv-bank" disabled={!canBank}
            onClick={e=>play({type:'bank'},e.currentTarget)}
            aria-label={canBank?'Bank '+potentialPayout+' gold':'Bank not available'}>
-           <span className="sgv-action-icon" aria-hidden="true">★</span>
-           <span className="sgv-bank-copy">
-             <span className="sgv-action-text">BANK</span>
-             <small className="sgv-bank-payout">{canBank?'+'+potentialPayout:'—'}</small>
+           <span className="sgv-bank-title">BANK</span>
+           <span className="sgv-bank-reward" aria-hidden="true">
+             {canBank&&<CoinIcon className="sgv-bank-coin"/>}
+             <strong>{canBank?'+'+potentialPayout:'—'}</strong>
            </span>
          </button>
          <button type="button" className="sgv-action sgv-flip" disabled={!canFlip}
