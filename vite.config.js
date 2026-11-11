@@ -10,5 +10,5 @@ export default defineConfig(({mode})=>({
     transformIndexHtml(html){return html.replaceAll('__CASUAL_COMMIT__',casualCommit);}}],
   build:{rollupOptions:{input:mode==='overswing'
     ?resolve('overswing.html')
-    :{catalog:resolve('index.html'),overswing:resolve('overswing.html'),casual:resolve('casual.html')}}}
+    :{catalog:resolve('index.html'),overswing:resolve('overswing.html'),casual:resolve('casual.html'),beeHop:resolve('bee-hop.html')}}}
 }));
