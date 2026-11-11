@@ -39,11 +39,21 @@ export default function BeeHop() {
   const level = LEVELS[index];
   const [round, setRound] = useState(() => makeRound(LEVELS[0]));
   const [hint, setHint] = useState(null);
+  const [selectedPollen, setSelectedPollen] = useState(null);
   const [help, setHelp] = useState(false);
   const [unlocked, setUnlocked] = useState(readProgress);
   const state = useMemo(() => ({width: level.width, height: level.height, ...round}), [level, round]);
   const moves = useMemo(() => legalMoves(state), [state]);
-  const destinations = useMemo(() => new Map(moves.map(move => [move.to, move])), [moves]);
+  const targets = useMemo(() => new Set(moves.map(move => move.over)), [moves]);
+  const destinations = useMemo(() => new Map(moves.filter(move => move.over === selectedPollen).map(move => [move.to, move])), [moves, selectedPollen]);
+  const boardWidth = level.width + 0.5;
+  const boardHeight = 1 + (level.height - 1) * 0.75;
+  const boardAspect = boardWidth / (boardHeight * 2 / Math.sqrt(3));
+  const hexStyle = cell => {
+    const row = Math.floor(cell / level.width), column = cell % level.width;
+    return {left: `${(column + (row % 2) * 0.5) / boardWidth * 100}%`,
+      top: `${row * 0.75 / boardHeight * 100}%`};
+  };
   const status = statusOf(state);
   const collected = level.pollen.length - round.pollen.length;
 
@@ -52,6 +62,7 @@ export default function BeeHop() {
     setIndex(next);
     setRound(makeRound(LEVELS[next]));
     setHint(null);
+    setSelectedPollen(null);
   }
   function land(move) {
     if (!move || status !== 'playing') return;
@@ -60,6 +71,7 @@ export default function BeeHop() {
     setRound({bee: next.bee, pollen: next.pollen,
       history: [...round.history, {bee: round.bee, pollen: round.pollen}], turns: round.turns + 1});
     setHint(null);
+    setSelectedPollen(null);
     if (next.pollen.length === 0 && index + 2 > unlocked) {
       const value = Math.min(5, index + 2);
       setUnlocked(value);
@@ -72,10 +84,12 @@ export default function BeeHop() {
     setRound({bee: previous.bee, pollen: previous.pollen,
       history: round.history.slice(0, -1), turns: Math.max(0, round.turns - 1)});
     setHint(null);
+    setSelectedPollen(null);
   }
   function askHint() {
     const result = solvePuzzle(state);
     setHint(result.solvable ? result.moves[0].to : 'no-solution');
+    setSelectedPollen(result.solvable ? result.moves[0].over : null);
   }
 
   return <div className="bh-app">
@@ -87,7 +101,7 @@ export default function BeeHop() {
       </header>
 
       <section className="bh-heading">
-        <div><span className="bh-eyebrow">THE POLLEN TRAIL · LEVEL {fmt(level.id)}</span><h1>{level.name}</h1><p>One bee. Every jump collects pollen.</p></div>
+        <div><span className="bh-eyebrow">HONEYCOMB TRAIL · LEVEL {fmt(level.id)}</span><h1>{level.name}</h1><p>One bee. Every jump collects pollen.</p></div>
         <div className="bh-level-badge"><span>LEVEL</span><strong>{fmt(level.id)}</strong></div>
       </section>
 
@@ -102,28 +116,33 @@ export default function BeeHop() {
       </div>
 
       {help && <section className="bh-help" aria-label="How to play">
-        <strong>How to play</strong><p>Your bee moves horizontally or vertically. Every jump must cross exactly one flower. You may fly through empty spaces before it and choose <b>any empty landing square beyond</b>. The flower disappears. Collect them all!</p>
+        <strong>How to play</strong><p>The bee flies in <b>six straight directions</b> along the honeycomb. Tap a glowing pollen flower, then choose any highlighted empty hex beyond it. You can pass over empty hexes before the flower, but must cross <b>exactly one flower</b> per jump. Collect them all!</p>
       </section>}
 
       <section className="bh-board-section">
-        <div className="bh-board-top"><span>THE MEADOW</span><span>{level.width} × {level.height} GRID</span></div>
+        <div className="bh-board-top"><span>THE HONEYCOMB</span><span>⬡ SIX DIRECTIONS · {level.width} × {level.height}</span></div>
         <div className="bh-board-outer">
-          <div className="bh-board" style={{'--cols': level.width}} role="group" aria-label={`${level.width} by ${level.height} puzzle grid`}>
+          <div className="bh-board" style={{aspectRatio: boardAspect, '--hex-w': `${100 / boardWidth}%`, '--hex-h': `${100 / boardHeight}%`}} role="group" aria-label={`${level.width} by ${level.height} honeycomb puzzle with six directions`}>
             {Array.from({length: level.width * level.height}, (_, cell) => {
               const move = destinations.get(cell);
               const bee = state.bee === cell;
               const pollen = state.pollen.includes(cell);
+              const target = targets.has(cell) && status === 'playing';
               const highlighted = move != null && status === 'playing';
+              const selected = selectedPollen === cell;
               return <button key={`${level.id}-${cell}`} type="button"
-                className={`bh-cell ${bee ? 'is-bee' : ''} ${pollen ? 'is-pollen' : ''} ${highlighted ? 'is-landing' : ''} ${hint === cell && highlighted ? 'is-hint' : ''}`}
-                disabled={!highlighted} onClick={() => land(move)}
-                aria-label={bee ? `Bee at ${cellLabel(cell, level.width)}` : pollen ? `Pollen at ${cellLabel(cell, level.width)}` : highlighted ? `Land at ${cellLabel(cell, level.width)}, capturing pollen` : `Empty ${cellLabel(cell, level.width)}`}>
+                style={hexStyle(cell)}
+                className={`bh-cell ${bee ? 'is-bee' : ''} ${pollen ? 'is-pollen' : ''} ${target ? 'is-target' : ''} ${selected ? 'is-selected' : ''} ${highlighted ? 'is-landing' : ''} ${hint === cell && highlighted ? 'is-hint' : ''}`}
+                disabled={!target && !highlighted}
+                onClick={() => target ? (setSelectedPollen(selected ? null : cell), setHint(null)) : land(move)}
+                aria-pressed={target ? selected : undefined}
+                aria-label={bee ? `Bee at ${cellLabel(cell, level.width)}` : target ? `${selected ? 'Selected' : 'Select'} pollen at ${cellLabel(cell, level.width)}` : pollen ? `Pollen at ${cellLabel(cell, level.width)}` : highlighted ? `Land at ${cellLabel(cell, level.width)}, capturing selected pollen` : `Empty ${cellLabel(cell, level.width)}`}>
                 {bee ? <Bee/> : pollen ? <Flower/> : highlighted ? <span className="bh-landing-dot"/> : null}
               </button>;
             })}
           </div>
         </div>
-        <div className="bh-board-note">{status === 'won' ? 'All pollen collected! The hive is happy.' : status === 'stuck' ? 'No legal jumps remain. Undo a move or restart.' : hint === 'no-solution' ? 'No winning route from here. Undo a move.' : hint !== null ? 'Glowing spot: a step toward the solution.' : 'Tap a glowing spot to choose where your bee lands.'}</div>
+        <div className="bh-board-note">{status === 'won' ? 'All pollen collected! The hive is happy.' : status === 'stuck' ? 'No legal jumps remain. Undo a move or restart.' : hint === 'no-solution' ? 'No winning route from here. Undo a move.' : hint !== null ? 'Golden landing shows a winning move.' : selectedPollen !== null ? 'Now pick a green landing hex beyond the flower.' : 'Tap a glowing flower, then choose your landing hex.'}</div>
       </section>
 
       {status === 'won' && <div className="bh-result bh-win"><span>✦ PERFECT CLEAR ✦</span><strong>Sweet success!</strong><p>Every flower collected in {round.turns} jumps.</p><button type="button" onClick={() => selectLevel(index === 4 ? 0 : index + 1)}>{index === 4 ? 'Play from the start' : 'Next level →'}</button></div>}
@@ -131,10 +150,10 @@ export default function BeeHop() {
 
       <div className="bh-controls">
         <button onClick={undo} disabled={!round.history.length} type="button"><span>↶</span> Undo</button>
-        <button onClick={() => {setRound(makeRound(level)); setHint(null);}} type="button"><span>↻</span> Restart</button>
+        <button onClick={() => {setRound(makeRound(level)); setHint(null); setSelectedPollen(null);}} type="button"><span>↻</span> Restart</button>
         <button onClick={askHint} disabled={status !== 'playing'} type="button" className="bh-hint-button"><span>✧</span> Hint</button>
       </div>
-      <div className="bh-bottom-note">Generated backwards · Verified by a puzzle solver · 5 playable levels</div>
+      <div className="bh-bottom-note">Six directions · Reverse-generated · Solver-verified · 5 levels</div>
     </div>
   </div>;
 }
