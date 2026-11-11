@@ -1,5 +1,5 @@
 import React, {useMemo, useState} from 'react';
-import {LEVELS, legalMoves, playMove, solvePuzzle, statusOf} from './puzzle.js';
+import {LEVELS, legalMoves, playMove, selectableMoves, solvePuzzle, statusOf} from './puzzle.js';
 import './style.css';
 
 const readProgress = () => {
@@ -45,7 +45,7 @@ export default function BeeHop() {
   const state = useMemo(() => ({width: level.width, height: level.height, ...round}), [level, round]);
   const moves = useMemo(() => legalMoves(state), [state]);
   const targets = useMemo(() => new Set(moves.map(move => move.over)), [moves]);
-  const destinations = useMemo(() => new Map(moves.filter(move => move.over === selectedPollen).map(move => [move.to, move])), [moves, selectedPollen]);
+  const destinations = useMemo(() => new Map(selectableMoves(moves, selectedPollen).map(move => [move.to, move])), [moves, selectedPollen]);
   const boardWidth = level.width + 0.5;
   const boardHeight = 1 + (level.height - 1) * 0.75;
   const boardAspect = boardWidth / (boardHeight * 2 / Math.sqrt(3));
@@ -116,7 +116,7 @@ export default function BeeHop() {
       </div>
 
       {help && <section className="bh-help" aria-label="How to play">
-        <strong>How to play</strong><p>The bee flies in <b>six straight directions</b> along the honeycomb. Tap a glowing pollen flower, then choose any highlighted empty hex beyond it. You can pass over empty hexes before the flower, but must cross <b>exactly one flower</b> per jump. Collect them all!</p>
+        <strong>How to play</strong><p>The bee flies in <b>six straight directions</b> along the honeycomb. Tap any glowing landing hex to jump immediately, or tap a pollen flower to narrow the landing choices. You can pass over empty hexes before the flower, but must cross <b>exactly one flower</b> per jump. Collect them all!</p>
       </section>}
 
       <section className="bh-board-section">
@@ -133,16 +133,16 @@ export default function BeeHop() {
               return <button key={`${level.id}-${cell}`} type="button"
                 style={hexStyle(cell)}
                 className={`bh-cell ${bee ? 'is-bee' : ''} ${pollen ? 'is-pollen' : ''} ${target ? 'is-target' : ''} ${selected ? 'is-selected' : ''} ${highlighted ? 'is-landing' : ''} ${hint === cell && highlighted ? 'is-hint' : ''}`}
-                disabled={!target && !highlighted}
-                onClick={() => target ? (setSelectedPollen(selected ? null : cell), setHint(null)) : land(move)}
+                disabled={!target && !highlighted && !(bee && status === 'playing')}
+                onClick={() => target ? (setSelectedPollen(selected ? null : cell), setHint(null)) : bee ? (setSelectedPollen(null), setHint(null)) : land(move)}
                 aria-pressed={target ? selected : undefined}
-                aria-label={bee ? `Bee at ${cellLabel(cell, level.width)}` : target ? `${selected ? 'Selected' : 'Select'} pollen at ${cellLabel(cell, level.width)}` : pollen ? `Pollen at ${cellLabel(cell, level.width)}` : highlighted ? `Land at ${cellLabel(cell, level.width)}, capturing selected pollen` : `Empty ${cellLabel(cell, level.width)}`}>
+                aria-label={bee ? `Bee at ${cellLabel(cell, level.width)}; tap to show all landings` : target ? `${selected ? 'Selected' : 'Select'} pollen at ${cellLabel(cell, level.width)}` : pollen ? `Pollen at ${cellLabel(cell, level.width)}` : highlighted ? `Land at ${cellLabel(cell, level.width)}, capturing selected pollen` : `Empty ${cellLabel(cell, level.width)}`}>
                 {bee ? <Bee/> : pollen ? <Flower/> : highlighted ? <span className="bh-landing-dot"/> : null}
               </button>;
             })}
           </div>
         </div>
-        <div className="bh-board-note">{status === 'won' ? 'All pollen collected! The hive is happy.' : status === 'stuck' ? 'No legal jumps remain. Undo a move or restart.' : hint === 'no-solution' ? 'No winning route from here. Undo a move.' : hint !== null ? 'Golden landing shows a winning move.' : selectedPollen !== null ? 'Now pick a green landing hex beyond the flower.' : 'Tap a glowing flower, then choose your landing hex.'}</div>
+        <div className="bh-board-note">{status === 'won' ? 'All pollen collected! The hive is happy.' : status === 'stuck' ? 'No legal jumps remain. Undo a move or restart.' : hint === 'no-solution' ? 'No winning route from here. Undo a move.' : hint !== null ? 'Golden landing shows a winning move.' : selectedPollen !== null ? 'Pick a green landing hex, or tap the bee to see all moves.' : 'Tap a green landing hex to fly, or tap pollen to filter landings.'}</div>
       </section>
 
       {status === 'won' && <div className="bh-result bh-win"><span>✦ PERFECT CLEAR ✦</span><strong>Sweet success!</strong><p>Every flower collected in {round.turns} jumps.</p><button type="button" onClick={() => selectLevel(index === 4 ? 0 : index + 1)}>{index === 4 ? 'Play from the start' : 'Next level →'}</button></div>}

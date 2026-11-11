@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DIRECTIONS, LEVELS, LEVEL_SPECS, generatePuzzle, legalMoves, playMove,
-  solvePuzzle, statusOf, stepHex, verifyPath, estimateRandomSuccess} from '../src/bee-hop/puzzle.js';
+  selectableMoves, solvePuzzle, statusOf, stepHex, verifyPath, estimateRandomSuccess} from '../src/bee-hop/puzzle.js';
 
 test('six axial directions connect six neighboring honeycomb cells', () => {
   assert.equal(DIRECTIONS.length, 6);
@@ -81,5 +81,21 @@ test('seeded random-policy success decreases from tutorial through expert', () =
   const winRates = LEVELS.map(level => estimateRandomSuccess(level, 2000, 9000 + level.id));
   for (let i = 1; i < winRates.length; i++) {
     assert.ok(winRates[i] < winRates[i - 1], `Level ${i+1} was not harder than ${i} by the proxy`);
+  }
+});
+
+test('landings are available immediately without selecting pollen or requesting a hint', () => {
+  for (const level of LEVELS) {
+    const moves = legalMoves(level);
+    assert.ok(moves.length, 'Each level must offer a playable opening');
+    assert.deepEqual(selectableMoves(moves), moves, 'All legal landing hexes must be shown by default');
+    const directMove = selectableMoves(moves)[0];
+    const after = playMove(level, directMove);
+    assert.equal(after.pollen.length, level.pollen.length - 1, 'Tap-to-land must capture pollen without a hint');
+    const focused = selectableMoves(moves, directMove.over);
+    assert.ok(focused.length > 0);
+    assert.ok(focused.every(move => move.over === directMove.over));
+    assert.deepEqual(selectableMoves(moves, -1), []);
+    assert.deepEqual(selectableMoves(moves, null), moves, 'Tap the bee to restore all landing choices');
   }
 });

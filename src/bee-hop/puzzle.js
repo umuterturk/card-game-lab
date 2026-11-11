@@ -48,6 +48,12 @@ export function legalMoves(state) {
   return moves;
 }
 
+/** Keep every legal landing visible by default. A selected pollen optionally
+ * narrows the highlights; hints are never required to make a move. */
+export function selectableMoves(moves, selectedPollen = null) {
+  return selectedPollen === null ? moves : moves.filter(move => move.over === selectedPollen);
+}
+
 export function playMove(state, move) {
   const legal = legalMoves(state).find(m => m.to === move?.to && m.over === move?.over && m.from === move?.from);
   if (!legal) return state;
