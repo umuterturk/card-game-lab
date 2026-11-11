@@ -1,101 +1,106 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {DIRECTIONS, LEVELS, LEVEL_SPECS, generatePuzzle, legalMoves, playMove,
-  selectableMoves, solvePuzzle, statusOf, stepHex, verifyPath, estimateRandomSuccess} from '../src/bee-hop/puzzle.js';
+import {DIRECTIONS,LEVELS,LEVEL_SPECS,WAVE_NAMES,legalMoves,playMove,
+  selectableMoves,solvePuzzle,statusOf,stepHex,verifyPath,evaluatePuzzle,generatePuzzle} from '../src/bee-hop/puzzle.js';
 
-test('six axial directions connect six neighboring honeycomb cells', () => {
-  assert.equal(DIRECTIONS.length, 6);
-  const width = 5, height = 5, at = 2 * width + 2;
-  const neighbors = DIRECTIONS.map(d => stepHex(at, d, width, height));
-  assert.equal(new Set(neighbors).size, 6);
-  assert.deepEqual(neighbors.sort((a, b) => a - b), [6, 7, 11, 13, 16, 17]);
-  for (const d of DIRECTIONS) {
-    const next = stepHex(at, d, width, height);
-    assert.equal(stepHex(next, [-d[0], -d[1]], width, height), at);
+function brutePaths(initial){
+  if(!initial.pollen.length)return {total:1n,wins:1n};
+  const moves=legalMoves(initial);
+  if(!moves.length)return {total:1n,wins:0n};
+  let total=0n,wins=0n;
+  for(const m of moves){const child=brutePaths(playMove(initial,m));total+=child.total;wins+=child.wins;}
+  return {total,wins};
+}
+test('hex steps visit six different neighbors and reverse correctly',()=>{
+  assert.equal(DIRECTIONS.length,6);
+  const at=2*5+2, neighbors=DIRECTIONS.map(d=>stepHex(at,d,5,5));
+  assert.equal(new Set(neighbors).size,6);
+  assert.deepEqual(neighbors.sort((a,b)=>a-b),[6,7,11,13,16,17]);
+  for(const d of DIRECTIONS)assert.equal(stepHex(stepHex(at,d,5,5),[-d[0],-d[1]],5,5),at);
+});
+test('landings are directly playable without requesting hints',()=>{
+  const state={width:5,height:5,bee:0,pollen:[1,5,6]};
+  const moves=legalMoves(state);
+  assert.equal(moves.length,6);
+  assert.deepEqual(selectableMoves(moves),moves);
+  assert.equal(selectableMoves(moves,1).length,3);
+  const next=playMove(state,selectableMoves(moves)[0]);
+  assert.equal(next.pollen.length,2);
+  assert.deepEqual(selectableMoves(moves,null),moves);
+});
+test('meaningful branching excludes immediate dead ends (6 landings -> 2 continue)',()=>{
+  const s={width:5,height:5,bee:0,pollen:[1,5,6]};
+  const metrics=evaluatePuzzle(s);
+  assert.equal(metrics.exact,true);
+  assert.equal(metrics.legalFirst,6);
+  assert.equal(metrics.continuingFirst,2);
+  assert.equal(metrics.winningFirst,2);
+  assert.equal(metrics.totalPaths,'8');
+  assert.equal(metrics.realPaths,'2');
+  assert.equal(metrics.winningPaths,'2');
+});
+test('exact winning and total path counts match independent brute force',()=>{
+  const fixtures=[
+    {width:5,height:1,bee:0,pollen:[2]},
+    {width:5,height:5,bee:0,pollen:[1,5,6]},
+    {width:4,height:4,bee:1,pollen:[4,6,7]},
+    {width:3,height:3,bee:0,pollen:[8]}
+  ];
+  for(const s of fixtures){
+    const brute=brutePaths(s),stats=evaluatePuzzle(s);
+    assert.ok(stats.exact);
+    assert.equal(stats.totalPaths,brute.total.toString());
+    assert.equal(stats.winningPaths,brute.wins.toString());
   }
-  assert.equal(stepHex(0, [-1, 0], width, height), -1);
-  assert.equal(stepHex(0, [0, -1], width, height), -1);
 });
-
-test('hex jump captures the first pollen and offers multiple landings', () => {
-  const s = {width: 6, height: 3, bee: 6, pollen: [8]};
-  assert.deepEqual(legalMoves(s), [
-    {from: 6, over: 8, to: 9},
-    {from: 6, over: 8, to: 10},
-    {from: 6, over: 8, to: 11}
-  ]);
-  const next = playMove(s, {from: 6, over: 8, to: 10});
-  assert.equal(next.bee, 10);
-  assert.deepEqual(next.pollen, []);
-  assert.equal(statusOf(next), 'won');
-  assert.equal(playMove(s, {from: 6, over: 8, to: 7}), s);
-});
-
-test('both diagonal axes allow a capture, but the second pollen blocks further landing', () => {
-  const w = 7, h = 7, from = 3*w+3;
-  for (const d of DIRECTIONS) {
-    const over = stepHex(stepHex(from, d, w, h), d, w, h);
-    const to = stepHex(over, d, w, h);
-    assert.notEqual(to, -1);
-    const moves = legalMoves({width:w, height:h, bee:from, pollen:[over]});
-    assert.ok(moves.some(m => m.over === over && m.to === to), `No jump on ${d}`);
-  }
-  const s = {width:7, height:3, bee:7, pollen:[9,11]};
-  assert.deepEqual(legalMoves(s), [{from:7, over:9, to:10}]);
-});
-
-test('five seeded hex boards grow and each has an independently verified winning path', () => {
-  const shapes = [[3,3],[5,5],[7,6],[9,7],[11,9]];
-  LEVELS.forEach((level, i) => {
-    assert.deepEqual([level.width, level.height], shapes[i]);
-    assert.equal(level.pollen.length, LEVEL_SPECS[i].pollen);
-    assert.ok(!level.pollen.includes(level.bee));
-    assert.equal(new Set(level.pollen).size, level.pollen.length);
-    assert.ok(verifyPath(level, level.witness));
-    const solved = solvePuzzle(level);
-    assert.equal(solved.solvable, true, `L${i+1} solver could not win`);
-    assert.equal(solved.truncated, false);
-    assert.equal(solved.moves.length, level.pollen.length);
-    assert.ok(verifyPath(level, solved.moves));
-    assert.deepEqual(generatePuzzle(LEVEL_SPECS[i]), level);
-    if (i) {
-      assert.ok(level.width > LEVELS[i-1].width);
-      assert.ok(level.height > LEVELS[i-1].height);
-      assert.ok(level.pollen.length > LEVELS[i-1].pollen.length);
+test('all 40 published levels have a valid full solution and exact metrics',()=>{
+  assert.equal(LEVELS.length,40);
+  assert.equal(LEVEL_SPECS.length,40);
+  assert.equal(WAVE_NAMES.length,8);
+  for(let i=0;i<40;i++){
+    const level=LEVELS[i],spec=LEVEL_SPECS[i];
+    assert.equal(level.id,i+1);
+    for(const key of ['width','height','pollen']){
+      if(key==='pollen')assert.equal(level.pollen.length,spec.pollen);
+      else assert.equal(level[key],spec[key]);
     }
-  });
-});
-
-test('stuck honeycomb positions have no legal moves; undo can restore state', () => {
-  const s = {width:3, height:3, bee:0, pollen:[8]};
-  assert.equal(statusOf(s), 'stuck');
-  assert.deepEqual(legalMoves(s), []);
-  const first = legalMoves(LEVELS[0])[0];
-  const next = playMove(LEVELS[0], first);
-  assert.notEqual(next, LEVELS[0]);
-  assert.equal(LEVELS[0].pollen.length, next.pollen.length+1);
-});
-
-
-test('seeded random-policy success decreases from tutorial through expert', () => {
-  const winRates = LEVELS.map(level => estimateRandomSuccess(level, 2000, 9000 + level.id));
-  for (let i = 1; i < winRates.length; i++) {
-    assert.ok(winRates[i] < winRates[i - 1], `Level ${i+1} was not harder than ${i} by the proxy`);
+    assert.equal(level.boss,spec.boss);
+    assert.equal(level.wave,Math.floor(i/5));
+    assert.equal(new Set(level.pollen).size,level.pollen.length);
+    assert.ok(!level.pollen.includes(level.bee));
+    assert.ok(level.pollen.every(p=>p>=0&&p<level.width*level.height));
+    assert.ok(legalMoves(level).length>0);
+    const solved=solvePuzzle(level,{maxStates:150000});
+    assert.ok(solved.solvable&&!solved.truncated,`Level ${level.id} not solvable`);
+    assert.equal(solved.moves.length,level.pollen.length);
+    assert.ok(verifyPath(level,solved.moves));
+    const exact=evaluatePuzzle(level,{maxStates:200000});
+    assert.ok(exact.exact,`Level ${level.id} exceeded exact state budget`);
+    assert.deepEqual(exact,level.metrics,`Level ${level.id} metrics drifted`);
+    if(i>0&&i%5!==0)assert.ok(level.metrics.difficulty>LEVELS[i-1].metrics.difficulty,
+      `Difficulty did not rise between ${i} and ${i+1}`);
+    if(i>0&&i%5===0)assert.ok(level.metrics.difficulty<LEVELS[i-1].metrics.difficulty,
+      `Level ${i+1} should be a breather after the preceding wave boss`);
   }
 });
-
-test('landings are available immediately without selecting pollen or requesting a hint', () => {
-  for (const level of LEVELS) {
-    const moves = legalMoves(level);
-    assert.ok(moves.length, 'Each level must offer a playable opening');
-    assert.deepEqual(selectableMoves(moves), moves, 'All legal landing hexes must be shown by default');
-    const directMove = selectableMoves(moves)[0];
-    const after = playMove(level, directMove);
-    assert.equal(after.pollen.length, level.pollen.length - 1, 'Tap-to-land must capture pollen without a hint');
-    const focused = selectableMoves(moves, directMove.over);
-    assert.ok(focused.length > 0);
-    assert.ok(focused.every(move => move.over === directMove.over));
-    assert.deepEqual(selectableMoves(moves, -1), []);
-    assert.deepEqual(selectableMoves(moves, null), moves, 'Tap the bee to restore all landing choices');
+test('board grows only at wave boundaries after the five-level onboarding',()=>{
+  assert.deepEqual([LEVELS[0].width,LEVELS[0].height],[3,3]);
+  assert.ok(LEVELS.slice(1,5).every(l=>l.width===4&&l.height===4));
+  const sizes=[[5,5],[6,5],[7,6],[8,7],[9,7],[10,8],[11,9]];
+  for(let wave=1;wave<8;wave++){
+    const slice=LEVELS.slice(wave*5,wave*5+5);
+    assert.ok(slice.every(l=>l.width===sizes[wave-1][0]&&l.height===sizes[wave-1][1]));
+    assert.ok(slice.slice(0,4).every(l=>!l.boss));
+    assert.equal(slice[4].boss,true);
+    assert.ok(slice[4].metrics.difficulty>slice[3].metrics.difficulty);
   }
+});
+test('generator deterministically constructs and verifies an unscripted puzzle',()=>{
+  const spec=LEVEL_SPECS[2];
+  const a=generatePuzzle(spec,{candidates:40});
+  const b=generatePuzzle(spec,{candidates:40});
+  assert.deepEqual(a,b);
+  assert.ok(verifyPath(a,a.witness));
+  assert.ok(verifyPath(a,a.solution));
+  assert.ok(a.metrics.exact);
 });

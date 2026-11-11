@@ -8,3 +8,22 @@
 @keyframes bh-pulse{50%{filter:brightness(1.11) drop-shadow(0 0 4px #3aae8a)}}@keyframes bh-target{50%{filter:brightness(1.13) drop-shadow(0 0 5px #f4b140)}}@keyframes bh-buzz{0%{transform:scale(.65) rotate(-15deg)}65%{transform:scale(1.12) rotate(5deg)}100%{transform:scale(1) rotate(0)}}
 @media(max-width:410px){.bh-app{padding:0}.bh-shell{border-radius:0;min-height:100dvh;padding:12px 10px 20px}.bh-board-outer{padding:5px;border-width:2px}.bh-heading{margin-top:17px}.bh-heading h1{font-size:25px}.bh-board-top{font-size:9px;letter-spacing:.6px}.bh-landing-dot{box-shadow:0 0 0 2px #cef8df}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+
+/* 40-level wave progression, optional zoom, and spoiler-free analysis panel */
+.bh-wave-navigation{display:flex;gap:8px;align-items:center;justify-content:space-between;border:1px solid #dbc998;background:linear-gradient(120deg,#fff6d5,#efe1b1);padding:6px;border-radius:13px;margin:0 0 11px}
+.bh-wave-navigation button{border:1px solid #d0bc8a;background:#fff9e6;color:#66502a;border-radius:10px;min-width:36px;height:38px;font-size:25px;cursor:pointer}
+.bh-wave-navigation button:disabled{opacity:.3;cursor:default}
+.bh-wave-navigation span{display:flex;flex-direction:column;align-items:center;gap:2px;color:#69502f;text-align:center;min-width:0}
+.bh-wave-navigation strong{font-size:13px;letter-spacing:.2px}.bh-wave-navigation small{font-size:10px;color:#968157}
+.bh-level-tabs button.boss{border-color:#d2a44c;color:#aa6f24}.bh-level-tabs button.boss.active{background:#d69b31;color:#fff}
+.bh-level-badge.bh-boss{background:#f6cb60;border-color:#cf9737}
+.bh-board-scroll{overflow-x:auto;overflow-y:hidden;scrollbar-color:#a9834b transparent;scrollbar-width:thin}
+.bh-board-scroll .bh-board{flex-shrink:0}
+.bh-zoom-control{display:block;margin:9px auto 0;border:1px solid #a7792b;border-radius:12px;color:#5d481c;background:#ffe7a5;padding:7px 11px;font-size:11px;font-weight:800;cursor:pointer}
+.bh-analysis{border:1px solid #dbc998;border-radius:14px;background:#fff6d9;padding:11px 14px;margin-top:18px;color:#6e6041}
+.bh-analysis summary{cursor:pointer;font-size:12px;font-weight:850;color:#7e6635}
+.bh-analysis-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
+.bh-analysis-grid>div{background:#fffdf0;border:1px solid #e1d5b5;border-radius:9px;padding:9px;display:grid;gap:3px}
+.bh-analysis-grid span{font-size:10px;color:#8e805b}.bh-analysis-grid strong{font-size:17px;color:#5b663e}
+.bh-analysis p{font-size:11px;line-height:1.55;color:#8d8164}
+@media(max-width:410px){.bh-wave-navigation strong{font-size:12px}.bh-wave-navigation small{font-size:9px}.bh-analysis-grid strong{font-size:15px}}

@@ -1,54 +1,61 @@
-# Bee Hop — Honeycomb Trail (six-direction prototype)
+# Bee Hop — Honeycomb Puzzle Design (40-level prototype)
 
-Standalone mobile-first puzzle in Card Game Lab: `bee-hop.html`.
-No shared game code or production flows for Overswing or Swing Casual are modified.
+Playable page: `bee-hop.html` (GitHub Pages: `https://umuterturk.github.io/card-game-lab/bee-hop.html`). This remains isolated from Overswing, Swing Casual and the Card Game Lab catalog.
 
 ## Gameplay
 
-- **One bee** on a staggered, pointy-top honeycomb grid of `width × height` hexagonal cells.
-- Movement uses six directions along the three hexagonal axes (axial coordinates); there are **no square/cardinal movements**.
-- The bee may travel through any number of empty hexes *before* a pollen flower.
-- Every move must jump **exactly one pollen**; a second pollen blocks the continuation of that jump.
-- The player chooses **any unoccupied hex beyond that pollen** on the same straight ray, up to the next pollen or board edge. They are not forced to land immediately behind it.
-- The crossed pollen disappears. The level is won only after collecting *all* pollen. If no capture is possible, the player must undo or restart.
-- Touch interaction: tap a glowing pollen target, then tap a green landing hex. The solver hint highlights a flower and a winning landing. Undo and restart are available.
-- No magic cards, money, lives, scores or random movement: this iteration isolates the six-direction landing puzzle.
+One bee explores an odd-row-offset rectangular honeycomb. Its movement is computed in **six axial directions**. Every move crosses exactly one pollen flower. The bee may pass over empty cells before the first pollen and may land on **any empty cell after** that pollen, until the next pollen or board edge. A capture removes one pollen. Collect all pollen to win; getting stuck means undoing or restarting.
 
-## Correct hexagon coordinates
+Legal landing positions are visible and clickable **without Hint**. Tapping a pollen filters the landings to that capture, and tapping the bee resets the filter. Undo, Restart and a one-move solver Hint are available. A zoom control on larger boards helps mobile tapping.
 
-Use **odd-r offset** coordinates to draw a rectangular honeycomb with odd rows shifted half a hex right; all gameplay movement uses **axial** coordinates to avoid parity errors:
+## Design: 40 levels, 8 waves of 5
 
-- Indexed position: `row = floor(cell / width)`, `column = cell % width`.
-- Convert to axial: `q = column - floor(row / 2)`, `r = row`.
-- Directions `(dq, dr)` are `(1,0), (0,1), (-1,1), (-1,0), (0,-1), (1,-1)`.
-- Convert back: `column = q + floor(r / 2)`. Out-of-range columns or rows terminate the ray.
+- **Levels 1–5**: linear onboarding. Level 1 starts at 3×3. The remaining tutorial levels are 4×4: a 3×3 hex grid has too few distinct solvable multi-capture challenges to teach five distinct difficulty steps.
+- **Levels 6–10**: Wave 1, 5×5.
+- **Levels 11–15**: Wave 2, 6×5.
+- **Levels 16–20**: Wave 3, 7×6.
+- **Levels 21–25**: Wave 4, 8×7.
+- **Levels 26–30**: Wave 5, 9×7.
+- **Levels 31–35**: Wave 6, 10×8.
+- **Levels 36–40**: Wave 7, 11×9.
 
-The UI draws matching pointy-top hexagons with centers offset by half a column on odd rows, vertically spaced by 75% of hex height.
+After onboarding, board size remains **constant throughout each five-level wave**. A wave boss appears at levels **10, 15, 20, 25, 30, 35, and 40**. The exact difficulty index increases within each wave, peaks at its boss, then decreases at the beginning of the next larger-board wave, while the wave baseline trends upward.
 
-## Solvable generation and difficulty
+All 40 puzzles are fixed, reproducible, and solver-certified. Their coordinates and exact analyses are stored in `src/bee-hop/levels.generated.js`. The engine does **not** generate hundreds of candidates on every page load.
 
-`src/bee-hop/puzzle.js` is a pure module exporting `stepHex`, `legalMoves`, `playMove`, `statusOf`, `solvePuzzle`, `generatePuzzle`, `verifyPath`, and the five generated levels.
+## Generator
 
-The generator **reverse-builds a winning path** from a final bee position. For each backward jump it adds one previously absent pollen along an empty axial segment and moves the bee to a new predecessor. The reversed sequence is a constructive solvability witness. An independent memoized DFS forward solver checks each chosen puzzle before it can be used.
+Files:
 
-For difficulty, the candidate sampler (120 deterministic attempts per level) selects among valid layouts using an estimated random-policy success rate and available opening choices. Difficulty is designed to rise across the five levels, but this is a **heuristic, not human playtesting**. A separate seeded evaluation of 25,000 random plays per level yields:
+- `src/bee-hop/rules.js`: immutable movement, captures and solvability solver.
+- `src/bee-hop/puzzleEvaluator.js`: exhaustive dynamic-programming decision DAG.
+- `src/bee-hop/generator.js`: seeded backward construction and candidate scoring.
+- `src/bee-hop/levelSpecs.js`: 40 level design targets and wave definitions.
+- `src/bee-hop/levels.generated.js`: committed static results.
+- `scripts/generate-bee-hop-levels.mjs`: offline reproducible generation script.
 
-| Level | Dimensions | Pollen | Seed | Random-play wins |
-| --- | --- | ---: | ---: | ---: |
-| 1: First Flight | 3×3 | 2 | 101 | 100.0% |
-| 2: Sunny Meadow | 5×5 | 4 | 202 | 44.0% |
-| 3: Crosswinds | 7×6 | 6 | 303 | 12.7% |
-| 4: Clover Maze | 9×7 | 9 | 404 | 2.2% |
-| 5: Golden Orchard | 11×9 | 12 | 505 | 0.3% |
+Every proposed puzzle is built **backward from a successful capture sequence**. The exact evaluator then traverses the forward state DAG and counts routes. A final independent solver verifies the winning path. Generation never accepts truncated metrics or an unverified puzzle.
 
-The statistics are reproducible, not predictive of real human success. A human who understands the puzzle should fare better than a random actor.
+## Exact difficulty analysis
 
-## Verification
+A state is `{bee position, set of remaining pollen}`. Capturing one pollen on every move makes the state graph acyclic. Subproblems are memoized, and `BigInt` counts sequences exactly.
 
-`node --test tests/bee-hop.test.mjs` checks: six-direction movement and reversibility, hex axis jumping, selectable landing distances, blocked jumps, all five fixed sizes and increasing pollen counts, deterministic regeneration, witness paths, and independently solved winning routes.
+- **Legal landings:** All landing cells permitted by the six-direction rules.
+- **Immediate continuations:** Legal landings that reach the winning state or leave at least one next legal move. A final winning move is therefore *not* incorrectly excluded.
+- **Winning routes:** Distinct complete sequences of captured pollen and landing cells that clear the board. This is an exact count of winning paths, not merely unique final states.
+- **Real paths:** Distinct continuation trajectories after pruning immediate dead-end moves; a state where no moves can continue contributes one endpoint. This includes extended traps that only become obvious after further moves.
+- **Total paths:** All distinct terminal sequences, including immediately fatal moves.
+- **Forks:** Reachable states containing at least two immediate continuations.
+- **Traps:** Continuation moves that ultimately cannot win, plus the depth reached along failed routes.
 
-To modify difficulty, change a `seed` or `pollen` in `LEVEL_SPECS`; rerun tests. The level is only published when the independent solver validates it.
+The **difficulty index** weighs pollen count, the ratio of real paths to winning routes, decision forks, and trap depth. This is a deterministic level-design proxy—not a measured human first-try success rate. Onboarding and waves are selected to rise monotonically on this index within each group, with easier starts after bosses.
 
-## Open UX issue
+## Tests and validation
 
-A complete 11-column board on a narrow phone makes individual hex tap targets small. Two-step target/landing selection helps avoid unintended captures; future work should evaluate a board zoom or a large-hit-area interaction if playtesting finds the last level difficult to tap.
+`node --test tests/bee-hop.test.mjs` checks all 40 levels: solvability, exact metric parity, distinct pollen, progressive difficulty, wave boundaries and bosses, direct landing without Hint, and a handcrafted six-landings/two-continuations example. The exact evaluator is also cross-checked against an independent brute-force sequence enumerator.
+
+The full repository runs `npm test`, `npm run build`, and release checks on GitHub Actions before publishing.
+
+## Future tuning
+
+These exact graph metrics ensure mathematical properties, but a puzzle with fewer winning paths is not necessarily harder for human players. Collect human playtest telemetry: success without hints, retries, move reversals, time to first meaningful action, hint requests and drop-offs. Then recalibrate the score, and consider semantic equivalence of different landing routes (same pollen capture order) as an additional optional metric. Avoid adding power-ups before the basic route-planning loop proves engaging.
